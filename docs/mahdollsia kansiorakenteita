@@ -1,0 +1,75 @@
+Se erottaa endpointit, liiketoimintalogiikan ja datan lukemisen, jolloin endpointtia tekevä ryhmäläinen ja kysymyksiä tekevä ryhmäläinen voivat tehdä töitä rinnakkain.
+HackathonEspoo/
+├── backend/
+│   ├── pyproject.toml
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── mallit.py
+│   │   ├── api/
+│   │   │   └── reitit/
+│   │   │       ├── muutokset.py
+│   │   │       └── kysymykset.py
+│   │   ├── data/
+│   │   │   ├── adapteri.py
+│   │   │   └── synthea.py
+│   │   ├── muutokset/
+│   │   │   └── tunnistus.py
+│   │   ├── kysymykset/
+│   │   │   ├── palvelu.py
+│   │   │   └── pohjat.py
+│   │   ├── puhelu/
+│   │   ├── triage/
+│   │   └── hoitaja/
+│   └── tests/
+│       ├── test_muutokset.py
+│       └── test_kysymykset.py
+├── frontend/
+│   └── src/
+│       ├── api/
+│       ├── komponentit/
+│       └── nakymat/
+├── data/
+│   └── csv/
+├── docker/
+├── docker-compose.yml
+└── docker-compose.dev.yml
+
+
+AI:ta käytetään kysymysten lisäksi puhelukeskusteluun tai litteroinnin tiivistämiseen, sen voi erottaa esimerkiksi näin:
+
+app/
+├── kysymykset/
+│   ├── palvelu.py       # valitsee kysymykset muutoksen perusteella
+│   └── pohjat.py        # turvalliset valmiit kysymyspohjat
+├── tekoaly/
+│   ├── asiakas.py       # yhteys hyväksyttyyn EU-alueen LLM-palveluun
+│   └── kehotteet.py     # keskustelun ja tiivistyksen ohjeet
+└── puhelu/
+    └── agentti.py       # käyttää puhe- ja tekoälypalveluja
+
+
+vuorovaikutteista keskustelua: kuunnella asiakkaan vastaus, ymmärtää se ja muodostaa siihen sopiva seuraava vastaus tai kysymys. Aiempi ehdotukseni oli tähän liian rajattu.
+
+Kansiorakenne voisi olla esimerkiksi:
+
+app/
+├── puhelu/                  # Twilio, STT ja TTS
+├── keskustelu/
+│   ├── palvelu.py           # keskusteluvuoron ohjaus
+│   └── konteksti.py         # keskustelussa tarvittava rajattu tieto
+├── tekoaly/
+│   ├── asiakas.py           # yhteys hyväksyttyyn EU-alueen LLM:ään
+│   ├── kehotteet.py         # keskustelun ohjeet
+│   └── mallit.py            # LLM-vastauksen rakenteen validointi
+├── kysymykset/
+│   └── pohjat.py            # aloituskysymykset muutostyypeittäin
+└── triage/
+    └── punaiset_liput.py    # deterministinen hätäoireiden tunnistus
+
+keskustelun rakenne esim:
+
+ääni → litterointi → punalippujen tarkistus
+     → keskustelupalvelu + LLM
+     → vastauksen tarkistus
+     → puheeksi muutettu vastaus → ääni
