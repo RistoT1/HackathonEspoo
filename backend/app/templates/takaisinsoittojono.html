@@ -1,0 +1,100 @@
+{% extends "perus.html" %}
+
+{% block title %}Takaisinsoittojono{% endblock %}
+
+{% block content %}
+<section class="sivun-otsikko">
+  <div class="sivun-otsikko-tekstit">
+    <p class="ylateksti">HOITAJAN TYÖJONO</p>
+    <h1>Takaisinsoittojono</h1>
+    <p class="toissijainen">Puheluissa tunnistetut asiat hoitajan arvioitavaksi.</p>
+  </div>
+  <a class="painike painike-toissijainen" href="/hoitaja/">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 8A6.5 6.5 0 0 0 5 4.5L3.5 6"/><path d="M3.5 2.8V6H6.7M3.5 12A6.5 6.5 0 0 0 15 15.5l1.5-1.5"/><path d="M16.5 17.2V14h-3.2"/></svg>
+    Päivitä jono
+  </a>
+</section>
+
+<section class="mittaririvi" aria-label="Jonon yhteenveto">
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-avoin" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5zM8 9h8M8 12h8M8 15h5"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Avoinna</span>
+      <strong>{{ tapaukset | selectattr("tila", "equalto", "Avoin") | list | length }}</strong>
+    </span>
+    <span class="mittari-kuvaus">odottaa käsittelyä</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-kiireellinen" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 3.5 21 20H3L12 3.5Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Välitön huomio</span>
+      <strong>{{ tapaukset | selectattr("kiireellisyys", "equalto", "Punainen") | list | length }}</strong>
+    </span>
+    <span class="mittari-kuvaus">punaisen kiireellisyyden tapausta</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-valmis" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Käsitelty</span>
+      <strong>{{ tapaukset | selectattr("tila", "ne", "Avoin") | list | length }}</strong>
+    </span>
+    <span class="mittari-kuvaus">hoitajan merkitsemää tapausta</span>
+  </article>
+</section>
+
+<section class="kortti jonokortti">
+  <div class="kortin-otsikko">
+    <div>
+      <h2>Jonossa</h2>
+      <p class="toissijainen">Järjestetty kiireellisyyden mukaan</p>
+    </div>
+    <span class="tapausmaara">{{ tapaukset | length }} tapausta</span>
+  </div>
+  {% if tapaukset %}
+  <div class="taulukko-sailio">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Kiireellisyys</th>
+          <th scope="col">Tapaus</th>
+          <th scope="col">Puhelun yhteenveto</th>
+          <th scope="col">Saapumisaika</th>
+          <th scope="col">Käsittely</th>
+          <th scope="col"><span class="sr-only">Toiminto</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tapaus in tapaukset %}
+        <tr>
+          <td><span class="merkki merkki-{{ tapaus.kiireellisyys | lower }}"><span class="merkki-piste"></span>{{ tapaus.kiireellisyys }}</span></td>
+          <td><span class="tunniste">{{ tapaus.tunniste }}</span><span class="tunniste-ala">Synteettinen tunniste</span></td>
+          <td>
+            <span class="yhteenveto-otsikko">{{ tapaus.otsikko }}</span>
+            <span class="yhteenveto-kuvaus">{{ tapaus.yhteenveto }}</span>
+          </td>
+          <td class="aikaleima">{{ tapaus.saapunut }}</td>
+          <td><span class="tilamerkki {% if tapaus.tila == 'Avoin' %}tilamerkki-avoin{% else %}tilamerkki-valmis{% endif %}">{{ tapaus.tila }}</span></td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/{{ tapaus.tunniste }}">Tarkastele <span aria-hidden="true">→</span></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="tyhja-tila">
+    <span class="tyhja-kuvake" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5zM8 9h8M8 12h8M8 15h5"/></svg>
+    </span>
+    <h3>Jono on tällä hetkellä tyhjä</h3>
+    <p>Uudet puheluiden yhteenvedot ilmestyvät tähän hoitajan arvioitavaksi.</p>
+  </div>
+  {% endif %}
+</section>
+<p class="nakyma-huomio">Automaattinen arvio tukee käsittelyä. Hoitaja tekee jatkopäätöksen.</p>
+{% endblock %}

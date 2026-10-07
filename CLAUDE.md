@@ -64,7 +64,7 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 
 # Backend (backend/)
 # Asennus:  uv sync   (tai pip install -r requirements.txt)
-# Aja:      uvicorn app.main:app --reload --port 8000
+# Aja:      uvicorn app.main:sovellus --reload --port 8000
 # Testit:   pytest
 # Lint:     ruff check . && ruff format .
 # wss ulos devissä:  ngrok http 8000   (Twilio tarvitsee julkisen wss-osoitteen)
