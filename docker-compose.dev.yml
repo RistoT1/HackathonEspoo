@@ -1,0 +1,41 @@
+# Dev-lisaosa: pgAdmin + synteettisen demodatan lataus. VAIN KEHITYKSEEN, EI KOSKAAN TUOTANTOON.
+#
+# Aja:  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# pgAdmin: http://127.0.0.1:5050  (tunnukset .env:sta)
+#
+# Demodata (data/csv/*.csv, synteettinen) ladataan skeemaan "demo" VAIN kun tietokanta
+# alustetaan ensimmaisen kerran (tyhja volyymi). Uudelleenlataus:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v   (poistaa datan!)
+
+services:
+  postgres:
+    volumes:
+      - ./docker/postgres/init-dev:/docker-entrypoint-initdb.d:ro
+      - ./data/csv:/demodata:ro
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?aseta PGADMIN_EMAIL .env-tiedostoon}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?aseta PGADMIN_PASSWORD .env-tiedostoon}
+      # Kirjautuminen pakollinen myos devissa (server mode), ei tallenneta salasanoja.
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "True"
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
+      PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED: "False"
+      PGADMIN_DISABLE_POSTFIX: "true"
+    # Vain localhost.
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - tietokanta
+
+volumes:
+  pgadmin:

@@ -1,0 +1,35 @@
+# Paikallinen kehitystietokanta (Postgres). EI TUOTANTOON.
+# Tuotannossa: Azure Database for PostgreSQL, Sweden Central (ks. SAANTELY.md).
+#
+# Aja:  docker compose up -d
+# Salasanat tulevat .env:stä (kopioi .env.example -> .env). Ilman niitä compose ei kaynnisty.
+
+name: hyvinvointi
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hyvinvointi}
+      POSTGRES_USER: ${POSTGRES_USER:-hyvinvointi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?aseta POSTGRES_PASSWORD .env-tiedostoon}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    # Vain localhost: portti ei nay lahiverkkoon (esim. hackathonin wifi).
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - tietokanta
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+
+networks:
+  tietokanta:

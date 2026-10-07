@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "hyvinvointi (dev)",
+      "Group": "Dev",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "hyvinvointi",
+      "Username": "hyvinvointi",
+      "SSLMode": "prefer"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+# Salaisuudet
+.env
+.env.*
+!.env.example
+
+# Data: iso (~80 Mt) ja Veil.AI-datan kayttoehdot -> ei repoon. Jaa tiimin kesken erikseen.
+data/csv/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.sqlite3
+*.db
+
+# Node
+node_modules/
+dist/
+
+# Kayttojarjestelma / editorit
+.DS_Store
+.idea/
+.vscode/
