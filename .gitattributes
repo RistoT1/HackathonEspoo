@@ -1,0 +1,2 @@
+# Shell-skriptit aina LF:lla, muuten Postgresin init-skripti kaatuu Windows-checkoutissa
+*.sh text eol=lf

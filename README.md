@@ -80,6 +80,41 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
   käynnistyksellä. Uudelleenlataus: `... down -v` ja `up` uudelleen (poistaa kaiken datan).
 - Pelkkä tietokanta ilman pgAdminia: `docker compose up -d`.
 
+### Tietokannan alustus (uusi kone / tiimiläinen)
+
+Edellytykset: Docker Desktop käynnissä, synteettiset CSV:t kansiossa `data/csv/`
+(eivät tule gitistä, pyydä tiimiltä), portit 5432 ja 5050 vapaina.
+
+```bash
+# 1. .env satunnaisilla salasanoilla (sama salasana POSTGRES_PASSWORD:iin ja DATABASE_URL:iin)
+PG=$(openssl rand -hex 16); PA=$(openssl rand -hex 16)
+sed -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$PG/" \
+    -e "s#^DATABASE_URL=.*#DATABASE_URL=postgresql+psycopg://hyvinvointi:$PG@127.0.0.1:5432/hyvinvointi#" \
+    -e "s/^PGADMIN_PASSWORD=.*/PGADMIN_PASSWORD=$PA/" .env.example > .env
+chmod 600 .env
+
+# 2. Käynnistä; ensimmäinen käynnistys alustaa kannan ja lataa demodatan
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait
+
+# 3. Tarkista: 16 taulua ladattu, potilaita > 0
+docker compose logs postgres | grep demodata
+docker compose exec postgres psql -U hyvinvointi -d hyvinvointi -c "select count(*) from demo.patients"
+```
+
+Mitä alustuksessa tapahtuu: Postgres luo tietokannan ja käyttäjän `.env`:n arvoilla, sitten
+ajaa `docker/postgres/init-dev/`-skriptit. Skripti luo skeeman `demo` ja jokaisesta CSV:stä
+taulun (nimi tiedostosta, sarakkeet otsakeriviltä, kaikki TEXT).
+
+**Alustus ajetaan vain kerran, tyhjään volyymiin.** Siksi:
+- Uusi data (esim. Veil.AI 13.10.) tai muutettu init-skripti: vaihda CSV:t `data/csv/`:hen ja
+  nollaa kanta: `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v`, sitten `up` uudelleen.
+- `POSTGRES_PASSWORD`:n vaihtaminen `.env`:ssä jälkikäteen EI muuta kannan salasanaa. Nollaa
+  kanta (`down -v`) tai vaihda salasana SQL:llä (`ALTER USER hyvinvointi PASSWORD '...'`).
+- `down -v` poistaa myös sovelluksen omat taulut (jono, triage) ja pgAdminin asetukset.
+
+Vianetsintä: `docker compose logs postgres` näyttää init-skriptin virheet. Jos alustus kaatui
+puolivälissä, kanta jää vajaaksi: korjaa syy ja aja `down -v` + `up`.
+
 Miksi tämä on turvallinen dev-tapa: portit vain `127.0.0.1`:ssä (ei näy lähiverkkoon),
 ei oletussalasanoja (compose kaatuu ilman `.env`:iä), pgAdmin kirjautumisen takana,
 vain synteettistä dataa, kiinnitetyt image-versiot. Tuotannossa ei composea eikä pgAdminia:
