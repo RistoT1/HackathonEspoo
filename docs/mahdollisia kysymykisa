@@ -1,0 +1,121 @@
+# Mahdollisia kysymyksiä ja keskustelun esimerkkejä
+
+Tämä on esimerkkipankki puhelun keskustelulle. AI voi muodostaa asiakkaan vastaukseen
+sopivan jatkovastauksen ja yhden jatkokysymyksen. Alla olevat kysymykset eivät ole
+diagnooseja tai lääkeohjeita. Tavoite on kuunnella, selvittää tilanne lyhyesti ja välittää
+olennainen tieto hoitajalle.
+
+## Keskustelun perusrunko
+
+1. Kerro heti, että soittaja on tekoäly, ja kerro lyhyesti puhelun syy.
+2. Kysy yksi asia kerrallaan. Käytä rauhallista, selkeää kieltä ja anna aikaa vastata.
+3. Vastaa asiakkaan sanomaan lyhyesti ja empaattisesti.
+4. Kysy enintään yksi tilanteeseen liittyvä jatkokysymys kerrallaan.
+5. Tee lopuksi lyhyt yhteenveto ja kerro, että välität asian hoitajalle.
+
+Esimerkkialoitus:
+
+> Hei, olen hyvinvointipalvelun tekoälysoittaja. Soitan, koska tietoihisi on tullut
+> lääkemerkintä. Varmistan pari asiaa voinnistasi ja välitän tarvittaessa tiedon hoitajalle.
+> Sopiiko, että kysyn?
+
+## Uusi lääkemerkintä
+
+**Aloituskysymys**
+
+> Tietojemme mukaan sinulle on merkitty uusi lääke. Oletko aloittanut sen käytön?
+
+**Jos asiakas kertoo aloittaneensa**
+
+> Miten lääkkeen aloittaminen on sujunut?
+
+Tarvittaessa:
+
+> Onko voinnissasi tapahtunut muutoksia sen jälkeen, kun aloitit lääkkeen?
+
+**Jos asiakas ei ole aloittanut**
+
+> Onko jokin estänyt tai huolestuttanut lääkkeen aloittamisessa?
+
+Tarvittaessa:
+
+> Haluatko, että hoitaja käy asian kanssasi läpi?
+
+**Jos asiakas kertoo haitasta tai huolesta**
+
+> Ikävä kuulla, että tämä huolestuttaa. Milloin huomasit muutoksen voinnissasi?
+
+Tarvittaessa:
+
+> Haluatko kertoa vielä, miten se vaikuttaa arkeesi?
+
+Älä pyydä asiakasta muuttamaan annosta, lopettamaan lääkettä tai aloittamaan sitä.
+Välitä lääkehoitoa koskevat huolet hoitajalle.
+
+## Lääkkeen saaminen tai käytössä pysyminen
+
+> Onko sinulla lääkettä tällä hetkellä riittävästi?
+
+Jos ei:
+
+> Tiedätkö, mikä on vaikeuttanut lääkkeen saamista?
+
+> Haluatko, että hoitaja ottaa tämän kanssasi puheeksi?
+
+Älä lupaa reseptin uusimista tai lääkkeen toimitusta.
+
+## Muu voinnin muutos
+
+> Miten voit tänään?
+
+Jos asiakas mainitsee muutoksen:
+
+> Milloin huomasit tämän ensimmäisen kerran?
+
+> Onko vointi muuttunut sen jälkeen parempaan, huonompaan vai pysynyt ennallaan?
+
+> Haluatko, että hoitaja soittaa sinulle tästä?
+
+## Jos asiakas ei tiedä tai ei halua vastata
+
+> Ei haittaa, sinun ei tarvitse vastata. Haluatko, että hoitaja ottaa sinuun yhteyttä?
+
+Jos asiakas ei halua jatkaa:
+
+> Ymmärrän. Lopetan puhelun ja välitän hoitajalle tiedon, ettet halunnut jatkaa nyt.
+
+Älä painosta asiakasta vastaamaan. Kirjaa vain tarpeellinen tieto.
+
+## Jos vastaus ei ole ymmärrettävä
+
+> Anteeksi, en saanut aivan selvää. Voisitko sanoa sen vielä omin sanoin?
+
+Jos vastausta ei edelleenkään ymmärretä:
+
+> En halua ymmärtää väärin. Välitän asian hoitajalle, jotta hän voi varmistaa sen kanssasi.
+
+## Kiireelliset oireet
+
+Rintakipu, voimakas hengenahdistus ja halvausoireet tunnistetaan erillisillä
+sääntöpohjaisilla tarkistuksilla myös kesken vapaan keskustelun. Tällöin tavallinen
+keskustelupolku keskeytetään ja asiakkaalle kerrotaan selkeästi:
+
+> Tämä voi olla kiireellinen tilanne. Soita heti hätänumeroon 112.
+
+AI ei saa jäädä kyselemään lisätietoja ennen tätä ohjausta eikä luottaa yksin LLM:n
+arvioon. Kiireellinen ilmoitus välitetään myös hoitajan jonoon sovitun toimintatavan mukaan.
+
+## Keskustelun lopetus
+
+> Kiitos kun kerroit. Välitän nämä tiedot hoitajalle. Hän arvioi, tarvitseeko hän soittaa
+> sinulle. En voi antaa lääke- tai hoito-ohjeita puhelimessa.
+
+## Toteutusmuistio
+
+- Lähetä LLM:lle vain keskustelun kannalta tarpeellinen, pseudonymisoitu tieto.
+- Älä lähetä nimeä, henkilötunnusta tai koko lääkehistoriaa.
+- Runtime-LLM:n tulee olla projektin hyväksymässä EU-ympäristössä.
+- LLM muodostaa keskusteluvastauksen, mutta ei päätä kiireellisyydestä eikä anna diagnoosia
+  tai lääkeohjetta.
+- Tallenna vain hoitajan työn kannalta olennainen yhteenveto, ei raakaa rupattelua tai ääntä.
+- Kysymykset ovat esimerkkejä; ne pitää testata synteettisillä keskusteluilla ennen demoa.

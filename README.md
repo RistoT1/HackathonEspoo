@@ -49,7 +49,7 @@ sääntöpohjaisesti reaaliajassa.
 | Osa | Valinta | Status |
 |---|---|---|
 | Backend | Python 3.12 + FastAPI + Uvicorn | lukittu |
-| Frontend | Vue 3 + Vite + Pinia + Tailwind | lukittu |
+| Käyttöliittymä | FastAPI + Jinja2 HTML-pohjat, CSS ja tarvittaessa pieni määrä JavaScriptiä | Python-sovelluksen yhteydessä |
 | Puhelu ulos | Twilio Programmable Voice + Media Streams (mulaw/8000/mono/base64) | lukittu |
 | Ääniagentti | Polku A: Azure Speech fi-FI -putki (STT → LLM → TTS). Polku B (venytys): Azure OpenAI Realtime | lukittu |
 | Suomen puhe | Azure STT fi-FI + TTS `fi-FI-SelmaNeural`, ulostulo `Raw8Khz8BitMonoMulaw` | TESTATTAVA viikolla |
@@ -224,7 +224,7 @@ parempi kuin viisi puolivalmista.
 
 ### E. Päätettävät valinnat
 - [x] Ääni: Polku A = Azure Speech fi-FI -putki (lukittu). Polku B = venytys jos suomi testaa hyvin.
-- [x] Backend FastAPI, frontend Vue 3, hosting EU (lukittu)
+- [x] Backend ja hoitajan käyttöliittymä Python/FastAPI-sovelluksessa, hosting EU
 - [ ] Mitkä 2–3 laukaisinta demoon (ehdotus: uusi lääke, uusimatta jäänyt resepti, kotiutus)
 - [ ] MDR-rajaus: päätöksen tuki vai avoin IIa-keskustelu pitchissä
 

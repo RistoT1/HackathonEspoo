@@ -38,13 +38,15 @@ Koodi kirjoitetaan **suomeksi**: domain-mallit, DTO:t, reitit ja muuttujanimet s
 - **twilio** (Python SDK) — ulossoitot; Media Streams -ääni websocketilla backendille.
 - **azure-cognitiveservices-speech** — suomen puheentunnistus ja -synteesi (ks. ääni alla).
 - **httpx** (async) — LLM-, UpToDate- ja muut ulkoiset kutsut.
+- **Jinja2** — FastAPI:n palvelinpuolen HTML-pohjat hoitajan käyttöliittymälle.
 - Data: **pandas** CSV/JSON-profiilien lukuun — vain adapterikerroksessa.
 - Lokitus: `structlog` tai stdlib `logging`, JSON. Testit: **pytest** (+ `pytest-asyncio`).
 
-### Frontend (hoitajan näkymä)
-- **Vue 3 + Vite**, **Pinia** (tila), **axios** (API), **Tailwind** (tyylit).
-- Jono = taulukko + detaljinäkymä. Valmis datataulukko (Vuetify/PrimeVue) vain jos tarpeen.
-- Trendikäyrä (vointi ajan yli) = plussaa, ei MVP. Jos teet, ECharts.
+### Käyttöliittymä (hoitajan näkymä)
+- Käyttöliittymä tarjoillaan samasta FastAPI-sovelluksesta Jinja2-pohjilla.
+- Tyylit ja mahdollinen pieni määrä selaimen JavaScriptiä ovat `static/`-kansiossa.
+- Erillistä Vue-/Node-frontend-projektia ei tehdä.
+- Jono = taulukko + tapauskohtainen näkymä. Trendikäyrä on plussaa, ei MVP.
 
 ---
 
@@ -67,11 +69,7 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 # Lint:     ruff check . && ruff format .
 # wss ulos devissä:  ngrok http 8000   (Twilio tarvitsee julkisen wss-osoitteen)
 
-# Frontend (frontend/)
-# Asennus:  npm install
-# Aja:      npm run dev
-# Lint:     npm run lint
-# Testit:   npm run test:unit
+# Käyttöliittymä tarjoillaan backendin kanssa osoitteessa http://127.0.0.1:8000
 ```
 
 ### Docker (vain dev)
