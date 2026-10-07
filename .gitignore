@@ -23,3 +23,8 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Puheavustaja: datasta johdetut profiilit ja puheluiden yhteenvedot (ei repoon)
+puheavustaja/knowledge/soittoprofiilit.json
+puheavustaja/yhteenvedot/
+puheavustaja/aanet/
