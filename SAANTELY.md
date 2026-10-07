@@ -36,7 +36,7 @@ kuin täydellisyyden esittäminen.
 
 ## Työkalukohtainen analyysi — toimi näin
 
-### FastAPI / Vue / Uvicorn / SQLite / Postgres — GDPR-neutraaleja
+### FastAPI / Uvicorn / SQLite / Postgres — GDPR-neutraaleja
 Avoimen lähdekoodin kehyksiä omassa ympäristössä; mikään data ei vuoda kolmannelle vain näitä
 käyttämällä. Compliance riippuu deploymentista: EU-alue, salaus, pääsynhallinta. Tuotannon
 Postgres = Azure Database for PostgreSQL, Sweden Central.
