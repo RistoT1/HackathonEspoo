@@ -5,6 +5,33 @@ Tiimi: Savon Ammattiopisto (Risto, Justus, Jere)
 
 ---
 
+## Sisällys
+
+- [Mitä rakennamme](#mitä-rakennamme)
+  - [Ongelma](#ongelma-haasteen-31-sanoin)
+  - [Mikä tässä on uutta](#mikä-tässä-on-uutta)
+- [Arkkitehtuuri](#arkkitehtuuri)
+- [Tekninen pakki](#tekninen-pakki-lukittavat-valinnat)
+- [Kehitysympäristö (Docker)](#kehitysympäristö-docker)
+  - [Tietokannan alustus](#tietokannan-alustus-uusi-kone--tiimiläinen)
+  - [Backend käyntiin](#backend-käyntiin-migraatioiden-ajo-tärkeä)
+  - [Hoitajan käyttöliittymä](#hoitajan-käyttöliittymään-frontend)
+- [Mitä toimme valmiina](#mitä-toimme-valmiina-pakollinen-kuvaus-palautukseen)
+- [Sääntely lyhyesti](#sääntely-lyhyesti)
+- [Arviointikriteerit](#arviointikriteerit-mihin-tunnit-käytetään)
+- [Tiimi ja vastuut](#tiimi-ja-vastuut)
+- [Hackathon-aikataulu](#hackathon-aikataulu-131410-dipoli-espoo-tilat-auki-818)
+- [Selvitettävää NYT (prep-lista)](#selvitettävää-nyt-prep-lista)
+  - [Hoidettava tänään](#a-hoidettava-tänään-ti-610)
+  - [Ke 7.10.](#b-ke-710)
+  - [Tekninen de-riskkaus](#c-tekninen-de-riskkaus-tällä-viikolla-tärkein-ensin)
+  - [Tilit ja pääsyt](#d-tilit-ja-pääsyt-valmiiksi-tuokaa-mukananne)
+  - [Päätettävät valinnat](#e-päätettävät-valinnat)
+  - [Kysyttävää Felinilta](#f-vielä-felinilta-kysyttävää)
+  - [Pitchiin valmiiksi](#g-pitchiin-valmiiksi-halpoja-vahvoja)
+
+---
+
 ## Mitä rakennamme
 
 Ennakoiva hyvinvointikumppani, joka tunnistaa datasta ihmiset, jotka **eivät itse ota
@@ -149,6 +176,18 @@ uv run uvicorn app.main:app --reload --port 8000
 Tarkista: <http://127.0.0.1:8000/terveys> vastaa `{"tila":"ok"}` ja
 <http://127.0.0.1:8000/docs> näyttää reitit. Soittojono: `GET /puhelutehtavat`
 (tai käsin `POST /puhelutehtavat/tunnista` bodylla `{}`).
+
+### Hoitajan käyttöliittymään (frontend)
+
+Käyttöliittymä tarjoillaan samasta FastAPI-backendistä, joten erillistä frontend-palvelinta
+ei tarvitse käynnistää. Kun backend on käynnissä, avaa selaimessa:
+
+- Hoitajan näkymä: <http://127.0.0.1:8000/hoitaja/>
+- Swagger-rajapinta: <http://127.0.0.1:8000/docs>
+
+Hoitajan näkymä näyttää tietokannan soittojonon. Jos sivu ei aukea, varmista ensin, että
+backendin käynnistyskomento on edelleen käynnissä eikä terminaalissa näy virhettä. Tarkista
+myös, että Postgres on käynnissä ja migraatiot on ajettu yllä olevien ohjeiden mukaan.
 
 Kun joku on lisännyt uuden migraation (git pull): aja `uv run alembic upgrade head`
 tai käynnistä backend uudelleen. Kanta sekaisin devissä: nollaa koko kanta
