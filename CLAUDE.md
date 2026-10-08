@@ -38,6 +38,10 @@ Koodi kirjoitetaan **suomeksi**: domain-mallit, DTO:t, reitit ja muuttujanimet s
 - **twilio** (Python SDK) — ulossoitot; Media Streams -ääni websocketilla backendille.
 - **azure-cognitiveservices-speech** — suomen puheentunnistus ja -synteesi (ks. ääni alla).
 - **httpx** (async) — LLM-, UpToDate- ja muut ulkoiset kutsut.
+- **Runtime-LLM (puhelun keskustelu)**: demossa **paikallinen malli Ollamalla**, kutsu
+  OpenAI-yhteensopivaa rajapintaa vasten (`LLM_BASE_URL`, `LLM_MALLI` `.env`:stä). Tuotannossa
+  sama koodi EU-hostattuun malliin (esim. Azure OpenAI EU Data Zone) pelkällä asetusmuutoksella.
+  Älä koodaa minkään yksittäisen palveluntarjoajan SDK:ta vasten.
 - **Jinja2** — FastAPI:n palvelinpuolen HTML-pohjat hoitajan käyttöliittymälle.
 - Data: **pandas** CSV/JSON-profiilien lukuun — vain adapterikerroksessa.
 - Lokitus: `structlog` tai stdlib `logging`, JSON. Testit: **pytest** (+ `pytest-asyncio`).
@@ -67,6 +71,13 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 # Aja:      uvicorn app.main:sovellus --reload --port 8000
 # Testit:   pytest
 # Lint:     ruff check . && ruff format .
+# Asennus:  uv sync
+# Aja:      uv run uvicorn app.main:app --reload --port 8000   (ajaa migraatiot kaynnistyksessa)
+# Testit:   uv run pytest
+# Lint:     uv run ruff check . && uv run ruff format .
+# Migraatio mallimuutoksen jalkeen:  uv run alembic revision --autogenerate -m "kuvaus"
+# Synthean ATC-vastaavuus uudelleen:  PYTHONPATH=. uv run python scripts/hae_synthea_atc.py
+# Dev-reitit (/dev/...): DEV_TILA=true .env:iin. API-dokumentaatio: http://127.0.0.1:8000/docs
 # wss ulos devissä:  ngrok http 8000   (Twilio tarvitsee julkisen wss-osoitteen)
 
 # Käyttöliittymä tarjoillaan backendin kanssa osoitteessa http://127.0.0.1:8000
@@ -98,7 +109,8 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
   tunnista sääntöpohjaisesti myös reaaliajassa kesken puhelun.
 - **Datan minimointi**: tallenna vain terveyden kannalta olennainen yhteenveto. Ei rupattelun
   tallennusta (tai vain erillisellä suostumuksella). Ei äänitallenteita.
-- **EU-hosting.** Kaikki data ja mallikutsut EU-alueelle (Azure Sweden Central / West / North Europe).
+- **EU-hosting.** Kaikki data ja mallikutsut EU-alueelle (Azure Sweden Central / West / North Europe)
+  tai paikallisesti omalla koneella (demon LLM).
 - **Ei salaisuuksia repoon.** Avaimet ja tunnukset vain `.env`:iin (`.gitignore`). Ei committiin.
 
 ---
@@ -107,13 +119,17 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 
 Täysi analyysi, perustelut ja arviointikriteerit: @SAANTELY.md. Noudata sitä. Yllä olevien
 ehdottomien sääntöjen LISÄKSI koodin on toteutettava nämä:
-- **Runtime-LLM ja Azure-palvelut vain EU Data Zonessa / Sweden Centralissa.** Potilassisältöä EI
-  reititetä kuluttaja-API:n (suora OpenAI / Gemini / Claude) kautta. Kehitystyökalut (Claude Code
-  ym.) saavat käsitellä koodia ja synteettistä dataa.
+- **Runtime-LLM paikallisesti (demo) tai EU-hostattuna (tuotanto).** Demossa malli ajetaan
+  Ollamalla omalla koneella: puhelun sisältö ei lähde koneelta mallille. Tuotannossa EU-hostattu
+  malli DPA:lla (esim. Azure OpenAI EU Data Zone). Potilassisältöä EI reititetä kuluttaja-API:n
+  (suora OpenAI / Gemini / Claude) kautta. Azure-palvelut (Speech) vain Sweden Centralissa.
+  Kehitystyökalut (Claude Code ym.) saavat käsitellä koodia ja synteettistä dataa.
 - **Pseudonymisoi**: erota henkilöllisyys (nimi, puhelinnumero) terveystiedosta, linkitä tunnuksella.
 - **Minimoi PII LLM-prompteissa**: älä lähetä nimeä tai henkilötunnusta mallille, vain mitä kysymys vaatii.
 - **Twilio vain `wss` + DPA**; puhelussa ei henkilötunnusta eikä diagnooseja; ei äänitallenteiden säilytystä.
-- **Hoitajan näkymä**: MFA + roolipohjainen pääsy + audit-loki jokaisesta katselusta.
+- **Hoitajan näkymä**: audit-loki jokaisesta katselusta (kun puhelun jälkeinen osuus tehdään).
+  Kirjautumista EI tehdä hackathonissa: tuotannossa pääsy Entra ID:n kautta (MFA + roolit), ei
+  omaa kirjautumista.
 - **Salaisuudet** tuotannossa Azure Key Vaultiin, devissä `.env`. Ei repoon.
 
 Arviointikriteerit (mihin tunnit käytetään): vaikuttavuus 30 %, toteutettavuus 25 %, tekoäly 15 %,
@@ -134,25 +150,36 @@ Ydinperiaate: **LLM vain siellä missä sitä tarvitaan.** Pidä deterministinen
 
 Moduulijako (`backend/app/`):
 ```
-main.py          FastAPI-sovellus, reittien kokoaminen
+main.py          FastAPI-sovellus, reittien kokoaminen, migraatiot + ajastin käynnistyksessä
 config.py        pydantic-settings (.env)
-mallit.py        Pydantic-DTO:t (suomenkieliset kentät)
-tietokanta.py    SQLAlchemy-sessiot + mallit
+mallit.py        Pydantic-DTO:t (suomenkieliset kentät) = rajapintasopimus
+tietokanta.py    SQLAlchemy-sessiot + taulumallit
 data/            ADAPTERIKERROS: lue KAIKKI data tämän kautta
-  adapteri.py    yhteinen rajapinta (FHIR-agnostinen)
-  synthea.py     dev-lähde
-muutokset/       muutosten tunnistus (ajastettu, deterministinen)
-kysymykset/      kysymysten generointi (LLM + lääkkeen haittavaikutukset)
-puhelu/          Twilio-soitto + Media Streams -websocket + ääniagentti
-triage/          sääntöpohjainen luokittelu + LLM-ehdotus
-hoitaja/         hoitajan näkymän API (jono, kuittaus)
+  adapteri.py    yhteinen rajapinta (Datalahde)
+  postgres_demo.py  dev-lähde: Synthea-CSV:t Postgresin demo-skeemassa
+muutokset/       lääkemuutosten tunnistus (deterministinen) + lukureitit
+kysymykset/      kysymykset ja LLM:n konteksti muutoksista; sisältö kannasta (varasto.py)
+puhelutehtavat/  soittojono: tunnistus -> rivi (kysymykset, konteksti, prioriteetti), ajastin
+puhelu/          (tulossa) Twilio-soitto + Media Streams -websocket + ääniagentti
+dev/             VAIN DEV (DEV_TILA=true): testimuutokset, jonon nollaus, demonumero
+(ei vielä)       puhelun jälkeinen osuus: triage, hoitajan tapaukset/jono, audit-loki
 ```
+Sisältö (kysymystekstit, lääkeryhmät): kannassa, muokkaus `backend/sql/kysymyssisalto.sql`.
+Skeema: Alembic (`backend/alembic/`), uusi migraatio mallimuutoksen jälkeen.
 
 ### Data ja adapterikerros (tärkein joustavuuskohta)
 Kilpailudata on **CSV/JSON, EI FHIR**, 50 000 synteettistä profiilia (Veil.AI), saatavilla vasta
 **13.10.** latauslinkkinä. Kenttänimiä ei tiedetä etukäteen. **Lue kaikki data `data/adapteri.py`:n
 kautta**, älä kovakoodaa kenttänimiä muualle. Näin lähteen vaihto Synthea → Veil.AI on yhden
 tiedoston muutos. Kirjaa oletukset datan muodosta kommentiksi adapteriin. Kehitä nyt Synthean datalla.
+
+**Lääkkeen tunnistus perustuu ATC-koodiin** (WHO ATC, tuotannossa Kannan valmistetieto), ei nimen
+tekstiin. Adapteri antaa jokaiselle lääkejaksolle `atc`-kentän. Synthealla ei ole ATC:ta, joten
+RxNorm→ATC-vastaavuus on tiedostossa `backend/app/data/synthea_atc.json` (skripti
+`backend/scripts/hae_synthea_atc.py`, monitulkintaiset tarkistettu käsin). Lääkeryhmä = pisin
+osuva ATC-etuliite (`laakeryhman_atc`); nimen avainsanat vain jos ATC puuttuu. Annosmuutos = sama
+7-merkkinen ATC. Riskiluokka ja tarkennukset eivät ole kliinisesti tarkistettuja: tuotannossa
+Fimean Lääke 75+ ja kliininen hyväksyntä. Kun Veil.AI-data tulee, katso ensin onko siinä ATC.
 
 ### Muutosten tunnistus
 Ajastettu (APScheduler). Vertaa uusinta tilaa edelliseen tilannekuvaan → **rakenteinen muutoslista**,
@@ -161,9 +188,15 @@ hiljaisiin signaaleihin (uusimatta jäänyt resepti, väliin jäänyt aika, teke
 nämä erottavat ratkaisun kilpailussa.
 
 ### Puhelu ja ääni (LUKITTU: Polku A = Azure Speech fi-FI -putki)
-Ketju: `Twilio ↔ Azure STT (fi-FI) → LLM → Azure TTS (fi-FI) ↔ Twilio`. Valittu luotettavuuden ja
-suomen laadun takia; antaa myös puhtaan litteroinnin triagelle. Polku B (Azure OpenAI Realtime,
+Ketju: `Twilio ↔ Azure STT (fi-FI) → LLM (paikallinen, Ollama) → Azure TTS (fi-FI) ↔ Twilio`.
+Valittu luotettavuuden ja suomen laadun takia; antaa myös puhtaan litteroinnin triagelle. Twilio
+vain kuljettaa äänen, se ei tee puheentunnistusta eikä -synteesiä. Polku B (Azure OpenAI Realtime,
 gpt-realtime, Sweden Central) on venytys päivälle 2 VAIN jos suomi testaa hyvin — älä aloita siitä.
+
+LLM-kutsu: puhelukoodi hakee soittotehtävän kysymykset ja kontekstin backendistä
+(`GET /puhelutehtavat/{id}/soittotiedot`) ja liittää ne kehotteeseen. LLM:llä ei ole pääsyä
+kantaan. Paikallisen mallin suomen laatu, viive ja ohjeiden noudattaminen MITATAAN demokoneella
+ennen mallin lukitsemista (ei oleteta). Punaiset liput eivät koskaan nojaa LLM:ään.
 
 Lukitut tekniset faktat (näiden kanssa putki toimii, näitä vastaan koodataan):
 - **Twilio Media Streams -muoto on aina `audio/x-mulaw`, 8000 Hz, mono, base64.** Kaksisuuntainen
@@ -184,11 +217,15 @@ kysymykset) ja Ehdottomat säännöt yllä. Puhelulle maksimikesto.
 Litteroinnista rakenteinen yhteenveto (oire, voimakkuus, alkoiko lääkkeen jälkeen, varmuus).
 Kolme tasoa: vihreä (kirjataan), keltainen (hoitaja soittaa tänään), punainen (heti). LLM ehdottaa
 tason; **sääntöpohjaiset punaiset liput voivat vain nostaa sitä.** Tallenna vain yhteenveto.
+EI VIELÄ BACKENDISSÄ: backend kattaa toistaiseksi vain soittoa edeltävän osuuden
+(tunnistus -> soittojono). Kun triage tehdään, hälytyssanat kuuluvat versionhallittuun
+datatiedostoon testipankin kanssa (turvallisuuskriittinen), ei vapaasti muokattavaan kantaan.
 
 ### Hoitajan näkymä
-Jono kiireellisyysjärjestyksessä, yhteenveto + perustelu ("miksi keltainen") + litterointi,
-Soita-painike, kuittaus ja palautekenttä (luokitus oli oikea/väärä). Kirjautuminen MFA,
-jokainen katselu audit-lokiin.
+Jono kiireellisyysjärjestyksessä, yhteenveto + perustelu ("miksi keltainen"), Soita-painike,
+kuittaus ja palautekenttä (luokitus oli oikea/väärä). Litterointia ei tallenneta eikä näytetä
+(datan minimointi). Jokainen katselu audit-lokiin. EI VIELÄ BACKENDISSÄ (puhelun jälkeinen
+osuus). Kirjautuminen: ei hackathonissa, tuotannossa Entra ID (MFA + roolit).
 
 ---
 

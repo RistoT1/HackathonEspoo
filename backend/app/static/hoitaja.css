@@ -334,6 +334,11 @@ h3 {
   transform: translateY(1px);
 }
 
+.painike:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .painike:focus-visible,
 a:focus-visible,
 button:focus-visible,
@@ -611,6 +616,228 @@ tbody tr:hover {
 .tilamerkki-valmis {
   color: #4a7259;
   background: #edf5ef;
+}
+
+.tilamerkki-odottaa {
+  color: #7d6323;
+  background: #faf5e8;
+}
+
+.tilamerkki-kaynnissa {
+  color: #346b70;
+  background: #eaf3f4;
+}
+
+.tilamerkki-ei-vastannut {
+  color: #765d45;
+  background: #f5f0e9;
+}
+
+.tilamerkki-peruttu {
+  color: #737d7f;
+  background: #eff1f1;
+}
+
+.prioriteetti {
+  display: inline-flex;
+  min-width: 29px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 7px;
+  color: #315e5b;
+  background: #edf4f2;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.suodatinrivi {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 16px;
+}
+
+.suodatinrivi label {
+  margin: 0 3px 0 0;
+  color: #647579;
+  font-size: 0.75rem;
+}
+
+.suodatinrivi select {
+  min-height: 38px;
+  min-width: 190px;
+  padding: 7px 30px 7px 10px;
+  color: #34494d;
+  background: #fff;
+  border: 1px solid #d7e0e1;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.suodatinrivi select:focus-visible {
+  outline: 3px solid #6aa9a0;
+  outline-offset: 2px;
+}
+
+.tapausmittarit {
+  margin-top: 4px;
+}
+
+.perustelulista {
+  display: grid;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding-left: 20px;
+  color: #50656a;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.tietojen-aikaleima {
+  margin: auto 0 0;
+  padding-top: 10px;
+  color: #8a9799;
+  border-top: 1px solid #edf0f0;
+  font-size: 0.7rem;
+}
+
+.muutoskortti,
+.kysymyskortti {
+  margin-bottom: 15px;
+}
+
+.muutoslista {
+  border-top: 1px solid #edf0f0;
+}
+
+.muutosrivi {
+  display: flex;
+  gap: 13px;
+  padding: 15px 0;
+  border-bottom: 1px solid #edf0f0;
+}
+
+.muutosrivi:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.muutosikoni {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #637a5c;
+  background: #f0f4ec;
+  border-radius: 8px;
+}
+
+.muutosikoni svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.muutostiedot {
+  min-width: 0;
+}
+
+.muutosotsake {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 1px 0 5px;
+  color: #30484c;
+  font-size: 0.81rem;
+}
+
+.muutostyyppi {
+  padding: 4px 7px;
+  color: #627276;
+  background: #f2f5f5;
+  border-radius: 4px;
+  font-size: 0.64rem;
+  font-weight: 650;
+}
+
+.muutostiedot p {
+  margin-bottom: 5px;
+  color: #64767a;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.muutospaiva {
+  color: #8a9799;
+  font-size: 0.68rem;
+}
+
+.kysymyslista {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: kysymys;
+}
+
+.kysymyslista li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0 13px 38px;
+  border-top: 1px solid #edf0f0;
+  counter-increment: kysymys;
+}
+
+.kysymyslista li::before {
+  content: counter(kysymys, decimal-leading-zero);
+  position: absolute;
+  top: 13px;
+  left: 0;
+  color: #7a918c;
+  font-size: 0.69rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.kysymysteksti {
+  color: #40565a;
+  font-size: 0.79rem;
+  line-height: 1.5;
+}
+
+.kysymystunniste {
+  flex: 0 0 auto;
+  color: #899597;
+  font-size: 0.64rem;
+}
+
+.api-huomio {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  color: #647477;
+  background: #f6f8f8;
+  border-radius: 6px;
+  font-size: 0.69rem;
+  line-height: 1.5;
+}
+
+.toimintolista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
 }
 
 .tekstipainike {
@@ -993,6 +1220,24 @@ textarea::placeholder {
 
   .tietoruudukko {
     grid-template-columns: 1fr;
+  }
+
+  .suodatinrivi {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .suodatinrivi label {
+    width: 100%;
+  }
+
+  .suodatinrivi select {
+    flex: 1;
+  }
+
+  .kysymyslista li {
+    flex-direction: column;
+    gap: 5px;
     gap: 10px;
   }
 

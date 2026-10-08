@@ -1,73 +1,68 @@
-# Hoitajan näkymän visuaalinen suunnitelma
+# Hoitajan näkymän suunnitelma
 
 ## Tavoite
 
-Hoitaja näkee heti, mihin tapauksiin pitää reagoida. Näkymä painottaa kiireellisyyttä,
-selkeää yhteenvetoa ja ihmisen tekemää päätöstä. AI:n arvio näytetään tukitietona, ei
-automaattisena hoitopäätöksenä.
+Hoitaja näkee backendin muodostamat soittotehtävät, niiden järjestysprioriteetin,
+tunnistetut lääkemuutokset ja kysymysrungon. Soittoprioriteetti on soittojonon
+järjestämistä varten; se ei ole triage- tai kiireellisyysluokitus.
 
-## Päänäkymä: takaisinsoittojono
-
-```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│ Hyvinvointikumppani                         Hoitajan näkymä    [Kirjaudu] │
-├──────────────────────────────────────────────────────────────────────────┤
-│ Takaisinsoittojono                                                       │
-│ Synteettinen demodata                                      Päivitä lista │
-│                                                                          │
-│ [Kaikki  8] [Soitettava tänään  3] [Käsitellyt  5]                       │
-│                                                                          │
-│ Kiireellisyys  Henkilö*  Syy / yhteenveto              Saapunut   Toiminto│
-│ ──────────────────────────────────────────────────────────────────────── │
-│ 🔴 Heti         Demo-014  Kertoi rintakivusta           12:41     [Avaa]  │
-│ 🟡 Tänään       Demo-022  Uusi lääke; vointi muuttunut  12:35     [Avaa]  │
-│ 🟡 Tänään       Demo-031  Ei ole aloittanut lääkettä    12:12     [Avaa]  │
-│ 🟢 Seuranta     Demo-009  Ei uusia oireita              11:58     [Avaa]  │
-│                                                                          │
-│ *Synteettinen tunniste demossa; tuotannossa pseudonymisoitu tunniste.    │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-Kiireellisyys näytetään sekä värillä että tekstillä, jotta merkitys ei riipu värinäöstä.
-Oletusjärjestys on kiireellisimmästä alkaen. Käyttäjä voi suodattaa listaa, mutta
-suodattimen ei pidä piilottaa kiireellistä tapausta huomaamatta.
-
-## Tapausnäkymä: yhteenveto ja hoitajan toimet
+## Päänäkymä: soittojono
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│ ← Takaisin jonoon                    Tapaus Demo-022                     │
-├──────────────────────────────────────────────────────────────────────────┤
-│ 🟡 HOITAJAN YHTEYDENOTTO TÄNÄÄN                                           │
-│ AI:n ehdotus: keltainen · Sääntöpohjainen syy: voinnin muutos mainittu   │
-│ AI tukee käsittelyä. Hoitaja arvioi tilanteen ja päättää jatkosta.       │
-│                                                                          │
-│ Laukaissut tapahtuma                                                     │
-│ Uusi lääkemerkintä havaittu synteettisestä demodatasta                   │
-│                                                                          │
-│ Keskustelun yhteenveto                                                   │
-│ “Aloitti lääkkeen. Kertoi voinnin muuttuneen; tarkempi selvitys puuttuu.”│
-│                                                                          │
-│ Hoitajan muistiinpano                                                    │
-│ ┌──────────────────────────────────────────────────────────────────────┐ │
-│ │                                                                      │ │
-│ └──────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│ [Kuittaa käsitellyksi]  [Merkitse takaisinsoitto tehdyksi]               │
-└──────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Soittotehtävät                                      DEMOYMÄRISTÖ         │
+│ Tunnistetut lääkemuutokset ja niihin liittyvät tehtävät.                 │
+│                                                                         │
+│ Avoimet tehtävät     Odottaa soittoa       Päätetyt tehtävät             │
+│        3                    2                      1                    │
+│                                                                         │
+│ Soittojono                                      [Tilan suodatus]        │
+│ Järjestetty soittojärjestyksen mukaan                                    │
+│ Prioriteetti  Pseudonyymi  Muutos             Luotu       Tila    Avaa  │
+│ ──────────────────────────────────────────────────────────────────────  │
+│       5       demo-01     UUSI LAAKE         08.10 08:15  Odottaa  →   │
+│       3       demo-02     ANNOSMUUTOS        08.10 08:10  Puhelu   →   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-Näytä vain hoitajan työn kannalta tarpeellinen yhteenveto. Älä näytä raakaa puhelun
-litterointia oletuksena äläkä tallenna ääntä. Jos litterointia tarvitaan demossa, käytä
-vain synteettistä keskustelua ja rajaa näkyvyys selkeästi.
+Prioriteetin pistemäärä näytetään neutraalisti ja sen selite kertoo, ettei kyse ole
+kiireellisyysarviosta. Tila näytetään värin lisäksi tekstinä. Lista ja suodatus käyttävät
+`GET /puhelutehtavat` -rajapinnan tietoja.
+
+## Tehtävänäkymä
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Soittojono / a1b2c3d4                   Tila: Odottaa soittoa            │
+│ Pseudonyymi tunniste: demo-01                                          │
+│                                                                         │
+│ Soittoprioriteetti 5 · 1 aktiivinen lääke · 0 soittoyritystä            │
+│                                                                         │
+│ MIKSI TEHTÄVÄ ON JONOSSA         TUNNISTETUT MUUTOKSET                  │
+│ Ikä ja tunnistettu muutos         Lääke X · uusi lääkemerkintä            │
+│                                  2 päivää sitten                        │
+│                                                                         │
+│ PUHELUN KYSYMYSRUNKO                                                    │
+│ 01  Oletko aloittanut lääkkeen?                                         │
+│ 02  Miten vointisi on muuttunut?                                        │
+│                                                                         │
+│ Vastauksia tai litterointia API ei tällä hetkellä palauta.              │
+│                                                                         │
+│ [Peru tehtävä]                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+Tehtävänäkymä käyttää `GET /puhelutehtavat/{tehtava_id}` -tietoja. Sallitut tilatoiminnot
+määräytyvät backendin tilasiirtymäsääntöjen mukaan ja päivittyvät
+`PATCH /puhelutehtavat/{tehtava_id}` -rajapinnan kautta. Puhelun vastauksia tai
+litterointia ei esitetä, koska nykyinen API ei niitä palauta.
 
 ## Visuaalinen tyyli
 
 - Rauhallinen, vaalea tausta ja korkean kontrastin teksti.
 - Selkeä typografia ja riittävän suuret painikkeet.
-- Kiireellisyys näkyy tekstinä, ikonina ja värinä.
-- Punainen varataan välitöntä toimintaa vaativille tapauksille; keltainen hoitajan
-  saman päivän yhteydenotolle; vihreä seurannalle.
+- Tehtävän tila näkyy tekstinä ja värinä.
+- Prioriteettipisteet esitetään neutraalisti; niitä ei nimetä kiireellisyydeksi.
 - Selkeät tyhjät tilat: esimerkiksi “Ei avoimia takaisinsoittoja”.
 - Virhetilat näkyvät ymmärrettävänä ilmoituksena, eivät tyhjänä listana.
 - Tietosuojan kannalta tarpeettomia nimiä, puhelinnumeroita tai henkilötunnuksia ei
@@ -75,17 +70,17 @@ vain synteettistä keskustelua ja rajaa näkyvyys selkeästi.
 
 ## Demossa näkyvä toiminta
 
-1. Synteettinen lääkemuutostapahtuma tuottaa uuden jonorivin.
-2. Rivi näkyy keltaisena ja kiireellisyys on myös kirjoitettu auki.
-3. Hoitaja avaa tapauksen ja lukee yhteenvedon sekä AI:n ehdotuksen perusteluineen.
-4. Hoitaja tekee itse jatkopäätöksen ja kuittaa tapauksen.
+1. Synteettinen lääkemuutostapahtuma luo soittotehtävän backendin jonoon.
+2. Tehtävä näkyy pseudonyymillä, prioriteetilla, muutoksilla ja tilalla.
+3. Hoitaja avaa tehtävän ja tarkastelee muutoksen tietoja sekä kysymysrunkoa.
+4. Hoitaja tekee vain backendin sallimat tilapäivitykset.
 
 ## MVP:n ulkopuolelle
 
+Puheluvastausten tallennus ja näyttäminen eivät kuulu nykyiseen API-sopimukseen.
 Kirjautuminen/MFA, roolipohjaiset oikeudet ja katselujen auditointi kuuluvat tuotannon
-vaatimuksiin. Demossa voidaan käyttää paikallista synteettistä dataa, mutta käyttöliittymää
-ei pidä kuvata tuotantovalmiiksi ilman näitä kontrolleja. Trendikaaviot, monimutkaiset
-suodattimet ja reaaliaikainen puhelun seuranta voidaan jättää myöhemmäksi.
+vaatimuksiin; käyttöliittymää ei pidä kuvata tuotantovalmiiksi ilman näitä kontrolleja.
+Trendikaaviot ja reaaliaikainen puhelun seuranta voidaan jättää myöhemmäksi.
 
 ## Esimerkkikansiorakenne
 
@@ -104,14 +99,14 @@ backend/
     │   ├── takaisinsoittojono.html
     │   └── tapauksen_tiedot.html
     └── static/
-        ├── tyyli.css
+        ├── hoitaja.css
         └── hoitaja.js
 ```
 
 - `hoitaja/reitit.py` käsittelee sivupyynnöt ja palauttaa HTML-pohjat.
 - `hoitaja/palvelu.py` hakee ja muokkaa näkymässä näytettävää tietoa.
 - `templates/` sisältää jonon ja tapauksen HTML-pohjat; yhteinen rakenne on `perus.html`:ssä.
-- `static/tyyli.css` sisältää näkymän tyylit ja `hoitaja.js` vain tarvittavan selainlogiikan.
+- `static/hoitaja.css` sisältää näkymän tyylit ja `hoitaja.js` tilapäivityksen selainlogiikan.
 - Lomakkeiden lähetys voi käyttää FastAPI-reittejä; erillistä API-asiakasta tai frontend-tilanhallintaa
   ei tarvita MVP:ssä.
 

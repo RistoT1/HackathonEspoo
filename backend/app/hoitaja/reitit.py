@@ -1,114 +1,141 @@
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from app.mallit import Puhelutehtava, PuhelutehtavanTila, TilanMuutos
+from app.puhelutehtavat import varasto
+from app.puhelutehtavat.palvelu import (
+    MAX_YRITYKSET,
+    TehtavaaEiLoydy,
+    TilasiirtymaVirhe,
+    hae_tehtava,
+    vaihda_tila,
+)
+from app.tietokanta import hae_sessio
 
 reititin = APIRouter()
 _app_hakemisto = Path(__file__).resolve().parent.parent
 mallipohjat = Jinja2Templates(directory=_app_hakemisto / "templates")
+SessioDep = Annotated[Session, Depends(hae_sessio)]
 
+TILAN_NIMET = {
+    PuhelutehtavanTila.ODOTTAA: "Odottaa soittoa",
+    PuhelutehtavanTila.SOITETAAN: "Puhelu käynnissä",
+    PuhelutehtavanTila.VALMIS: "Puhelu valmis",
+    PuhelutehtavanTila.EI_VASTANNUT: "Ei vastannut",
+    PuhelutehtavanTila.PERUTTU: "Peruttu",
+}
 
-@dataclass
-class Tapaus:
-    tunniste: str
-    kiireellisyys: str
-    otsikko: str
-    yhteenveto: str
-    laukaisin: str
-    peruste: str
-    saapunut: str
-    tila: str = "Avoin"
-    muistiinpano: str = ""
-
-
-class KasittelyPyynto(BaseModel):
-    tila: Literal["Käsitelty", "Takaisinsoitto tehty"]
-    muistiinpano: str = Field(default="", max_length=2000)
-
-
-# Vain käyttöliittymän paikalliseen esikatseluun. Korvataan tietokantapalvelulla.
-_tapaukset: dict[str, Tapaus] = {
-    "DEMO-014": Tapaus(
-        tunniste="DEMO-014",
-        kiireellisyys="Punainen",
-        otsikko="Kiireellinen oire mainittu",
-        yhteenveto=(
-            "Synteettisessä demokeskustelussa mainittiin rintakipu. "
-            "112-ohjaus annettu; tarkista tapahtuma sovitun toimintamallin mukaan."
-        ),
-        laukaisin="Sääntöpohjainen punaisen lipun tunnistus",
-        peruste="Rintakipu tunnistettiin puheluvastauksesta.",
-        saapunut="12:41",
-    ),
-    "DEMO-022": Tapaus(
-        tunniste="DEMO-022",
-        kiireellisyys="Keltainen",
-        otsikko="Vointi muuttunut uuden lääkkeen jälkeen",
-        yhteenveto=(
-            "Synteettinen vastaaja kertoi aloittaneensa lääkkeen ja voinnin muuttuneen. "
-            "Lisäselvitys hoitajan kanssa tarpeen."
-        ),
-        laukaisin="Uusi lääkemerkintä",
-        peruste="Asiakas kertoi voinnin muutoksesta; hoitaja arvioi jatkon.",
-        saapunut="12:35",
-    ),
-    "DEMO-031": Tapaus(
-        tunniste="DEMO-031",
-        kiireellisyys="Keltainen",
-        otsikko="Lääkkeen aloittaminen mietityttää",
-        yhteenveto=(
-            "Synteettinen vastaaja ei ollut aloittanut lääkettä ja halusi keskustella "
-            "asiasta hoitajan kanssa."
-        ),
-        laukaisin="Uusi lääkemerkintä",
-        peruste="Asiakas pyysi hoitajan yhteydenottoa.",
-        saapunut="12:12",
-    ),
+SALLITUT_TOIMINNOT: dict[PuhelutehtavanTila, list[PuhelutehtavanTila]] = {
+    PuhelutehtavanTila.ODOTTAA: [PuhelutehtavanTila.PERUTTU],
+    PuhelutehtavanTila.SOITETAAN: [
+        PuhelutehtavanTila.VALMIS,
+        PuhelutehtavanTila.EI_VASTANNUT,
+    ],
+    PuhelutehtavanTila.EI_VASTANNUT: [
+        PuhelutehtavanTila.ODOTTAA,
+        PuhelutehtavanTila.PERUTTU,
+    ],
+    PuhelutehtavanTila.VALMIS: [],
+    PuhelutehtavanTila.PERUTTU: [],
 }
 
 
+def _tilan_css_luokka(tila: PuhelutehtavanTila) -> str:
+    return {
+        PuhelutehtavanTila.ODOTTAA: "odottaa",
+        PuhelutehtavanTila.SOITETAAN: "kaynnissa",
+        PuhelutehtavanTila.VALMIS: "valmis",
+        PuhelutehtavanTila.EI_VASTANNUT: "ei-vastannut",
+        PuhelutehtavanTila.PERUTTU: "peruttu",
+    }[tila]
+
+
+def _tehtavan_nakyma(tapaus: Puhelutehtava) -> dict[str, object]:
+    sallittuja = list(SALLITUT_TOIMINNOT[tapaus.tila])
+    if tapaus.tila == PuhelutehtavanTila.EI_VASTANNUT and tapaus.yritykset >= MAX_YRITYKSET:
+        sallittuja.remove(PuhelutehtavanTila.ODOTTAA)
+
+    return {
+        "tapaus": tapaus,
+        "tilan_nimi": TILAN_NIMET[tapaus.tila],
+        "tilan_css": _tilan_css_luokka(tapaus.tila),
+        "sallitut_toiminnot": sallittuja,
+        "toimintojen_nimet": TILAN_NIMET,
+    }
+
+
 @reititin.get("/hoitaja/", response_class=HTMLResponse)
-async def nayta_jono(pyynto: Request) -> HTMLResponse:
-    tapaukset = sorted(
-        _tapaukset.values(),
-        key=lambda tapaus: (
-            {"Punainen": 0, "Keltainen": 1, "Vihreä": 2}.get(
-                tapaus.kiireellisyys, 3
-            ),
-            tapaus.saapunut,
-        ),
+def nayta_jono(
+    pyynto: Request,
+    sessio: SessioDep,
+    tila: PuhelutehtavanTila | None = None,
+) -> HTMLResponse:
+    kaikki_tapaukset = varasto.listaa(sessio, tila=None, raja=1000)
+    tapaukset = (
+        [tapaus for tapaus in kaikki_tapaukset if tapaus.tila == tila]
+        if tila is not None
+        else kaikki_tapaukset
     )
+    avoimet = sum(
+        tapaus.tila in (PuhelutehtavanTila.ODOTTAA, PuhelutehtavanTila.SOITETAAN)
+        for tapaus in kaikki_tapaukset
+    )
+    odottavat = sum(tapaus.tila == PuhelutehtavanTila.ODOTTAA for tapaus in kaikki_tapaukset)
+    kasitellyt = sum(
+        tapaus.tila in (PuhelutehtavanTila.VALMIS, PuhelutehtavanTila.PERUTTU)
+        for tapaus in kaikki_tapaukset
+    )
+
     return mallipohjat.TemplateResponse(
         request=pyynto,
         name="takaisinsoittojono.html",
-        context={"tapaukset": tapaukset},
+        context={
+            "tapaukset": tapaukset,
+            "valittu_tila": tila,
+            "tilat": list(PuhelutehtavanTila),
+            "tilan_nimet": TILAN_NIMET,
+            "tilan_css": {status: _tilan_css_luokka(status) for status in PuhelutehtavanTila},
+            "yhteenveto": {
+                "avoimet": avoimet,
+                "odottavat": odottavat,
+                "kasitellyt": kasitellyt,
+            },
+        },
     )
 
 
 @reititin.get("/hoitaja/tapaukset/{tunniste}", response_class=HTMLResponse)
-async def nayta_tapaus(pyynto: Request, tunniste: str) -> HTMLResponse:
-    tapaus = _tapaukset.get(tunniste)
-    if tapaus is None:
-        raise HTTPException(status_code=404, detail="Tapausta ei löytynyt")
+def nayta_tapaus(
+    pyynto: Request,
+    tunniste: str,
+    sessio: SessioDep,
+) -> HTMLResponse:
+    try:
+        tapaus = hae_tehtava(sessio, tunniste)
+    except TehtavaaEiLoydy as virhe:
+        raise HTTPException(status_code=404, detail="Soittotehtävää ei löydy") from virhe
 
     return mallipohjat.TemplateResponse(
         request=pyynto,
         name="tapauksen_tiedot.html",
-        context={"tapaus": tapaus},
+        context=_tehtavan_nakyma(tapaus),
     )
 
 
-@reititin.post("/hoitaja/tapaukset/{tunniste}/kasittele")
-async def kasittele_tapaus(tunniste: str, pyynto: KasittelyPyynto) -> dict[str, str]:
-    tapaus = _tapaukset.get(tunniste)
-    if tapaus is None:
-        raise HTTPException(status_code=404, detail="Tapausta ei löytynyt")
-
-    tapaus.tila = pyynto.tila
-    tapaus.muistiinpano = pyynto.muistiinpano.strip()
-    return {"tila": tapaus.tila, "viesti": "Tapauksen tiedot päivitettiin."}
+@reititin.patch("/hoitaja/tapaukset/{tunniste}/tila", response_model=Puhelutehtava)
+def paivita_tapauksen_tila(
+    tunniste: str,
+    muutos: TilanMuutos,
+    sessio: SessioDep,
+) -> Puhelutehtava:
+    try:
+        return vaihda_tila(sessio, tunniste, muutos.tila)
+    except TehtavaaEiLoydy as virhe:
+        raise HTTPException(status_code=404, detail="Soittotehtävää ei löydy") from virhe
+    except TilasiirtymaVirhe as virhe:
+        raise HTTPException(status_code=409, detail=str(virhe)) from virhe

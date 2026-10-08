@@ -1,0 +1,459 @@
+{
+  "_kuvaus": "Kuratoitu lääketietopohja puhelinkyselyä varten. Jokainen lääke tunnistetaan data/csv/medications.csv:n DESCRIPTION-kentästä: KAIKKI 'tunnisteet'-merkkijonot on löydyttävä (pienillä kirjaimilla). Lista käydään läpi järjestyksessä, joten yhdistelmävalmisteet ovat ennen yksittäisiä aineita. Haittavaikutukset ovat yleisiä, tunnettuja haittoja. TARKISTETTAVA lääketietokannasta (esim. Pharmaca Fennica / Duodecim) ja hoitajan kanssa ennen tuotantoa.",
+  "_versio": "2026-10-07",
+  "laakkeet": [
+    {
+      "avain": "ehkaisy_ja_hormonit",
+      "tunnisteet_mika_tahansa": ["day pack", "intrauterine", "vaginal ring", "etonogestrel", "medroxyprogesterone", "norelgestromin", "enovid", "leuprolide"],
+      "puhelinkysely": false,
+      "syy": "Liian henkilökohtainen aihe automaattiseen puheluun."
+    },
+    {
+      "avain": "syopahoidot_ja_sairaalalaakkeet",
+      "tunnisteet_mika_tahansa": ["cisplatin", "paclitaxel", "doxorubicin", "etoposide", "docetaxel", "epirubicin", "oxaliplatin", "leucovorin", "cyclophosphamide", "trastuzumab", "palbociclib", "ribociclib", "neratinib", "fulvestrant", "tamoxifen", "exemestane", "zoledronic", "alteplase", "atropine", "amiodarone", "1 mg/ml injection", "10 ml furosemide", "cyclosporine", "methotrexate"],
+      "puhelinkysely": false,
+      "syy": "Erikoissairaanhoidon tai sairaalan lääke; seuranta hoitavan yksikön kautta, ei automaattista puhelua."
+    },
+    {
+      "avain": "muut_ei_kysyta",
+      "tunnisteet_mika_tahansa": ["epinephrine 1 mg/ml auto-injector", "nicotine", "methylphenidate", "atomoxetine", "phenazopyridine", "astemizole", "terfenadine", "tacrine", "vitamin b 12", "hydrocortisone"],
+      "puhelinkysely": false,
+      "syy": "Ei puhelinseurannan kannalta olennainen tai liian henkilökohtainen."
+    },
+
+    {
+      "avain": "amlodipiini_hydroklooritiatsidi_olmesartaani",
+      "tunnisteet": ["amlodipine", "hydrochlorothiazide", "olmesartan"],
+      "nimi_fi": "amlodipiini, hydroklooritiatsidi ja olmesartaani",
+      "selkonimi": "verenpainelääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut, esimerkiksi kun nouset seisomaan?"},
+        {"oire": "nilkkojen turvotus", "kysymys": "Oletko huomannut, että nilkat tai jalat olisivat turvonneet?"},
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä lääkkeen aloittamisen jälkeen?"},
+        {"oire": "tihentynyt virtsaamistarve", "kysymys": "Onko vessassa tarvinnut käydä tavallista useammin?"}
+      ]
+    },
+    {
+      "avain": "atenololi_klortalidoni",
+      "tunnisteet": ["atenolol", "chlorthalidone"],
+      "nimi_fi": "atenololi ja klortalidoni",
+      "selkonimi": "verenpainelääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "väsymys", "kysymys": "Oletko ollut tavallista väsyneempi viime aikoina?"},
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut, esimerkiksi kun nouset seisomaan?"},
+        {"oire": "kylmät kädet ja jalat", "kysymys": "Ovatko kädet tai jalat tuntuneet tavallista kylmemmiltä?"},
+        {"oire": "tihentynyt virtsaamistarve", "kysymys": "Onko vessassa tarvinnut käydä tavallista useammin?"}
+      ]
+    },
+    {
+      "avain": "hydroklooritiatsidi",
+      "tunnisteet": ["hydrochlorothiazide"],
+      "nimi_fi": "hydroklooritiatsidi",
+      "selkonimi": "nesteenpoistolääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut, kun nouset seisomaan?"},
+        {"oire": "tihentynyt virtsaamistarve", "kysymys": "Onko vessassa tarvinnut käydä tavallista useammin?"},
+        {"oire": "lihaskrampit tai heikotus", "kysymys": "Onko sinulla ollut lihaskramppeja tai heikotusta?"},
+        {"oire": "jano ja suun kuivuminen", "kysymys": "Onko suu tuntunut kuivalta tai jano ollut tavallista kovempi?"}
+      ]
+    },
+    {
+      "avain": "furosemidi",
+      "tunnisteet": ["furosemide"],
+      "nimi_fi": "furosemidi",
+      "selkonimi": "nesteenpoistolääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut, kun nouset seisomaan?"},
+        {"oire": "tihentynyt virtsaamistarve", "kysymys": "Onko vessassa tarvinnut käydä tavallista useammin?"},
+        {"oire": "lihaskrampit", "kysymys": "Onko sinulla ollut lihaskramppeja?"},
+        {"oire": "jano", "kysymys": "Onko jano ollut tavallista kovempi tai suu tuntunut kuivalta?"}
+      ]
+    },
+    {
+      "avain": "amlodipiini",
+      "tunnisteet": ["amlodipine"],
+      "nimi_fi": "amlodipiini",
+      "selkonimi": "verenpainelääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "nilkkojen turvotus", "kysymys": "Oletko huomannut, että nilkat tai jalat olisivat turvonneet?"},
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä lääkkeen aloittamisen jälkeen?"},
+        {"oire": "kasvojen kuumotus", "kysymys": "Onko kasvoja kuumottanut tai punoittanut?"},
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut?"}
+      ]
+    },
+    {
+      "avain": "verapamiili",
+      "tunnisteet": ["verapamil"],
+      "nimi_fi": "verapamiili",
+      "selkonimi": "sydän- ja verenpainelääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "ummetus", "kysymys": "Onko vatsa toiminut normaalisti, vai onko ollut ummetusta?"},
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut?"},
+        {"oire": "nilkkojen turvotus", "kysymys": "Oletko huomannut nilkkojen turvotusta?"},
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä?"}
+      ]
+    },
+    {
+      "avain": "metoprololi",
+      "tunnisteet": ["metoprolol"],
+      "nimi_fi": "metoprololi",
+      "selkonimi": "sydän- ja verenpainelääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "väsymys", "kysymys": "Oletko ollut tavallista väsyneempi lääkkeen aloittamisen jälkeen?"},
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut?"},
+        {"oire": "kylmät kädet ja jalat", "kysymys": "Ovatko kädet tai jalat tuntuneet tavallista kylmemmiltä?"}
+      ]
+    },
+    {
+      "avain": "kaptopriili",
+      "tunnisteet": ["captopril"],
+      "nimi_fi": "kaptopriili",
+      "selkonimi": "verenpainelääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "kuiva yskä", "kysymys": "Onko sinulla ollut kuivaa, ärsyttävää yskää?"},
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut?"},
+        {"oire": "makuaistin muutos", "kysymys": "Onko ruoan maku muuttunut jotenkin?"}
+      ]
+    },
+    {
+      "avain": "digoksiini",
+      "tunnisteet": ["digoxin"],
+      "nimi_fi": "digoksiini",
+      "selkonimi": "sydänlääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "pahoinvointi tai ruokahaluttomuus", "kysymys": "Onko sinulla ollut pahoinvointia tai huonoa ruokahalua?"},
+        {"oire": "näköhäiriöt", "kysymys": "Onko näössä ollut jotain outoa, esimerkiksi värit näyttäneet erilaisilta?"},
+        {"oire": "sekavuus tai väsymys", "kysymys": "Oletko ollut tavallista väsyneempi tai tuntenut olosi sekavaksi?"}
+      ]
+    },
+    {
+      "avain": "nitroglyseriini",
+      "tunnisteet": ["nitroglycerin"],
+      "nimi_fi": "nitroglyseriinisuihke",
+      "selkonimi": "suihkutettava sydänlääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä suihkeen käytön jälkeen?"},
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut suihkeen käytön jälkeen?"}
+      ]
+    },
+    {
+      "avain": "varfariini",
+      "tunnisteet": ["warfarin"],
+      "nimi_fi": "varfariini",
+      "selkonimi": "verenohennuslääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "mustelmat", "kysymys": "Oletko huomannut tavallista enemmän mustelmia?"},
+        {"oire": "nenä- tai ienverenvuoto", "kysymys": "Onko nenästä tai ikenistä vuotanut verta?"},
+        {"oire": "veri virtsassa tai ulosteessa", "kysymys": "Oletko huomannut verta virtsassa tai ulosteessa?"}
+      ]
+    },
+    {
+      "avain": "klopidogreeli",
+      "tunnisteet": ["clopidogrel"],
+      "nimi_fi": "klopidogreeli",
+      "selkonimi": "veren hyytymistä estävä lääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "mustelmat", "kysymys": "Oletko huomannut tavallista enemmän mustelmia?"},
+        {"oire": "verenvuoto", "kysymys": "Onko nenästä tai ikenistä vuotanut verta?"},
+        {"oire": "vatsavaivat", "kysymys": "Onko vatsa ollut kipeä tai ollut närästystä?"}
+      ]
+    },
+    {
+      "avain": "asetyylisalisyylihappo",
+      "tunnisteet": ["aspirin"],
+      "nimi_fi": "asetyylisalisyylihappo",
+      "selkonimi": "veren hyytymistä estävä lääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "mustelmat", "kysymys": "Oletko huomannut tavallista enemmän mustelmia?"},
+        {"oire": "vatsavaivat", "kysymys": "Onko vatsa ollut kipeä tai ollut närästystä?"}
+      ]
+    },
+    {
+      "avain": "statiini",
+      "tunnisteet_mika_tahansa": ["simvastatin", "atorvastatin"],
+      "nimi_fi": "kolesterolilääke (statiini)",
+      "selkonimi": "kolesterolilääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "lihaskivut tai -heikkous", "kysymys": "Onko sinulla ollut lihaskipuja tai lihasten heikkoutta lääkkeen aloittamisen jälkeen?"},
+        {"oire": "vatsavaivat", "kysymys": "Onko vatsa ollut kipeä tai sekaisin?"},
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä?"}
+      ]
+    },
+    {
+      "avain": "metformiini",
+      "tunnisteet": ["metformin"],
+      "nimi_fi": "metformiini",
+      "selkonimi": "verensokerilääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "pahoinvointi", "kysymys": "Onko sinulla ollut pahoinvointia?"},
+        {"oire": "ripuli tai vatsavaivat", "kysymys": "Onko vatsa ollut sekaisin tai ollut ripulia?"},
+        {"oire": "ruokahalun muutos", "kysymys": "Onko ruokahalu muuttunut?"}
+      ]
+    },
+    {
+      "avain": "insuliini",
+      "tunnisteet_mika_tahansa": ["insulin"],
+      "nimi_fi": "insuliini",
+      "selkonimi": "insuliini",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "matalan verensokerin oireet", "kysymys": "Onko sinulla ollut hikoilua, vapinaa tai äkillistä heikotusta?"},
+        {"oire": "pistoskohdan reaktio", "kysymys": "Onko pistoskohta ollut punainen, kipeä tai turvonnut?"}
+      ]
+    },
+    {
+      "avain": "epoetiini",
+      "tunnisteet": ["epoetin"],
+      "nimi_fi": "epoetiini alfa",
+      "selkonimi": "pistoksena annettava lääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä pistosten aloittamisen jälkeen?"},
+        {"oire": "nivelkivut", "kysymys": "Onko sinulla ollut nivelkipuja?"},
+        {"oire": "flunssan kaltaiset oireet", "kysymys": "Onko ollut flunssan tapaisia oireita, kuten lämpöilyä tai kolotusta?"}
+      ]
+    },
+    {
+      "avain": "flutikasoni_salmeteroli",
+      "tunnisteet": ["fluticasone", "salmeterol"],
+      "nimi_fi": "flutikasoni ja salmeteroli",
+      "selkonimi": "hengitettävä lääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "äänen käheys", "kysymys": "Onko ääni ollut käheä?"},
+        {"oire": "suun sieni-infektio", "kysymys": "Oletko huomannut suussa valkoisia läikkiä tai arkuutta?"},
+        {"oire": "sydämentykytys", "kysymys": "Onko sydän tuntunut hakkaavan tai tykyttävän?"}
+      ]
+    },
+    {
+      "avain": "flutikasoni",
+      "tunnisteet": ["fluticasone"],
+      "nimi_fi": "flutikasoni",
+      "selkonimi": "hengitettävä lääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "äänen käheys", "kysymys": "Onko ääni ollut käheä?"},
+        {"oire": "suun sieni-infektio", "kysymys": "Oletko huomannut suussa valkoisia läikkiä tai arkuutta?"},
+        {"oire": "kurkun ärsytys", "kysymys": "Onko kurkku ollut ärtynyt?"}
+      ]
+    },
+    {
+      "avain": "salbutamoli",
+      "tunnisteet": ["albuterol"],
+      "nimi_fi": "salbutamoli",
+      "selkonimi": "avaava hengitettävä lääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "vapina", "kysymys": "Onko käsissä ollut vapinaa lääkkeen ottamisen jälkeen?"},
+        {"oire": "sydämentykytys", "kysymys": "Onko sydän tuntunut hakkaavan tai tykyttävän?"},
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä?"}
+      ]
+    },
+    {
+      "avain": "alendronaatti",
+      "tunnisteet": ["alendron"],
+      "nimi_fi": "alendronaatti",
+      "selkonimi": "luustolääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "närästys tai nielemiskipu", "kysymys": "Onko sinulla ollut närästystä tai kipua nieltäessä?"},
+        {"oire": "vatsakipu", "kysymys": "Onko vatsa ollut kipeä?"},
+        {"oire": "lihas- ja nivelkivut", "kysymys": "Onko sinulla ollut lihas- tai nivelkipuja?"}
+      ]
+    },
+    {
+      "avain": "levotyroksiini",
+      "tunnisteet": ["levothyroxine"],
+      "nimi_fi": "levotyroksiini",
+      "selkonimi": "kilpirauhaslääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "sydämentykytys", "kysymys": "Onko sydän tuntunut hakkaavan tai tykyttävän?"},
+        {"oire": "unettomuus", "kysymys": "Onko uni muuttunut, esimerkiksi onko nukahtaminen ollut vaikeaa?"},
+        {"oire": "vapina", "kysymys": "Onko käsissä ollut vapinaa?"}
+      ]
+    },
+    {
+      "avain": "rauta",
+      "tunnisteet": ["ferrous"],
+      "nimi_fi": "rautavalmiste",
+      "selkonimi": "rautalääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "ummetus", "kysymys": "Onko vatsa toiminut normaalisti, vai onko ollut ummetusta?"},
+        {"oire": "vatsavaivat", "kysymys": "Onko vatsa ollut kipeä tai ollut pahoinvointia?"}
+      ]
+    },
+    {
+      "avain": "muistilaake_donepetsiili_memantiini",
+      "tunnisteet_mika_tahansa": ["donepezil", "memantine", "galantamine"],
+      "nimi_fi": "muistilääke",
+      "selkonimi": "muistilääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "pahoinvointi tai ruokahaluttomuus", "kysymys": "Onko sinulla ollut pahoinvointia tai huonoa ruokahalua?"},
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut?"},
+        {"oire": "unihäiriöt", "kysymys": "Onko uni muuttunut lääkkeen aloittamisen jälkeen?"}
+      ]
+    },
+    {
+      "avain": "prednisoni",
+      "tunnisteet": ["prednisone"],
+      "nimi_fi": "prednisoni",
+      "selkonimi": "kortisonilääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "unettomuus", "kysymys": "Onko uni muuttunut, esimerkiksi onko nukahtaminen ollut vaikeaa?"},
+        {"oire": "ruokahalun kasvu", "kysymys": "Onko ruokahalu kasvanut tavallisesta?"},
+        {"oire": "turvotus", "kysymys": "Oletko huomannut turvotusta esimerkiksi nilkoissa?"}
+      ]
+    },
+    {
+      "avain": "tulehduskipulaake",
+      "tunnisteet_mika_tahansa": ["naproxen", "ibuprofen"],
+      "nimi_fi": "tulehduskipulääke",
+      "selkonimi": "kipulääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "vatsakipu tai närästys", "kysymys": "Onko vatsa ollut kipeä tai ollut närästystä?"},
+        {"oire": "turvotus", "kysymys": "Oletko huomannut turvotusta esimerkiksi nilkoissa?"},
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä?"}
+      ]
+    },
+    {
+      "avain": "opioidi",
+      "tunnisteet_mika_tahansa": ["oxycodone", "hydrocodone", "meperidine"],
+      "nimi_fi": "vahva kipulääke",
+      "selkonimi": "vahva kipulääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "uneliaisuus", "kysymys": "Oletko ollut tavallista uneliaampi päivisin?"},
+        {"oire": "huimaus tai kaatumisriski", "kysymys": "Onko sinua huimannut tai oletko ollut kaatumaisillasi?"},
+        {"oire": "ummetus", "kysymys": "Onko vatsa toiminut normaalisti, vai onko ollut ummetusta?"},
+        {"oire": "pahoinvointi", "kysymys": "Onko sinulla ollut pahoinvointia?"}
+      ]
+    },
+    {
+      "avain": "parasetamoli",
+      "tunnisteet_mika_tahansa": ["acetaminophen"],
+      "nimi_fi": "parasetamoli",
+      "selkonimi": "kipulääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "kivun hallinta", "kysymys": "Onko kipulääke auttanut kipuun?"},
+        {"oire": "pahoinvointi", "kysymys": "Onko sinulla ollut pahoinvointia?"}
+      ]
+    },
+    {
+      "avain": "pregabaliini",
+      "tunnisteet": ["pregabalin"],
+      "nimi_fi": "pregabaliini",
+      "selkonimi": "hermokipulääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut?"},
+        {"oire": "uneliaisuus", "kysymys": "Oletko ollut tavallista uneliaampi?"},
+        {"oire": "turvotus", "kysymys": "Oletko huomannut turvotusta esimerkiksi nilkoissa?"}
+      ]
+    },
+    {
+      "avain": "karbamatsepiini",
+      "tunnisteet": ["carbamazepine"],
+      "nimi_fi": "karbamatsepiini",
+      "selkonimi": "lääke",
+      "kerro_kayttotarkoitus": false,
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "huimaus", "kysymys": "Onko sinua huimannut tai ollut tasapainon kanssa ongelmia?"},
+        {"oire": "väsymys", "kysymys": "Oletko ollut tavallista väsyneempi?"},
+        {"oire": "ihottuma", "kysymys": "Onko iholle tullut ihottumaa?"}
+      ]
+    },
+    {
+      "avain": "bentsodiatsepiini",
+      "tunnisteet_mika_tahansa": ["diazepam", "clonazepam"],
+      "nimi_fi": "rauhoittava lääke",
+      "selkonimi": "lääke",
+      "kerro_kayttotarkoitus": false,
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "uneliaisuus", "kysymys": "Oletko ollut tavallista uneliaampi päivisin?"},
+        {"oire": "huimaus tai kaatumisriski", "kysymys": "Onko sinua huimannut tai oletko ollut kaatumaisillasi?"}
+      ]
+    },
+    {
+      "avain": "masennuslaake_ssri",
+      "tunnisteet_mika_tahansa": ["fluoxetine", "sertraline"],
+      "nimi_fi": "lääke",
+      "selkonimi": "lääke",
+      "kerro_kayttotarkoitus": false,
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "pahoinvointi", "kysymys": "Onko sinulla ollut pahoinvointia lääkkeen aloittamisen jälkeen?"},
+        {"oire": "päänsärky", "kysymys": "Onko sinulla ollut päänsärkyä?"},
+        {"oire": "unen muutos", "kysymys": "Onko uni muuttunut?"}
+      ]
+    },
+    {
+      "avain": "antibiootti",
+      "tunnisteet_mika_tahansa": ["amoxicillin", "penicillin", "cefuroxime", "cefaclor", "nitrofurantoin", "doxycycline", "ampicillin"],
+      "nimi_fi": "antibiootti",
+      "selkonimi": "antibioottikuuri",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "ripuli tai vatsavaivat", "kysymys": "Onko vatsa ollut sekaisin tai ollut ripulia?"},
+        {"oire": "pahoinvointi", "kysymys": "Onko sinulla ollut pahoinvointia?"},
+        {"oire": "ihottuma", "kysymys": "Onko iholle tullut ihottumaa tai kutinaa?"}
+      ]
+    },
+    {
+      "avain": "allopurinoli",
+      "tunnisteet": ["allopurinol"],
+      "nimi_fi": "allopurinoli",
+      "selkonimi": "kihtilääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "ihottuma", "kysymys": "Onko iholle tullut ihottumaa?"},
+        {"oire": "vatsavaivat", "kysymys": "Onko vatsa ollut sekaisin?"}
+      ]
+    },
+    {
+      "avain": "kolkisiini",
+      "tunnisteet": ["colchicine"],
+      "nimi_fi": "kolkisiini",
+      "selkonimi": "kihtilääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "ripuli", "kysymys": "Onko sinulla ollut ripulia?"},
+        {"oire": "pahoinvointi", "kysymys": "Onko sinulla ollut pahoinvointia?"}
+      ]
+    },
+    {
+      "avain": "antihistamiini",
+      "tunnisteet_mika_tahansa": ["loratadine", "cetirizine", "fexofenadine", "diphenhydramine", "chlorpheniramine", "doxylamine"],
+      "nimi_fi": "allergialääke",
+      "selkonimi": "allergia- tai flunssalääke",
+      "puhelinkysely": true,
+      "haittavaikutukset": [
+        {"oire": "uneliaisuus", "kysymys": "Oletko ollut tavallista uneliaampi?"},
+        {"oire": "suun kuivuminen", "kysymys": "Onko suu tuntunut kuivalta?"},
+        {"oire": "sekavuus", "kysymys": "Onko olo tuntunut jotenkin sekavalta tai epätodelliselta?"}
+      ]
+    }
+  ]
+}

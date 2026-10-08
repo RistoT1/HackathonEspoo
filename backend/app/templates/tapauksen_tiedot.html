@@ -1,29 +1,62 @@
 {% extends "perus.html" %}
 
-{% block title %}Tapaus {{ tapaus.tunniste }}{% endblock %}
+{% block title %}Soittotehtävä {{ tapaus.id[:8] }}{% endblock %}
 
 {% block content %}
 <nav class="murupolku" aria-label="Murupolku">
-  <a href="/hoitaja/">Takaisinsoittojono</a>
+  <a href="/hoitaja/">Soittojono</a>
   <span aria-hidden="true">/</span>
-  <span aria-current="page">{{ tapaus.tunniste }}</span>
+  <span aria-current="page">{{ tapaus.id[:8] }}</span>
 </nav>
 
 <section class="sivun-otsikko tapaus-otsikko">
   <div>
-    <p class="ylateksti">TAPAUKSEN TIEDOT</p>
-    <h1>{{ tapaus.tunniste }}</h1>
-    <p class="toissijainen">{{ tapaus.otsikko }}</p>
+    <p class="ylateksti">SOITTOTEHTÄVÄ</p>
+    <h1>{{ tapaus.id[:8] }}</h1>
+    <p class="toissijainen">Pseudonyymi tunniste: {{ tapaus.vanhus_id }}</p>
   </div>
-  <span class="merkki merkki-{{ tapaus.kiireellisyys | lower }}"><span class="merkki-piste"></span>{{ tapaus.kiireellisyys }} kiireellisyys</span>
+  <span class="tilamerkki tilamerkki-{{ tilan_css }}">{{ tilan_nimi }}</span>
 </section>
 
 <div class="varoitus">
   <span class="varoitus-kuvake" aria-hidden="true">
     <svg viewBox="0 0 24 24"><path d="M12 3.5 21 20H3L12 3.5Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
   </span>
-  <span><strong>Hoitaja tekee päätöksen.</strong> Automaattinen arvio tukee käsittelyä eikä ole diagnoosi tai hoito-ohje.</span>
+  <span><strong>Soittoprioriteetti ei ole kiireellisyysarvio.</strong> Se auttaa järjestämään soitot; hoitaja arvioi tilanteen.</span>
 </div>
+
+<section class="mittaririvi tapausmittarit" aria-label="Tehtävän tiedot">
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-avoin" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 18h16M6 15l4-4 3 2 5-6"/><path d="M15 7h3v3"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Soittoprioriteetti</span>
+      <strong>{{ tapaus.prioriteetti }}</strong>
+    </span>
+    <span class="mittari-kuvaus">järjestyspisteet, ei triage</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-kiireellinen" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 4h10v16H7zM9.5 8h5M9.5 11.5h5M9.5 15h3"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Aktiivisia lääkkeitä</span>
+      <strong>{{ tapaus.aktiivisia_laakkeita }}</strong>
+    </span>
+    <span class="mittari-kuvaus">tunnistuksen yhteydessä</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-valmis" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M6 4v6M18 4v6M5 12h14v8H5z"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Soittoyrityksiä</span>
+      <strong>{{ tapaus.yritykset }}</strong>
+    </span>
+    <span class="mittari-kuvaus">tämän tehtävän aikana</span>
+  </article>
+</section>
 
 <section class="tietoruudukko">
   <article class="kortti tieto">
@@ -31,21 +64,83 @@
       <span class="tieto-kuvake" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5zM8 9h8M8 12h5M8 15h7"/></svg>
       </span>
-      <p class="ylateksti">LAUKAISSUT TAPAHTUMA</p>
+      <p class="ylateksti">MIKSI TEHTÄVÄ ON JONOSSA</p>
     </div>
-    <h2>{{ tapaus.laukaisin }}</h2>
-    <p>{{ tapaus.peruste }}</p>
+    {% if tapaus.perusteet %}
+    <ul class="perustelulista">
+      {% for peruste in tapaus.perusteet %}
+      <li>{{ peruste }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>Tehtävälle ei ole tallennettu erillisiä perusteluja.</p>
+    {% endif %}
+    <p class="tietojen-aikaleima">Viitepäivä {{ tapaus.viitepaiva.strftime("%d.%m.%Y") }}</p>
   </article>
   <article class="kortti tieto">
     <div class="tieto-otsake">
       <span class="tieto-kuvake tieto-kuvake-puhelu" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M7.2 4.5h-2A1.7 1.7 0 0 0 3.5 6.2c0 7.9 6.4 14.3 14.3 14.3a1.7 1.7 0 0 0 1.7-1.7v-2l-4.1-1.4-1.1 2a14.3 14.3 0 0 1-7.5-7.5l2-1.1-1.6-4.3Z"/></svg>
       </span>
-      <p class="ylateksti">PUHELUN YHTEENVETO</p>
+      <p class="ylateksti">TEHTÄVÄN AJANKOHTA</p>
     </div>
-    <h2>{{ tapaus.otsikko }}</h2>
-    <p>{{ tapaus.yhteenveto }}</p>
+    <h2>Luotu {{ tapaus.luotu.strftime("%d.%m.%Y klo %H:%M") }}</h2>
+    <p>Viimeksi päivitetty {{ tapaus.paivitetty.strftime("%d.%m.%Y klo %H:%M") }}.</p>
   </article>
+</section>
+
+<section class="kortti muutoskortti">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">TUNNISTETUT TERVEYSTIETOJEN MUUTOKSET</p>
+      <h2>Puhelun taustalla olevat muutokset</h2>
+    </div>
+    <span class="tapausmaara">{{ tapaus.muutokset | length }} muutosta</span>
+  </div>
+  {% if tapaus.muutokset %}
+  <div class="muutoslista">
+    {% for muutos in tapaus.muutokset %}
+    <article class="muutosrivi">
+      <span class="muutosikoni" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M8 4h8v3H8zM7 7h10v13H7zM9.5 11h5M9.5 14h5M9.5 17h3"/></svg>
+      </span>
+      <div class="muutostiedot">
+        <div class="muutosotsake">
+          <strong>{{ muutos.laake.nimi }}</strong>
+          <span class="muutostyyppi">{{ muutos.tyyppi.value | replace("_", " ") | lower }}</span>
+        </div>
+        <p>{{ muutos.kuvaus }}</p>
+        <span class="muutospaiva">Tapahtui {{ muutos.tapahtui.strftime("%d.%m.%Y") }} · {{ muutos.paivia_sitten }} päivää sitten</span>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="toissijainen">Tehtävään ei ole liitetty muutostietoja.</p>
+  {% endif %}
+</section>
+
+<section class="kortti kysymyskortti">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">PUHELUN KYSYMYSRUNKO</p>
+      <h2>Keskustelussa huomioitavat kysymykset</h2>
+    </div>
+    <span class="tapausmaara">{{ tapaus.kysymykset | length }} kysymystä</span>
+  </div>
+  {% if tapaus.kysymykset %}
+  <ol class="kysymyslista">
+    {% for kysymys in tapaus.kysymykset %}
+    <li>
+      <span class="kysymysteksti">{{ kysymys.teksti }}</span>
+      <span class="kysymystunniste">{{ kysymys.tunniste }}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="toissijainen">Tehtävälle ei ole muodostettu kysymysrunkoa.</p>
+  {% endif %}
+  <p class="api-huomio">Nykyinen API tallentaa tehtävän ja kysymysrungon. Puheluvastauksia tai litterointia tämä näkymä ei näytä.</p>
 </section>
 
 <section class="kortti kasittelykortti">
@@ -55,23 +150,30 @@
         <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5zM8 9h8M8 12h8M8 15h4"/></svg>
       </span>
       <div>
-        <p class="ylateksti">HOITAJAN KÄSITTELY</p>
-        <h2>Kirjaa jatkotoimi</h2>
+        <p class="ylateksti">TEHTÄVÄN TILANHALLINTA</p>
+        <h2>Seuraava tila</h2>
       </div>
     </div>
-    <span class="tilamerkki {% if tapaus.tila == 'Avoin' %}tilamerkki-avoin{% else %}tilamerkki-valmis{% endif %}">{{ tapaus.tila }}</span>
   </div>
-  <form data-kasittely-lomake action="/hoitaja/tapaukset/{{ tapaus.tunniste }}/kasittele">
-    <label for="muistiinpano">Muistiinpano</label>
-    <textarea id="muistiinpano" name="muistiinpano" rows="4" maxlength="2000"
-      placeholder="Kirjaa vain asian käsittelyn kannalta tarpeellinen tieto.">{{ tapaus.muistiinpano }}</textarea>
-    <div class="lomakkeen-alareuna">
-      <p class="toissijainen">Kirjaa vain käsittelyn kannalta tarpeelliset tiedot.</p>
-      <div class="painikeryhma">
-        <button class="painike painike-toissijainen" type="submit" name="tila" value="Käsitelty">Kuittaa käsitellyksi</button>
-        <button class="painike painike-ensisijainen" type="submit" name="tila" value="Takaisinsoitto tehty">Takaisinsoitto tehty</button>
-      </div>
-    </div>
-  </form>
+  {% if sallitut_toiminnot %}
+  <div class="toimintolista">
+    {% for toiminto in sallitut_toiminnot %}
+    <button
+      class="painike {% if toiminto.value == 'PERUTTU' %}painike-toissijainen{% else %}painike-ensisijainen{% endif %}"
+      type="button"
+      data-tilanmuutos
+      data-tehtava="{{ tapaus.id }}"
+      data-tila="{{ toiminto.value }}">
+      {% if toiminto.value == "PERUTTU" %}Peru tehtävä
+      {% elif toiminto.value == "VALMIS" %}Merkitse puhelu valmiiksi
+      {% elif toiminto.value == "EI_VASTANNUT" %}Merkitse: ei vastannut
+      {% elif toiminto.value == "ODOTTAA" %}Palauta soittojonoon
+      {% else %}{{ toimintojen_nimet[toiminto] }}{% endif %}
+    </button>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="toissijainen">Tämä tehtävä on päätetyssä tilassa, eikä sille ole sallittuja tilasiirtymiä.</p>
+  {% endif %}
 </section>
 {% endblock %}

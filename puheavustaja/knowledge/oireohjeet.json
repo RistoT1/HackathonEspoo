@@ -1,0 +1,153 @@
+{
+  "_kuvaus": "Oireiden tietopohja keskustelua varten. Kun henkilö mainitsee oireen (tunnisteet = säännölliset lausekkeet, pienet kirjaimet, ei kieltomuodossa), malli saa tästä tarkentavat kysymykset ja kotihoito-ohjeet. Malli EI keksi omia ohjeita. Ohjeet ovat yleisiä omahoito-ohjeita, EIVÄT lääkeneuvoja (ei annoksia, ei lääkkeen lopettamista tai aloittamista). 'huolestuttava' = nostaa kiireellisyyden vähintään keltaiseksi ja estää puhelun lopettamisen ilman turvallisuuskysymystä. TARKISTETTAVA hoitohenkilökunnan kanssa ennen tuotantoa.",
+  "yleiset_ohjeet": [
+    "Älä lopeta lääkettä tai muuta annosta omin päin. Jos mietit sitä, keskustele ensin hoitajan kanssa.",
+    "Jos olo huononee nopeasti, soita terveysasemalle tai päivystykseen, hätätilanteessa 112."
+  ],
+  "oireet": [
+    {
+      "oire": "pahoinvointi",
+      "tunnisteet": ["pahoinvoi", "pahaa oloa", "huono olo", "oksettaa", "kuvottaa", "oksen"],
+      "lisakysymykset": ["Onko pahoinvointia enemmän ruokailun jälkeen vai muulloin?", "Pystytkö syömään ja juomaan normaalisti?"],
+      "kotihoito": ["Syö pieniä annoksia kerrallaan ja useammin.", "Juo vettä pienin kulauksin pitkin päivää.", "Lepää rauhallisessa asennossa ruokailun jälkeen."],
+      "ota_yhteytta": "jos et pysty juomaan tai oksennat toistuvasti",
+      "huolestuttava": false
+    },
+    {
+      "oire": "ripuli",
+      "tunnisteet": ["ripul", "vatsa sekaisin", "vatsa on ollut sekaisin", "löysä"],
+      "lisakysymykset": ["Kuinka monta päivää ripulia on ollut?", "Pystytkö juomaan riittävästi?"],
+      "kotihoito": ["Juo tavallista enemmän, esimerkiksi vettä tai mehua laimennettuna.", "Syö kevyttä ruokaa, kuten keittoa, puuroa tai banaania."],
+      "ota_yhteytta": "jos ripuli jatkuu useamman päivän, olet hyvin heikko tai ulosteessa on verta",
+      "huolestuttava": false
+    },
+    {
+      "oire": "ummetus",
+      "tunnisteet": ["ummetu", "vatsa ei ole toiminut", "vatsa ei toimi"],
+      "lisakysymykset": ["Kuinka kauan vatsa on ollut toimimatta?"],
+      "kotihoito": ["Juo riittävästi vettä päivän mittaan.", "Syö kuitupitoista ruokaa, kuten puuroa, täysjyväleipää ja kasviksia.", "Kevyt liikkuminen, esimerkiksi kävely, auttaa vatsaa toimimaan."],
+      "ota_yhteytta": "jos vatsa on kipeä ja turvonnut tai ummetus jatkuu pitkään",
+      "huolestuttava": false
+    },
+    {
+      "oire": "huimaus",
+      "tunnisteet": ["huima", "pyörryttä", "päätä pyörittää", "tasapaino"],
+      "lisakysymykset": ["Huimaako enemmän, kun nouset ylös?", "Oletko kaatunut tai ollut kaatumaisillasi?"],
+      "kotihoito": ["Nouse ylös rauhallisesti: istu ensin hetki sängyn reunalla.", "Juo riittävästi päivän aikana.", "Pidä tukea lähellä, esimerkiksi rollaattori tai tuoli."],
+      "ota_yhteytta": "jos olet kaatunut tai huimaus pahenee",
+      "huolestuttava": true
+    },
+    {
+      "oire": "kaatuminen",
+      "tunnisteet": ["kaatu", "kaadu", "kompastu", "lysähd"],
+      "lisakysymykset": ["Satutitko itsesi kaatuessa?", "Pääsitkö itse ylös?"],
+      "kotihoito": ["Poista kotoa kompastumisvaaroja, kuten irtomattoja ja johtoja.", "Pidä yöllä pieni valo päällä."],
+      "ota_yhteytta": "jos satutit itsesi tai et päässyt itse ylös",
+      "huolestuttava": true
+    },
+    {
+      "oire": "päänsärky",
+      "tunnisteet": ["päänsär", "pää on kipeä", "päätä särkee", "pää on ollut kipeä", "päätä on särkenyt"],
+      "lisakysymykset": ["Onko päänsärky alkanut lääkkeen aloittamisen jälkeen?", "Kuinka usein päänsärkyä on?"],
+      "kotihoito": ["Juo riittävästi vettä.", "Lepää rauhallisessa ja hämärässä paikassa.", "Raitis ilma ja lyhyt kävely voivat helpottaa."],
+      "ota_yhteytta": "jos päänsärky on uudenlaista, pahenee tai ei mene ohi",
+      "huolestuttava": false
+    },
+    {
+      "oire": "väsymys",
+      "tunnisteet": ["väsy", "uupu", "voimaton", "ei jaksa", "en jaksa"],
+      "lisakysymykset": ["Onko väsymys alkanut lääkkeen aloittamisen jälkeen?", "Haittaako väsymys arjen askareita?"],
+      "kotihoito": ["Pidä päivään säännöllinen rytmi ja lyhyitä lepohetkiä.", "Syö säännöllisesti ja juo riittävästi."],
+      "ota_yhteytta": "jos väsymys on niin kovaa, ettet pysty hoitamaan arkea",
+      "huolestuttava": false
+    },
+    {
+      "oire": "unettomuus",
+      "tunnisteet": ["unettom", "en saa unta", "nukun huonosti", "valvo", "uni on huonoa", "herään yöllä"],
+      "lisakysymykset": ["Onko vaikeaa nukahtaa vai heräätkö yöllä?"],
+      "kotihoito": ["Mene nukkumaan ja herää samaan aikaan joka päivä.", "Vältä kahvia iltapäivällä ja illalla.", "Pidä makuuhuone viileänä ja pimeänä."],
+      "ota_yhteytta": "jos unettomuus jatkuu pitkään",
+      "huolestuttava": false
+    },
+    {
+      "oire": "turvotus",
+      "tunnisteet": ["turvo", "nilkat paksu", "jalat paksu"],
+      "lisakysymykset": ["Onko turvotusta molemmissa jaloissa vai vain toisessa?", "Onko turvotus pahempaa illalla?"],
+      "kotihoito": ["Pidä jalkoja levätessä koholla.", "Liikuttele nilkkoja istuessa."],
+      "ota_yhteytta": "jos turvotus on vain toisessa jalassa, jalka on kipeä tai turvotus lisääntyy nopeasti",
+      "huolestuttava": true
+    },
+    {
+      "oire": "lihaskipu",
+      "tunnisteet": ["lihaskip", "lihakset kipe", "lihaksia särkee", "lihasheik", "kolottaa", "kolotus"],
+      "lisakysymykset": ["Missä lihaksissa kipua on?", "Onko kipu alkanut lääkkeen aloittamisen jälkeen?"],
+      "kotihoito": ["Kevyt liikkuminen ja venyttely voivat helpottaa.", "Lämpö, esimerkiksi lämmin suihku, voi rentouttaa lihaksia."],
+      "ota_yhteytta": "jos lihaskipu on voimakasta tai virtsa on tummaa",
+      "huolestuttava": true
+    },
+    {
+      "oire": "ihottuma",
+      "tunnisteet": ["ihottum", "kutia", "kutina", "kutisee", "läikk", "näppyl"],
+      "lisakysymykset": ["Missä kohtaa ihottumaa on?", "Milloin ihottuma alkoi?"],
+      "kotihoito": ["Vältä raapimista ja käytä mietoja pesuaineita.", "Perusvoide voi rauhoittaa kuivaa ihoa."],
+      "ota_yhteytta": "jos ihottuma leviää nopeasti, iholle tulee rakkuloita tai kasvot turpoavat",
+      "huolestuttava": true
+    },
+    {
+      "oire": "yskä",
+      "tunnisteet": ["yskä", "yski", "yskitt"],
+      "lisakysymykset": ["Onko yskä kuivaa vai tuleeko limaa?", "Onko yskä alkanut lääkkeen aloittamisen jälkeen?"],
+      "kotihoito": ["Juo lämmintä juotavaa.", "Huoneilman kostuttaminen voi helpottaa kuivaa yskää."],
+      "ota_yhteytta": "jos yskään liittyy kuumetta tai hengitys tuntuu raskaalta",
+      "huolestuttava": false
+    },
+    {
+      "oire": "verenvuoto ja mustelmat",
+      "tunnisteet": ["mustelm", "nenäverenvuo", "nenästä vuotaa", "ikenistä vuotaa", "ienverenvuo", "verta virtsassa", "verta ulosteessa", "musta uloste", "mustaa ulostetta"],
+      "lisakysymykset": ["Onko verenvuotoa ollut paljon vai vähän?", "Onko verenvuoto loppunut itsestään?"],
+      "kotihoito": ["Nenäverenvuodossa istu etukumarassa ja purista nenää sieraimista noin kymmenen minuuttia.", "Käytä pehmeää hammasharjaa."],
+      "ota_yhteytta": "aina saman päivän aikana, ja heti jos vuoto ei lopu",
+      "huolestuttava": true
+    },
+    {
+      "oire": "vatsakipu ja närästys",
+      "tunnisteet": ["vatsakip", "vatsa kipeä", "vatsa on kipeä", "vatsaan sattuu", "närästy", "närästää"],
+      "lisakysymykset": ["Onko kipu jatkuvaa vai tuleeko se ruokailun jälkeen?"],
+      "kotihoito": ["Syö pieniä annoksia ja vältä rasvaista ja mausteista ruokaa.", "Älä käy makuulle heti ruokailun jälkeen."],
+      "ota_yhteytta": "jos kipu on kovaa, oksennat tai uloste on mustaa",
+      "huolestuttava": false
+    },
+    {
+      "oire": "sydämentykytys",
+      "tunnisteet": ["tykyt", "sydän hakkaa", "sydän lyö", "sydän jyskyttää", "sydän muljahtel"],
+      "lisakysymykset": ["Kuinka kauan tykytys kerrallaan kestää?", "Liittyykö siihen huimausta?"],
+      "kotihoito": ["Istu alas ja hengitä rauhallisesti.", "Vältä runsasta kahvia."],
+      "ota_yhteytta": "jos tykytys toistuu tai siihen liittyy huimausta",
+      "huolestuttava": true
+    },
+    {
+      "oire": "suun kuivuminen ja jano",
+      "tunnisteet": ["suu kuiva", "kuiva suu", "jano", "janottaa"],
+      "lisakysymykset": ["Juotko päivän aikana riittävästi?"],
+      "kotihoito": ["Pidä juomalasi aina lähellä ja juo pienin kulauksin.", "Sokeriton purukumi voi lisätä syljeneritystä."],
+      "ota_yhteytta": "jos jano on jatkuvaa ja virtsaat hyvin paljon",
+      "huolestuttava": false
+    },
+    {
+      "oire": "sekavuus ja muisti",
+      "tunnisteet": ["sekav", "sekaisin päästä", "muisti pätkii", "unohtel", "en muista ottaneeni"],
+      "lisakysymykset": ["Onko joku läheinen huomannut saman?"],
+      "kotihoito": ["Dosetti eli lääkeannostelija auttaa muistamaan lääkkeet.", "Kirjoita tärkeät asiat muistiin näkyvälle paikalle."],
+      "ota_yhteytta": "jos sekavuus on alkanut äkillisesti",
+      "huolestuttava": true
+    },
+    {
+      "oire": "alakulo ja yksinäisyys",
+      "tunnisteet": ["yksinäi", "alakulo", "allapäin", "masentaa", "surullinen", "ahdistaa", "ei ole ketään"],
+      "lisakysymykset": ["Onko sinulla ketään, jolle voit jutella?"],
+      "kotihoito": ["Ikäihmisille on tarjolla ystävätoimintaa ja päivätoimintaa; hoitaja voi kertoa lisää.", "Lyhytkin ulkoilu päivittäin voi kohentaa mielialaa."],
+      "ota_yhteytta": "jos olo on pitkään raskas, hoitaja voi auttaa löytämään tukea",
+      "huolestuttava": true
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "_kuvaus": "Puhelun turvallisuus- ja keskustelusäännöt. Deterministinen osa (avauslause, hätätunnistus, lopetuspyynnöt) EI kulje LLM:n kautta. LLM keskustelee luontevasti, kysyy jatkokysymyksiä ja antaa ohjeita vain oireohjeet.json:sta.",
+  "avauslause": "Hei! Täällä on hyvinvointialueen tekoälyavustaja. Soitan kysyäkseni kuulumisia, ja välitän vastauksesi hoitajalle. Miten sinulla menee?",
+  "lopetuslause": "Kiitos vastauksistasi. Välitän tiedot hoitajalle, ja hän ottaa tarvittaessa yhteyttä. Jos olo huononee, soita terveysasemalle, ja hätätilanteessa numeroon 112. Hyvää päivänjatkoa.",
+  "hataviesti": "Tämä kuulostaa siltä, että tarvitset apua heti. Lopeta tämä puhelu ja soita nyt hätänumeroon 112. Välitän tiedon myös hoitajalle.",
+  "uudelleenkysymys": {
+    "_kuvaus": "Jos vastauksesta ei saa selvää, kysymys toistetaan. Deterministinen tarkistus (puheentunnistuksen laatu, toistopyynnöt) ajetaan ennen mallia; malli arvioi lisäksi, vastasiko henkilö kysymykseen. Raja-arvot ovat ALKUARVOJA, viritä mittaamalla oikealla puheella.",
+    "max_per_kysymys": 2,
+    "epaselva_viesti": "Anteeksi, en saanut vastauksesta selvää. Kysyn uudelleen:",
+    "toistoviesti": "Toki, kysyn uudelleen:",
+    "ohitusviesti": "Ei haittaa, siirrytään eteenpäin.",
+    "toistopyynnot": [
+      "^(mitä|häh|anteeksi|siis mitä|kuinka)\\??$",
+      "en (kuullut|ymmärtänyt|saanut selvää)",
+      "(toista|toistaisitko|sano uudelleen|voitko toistaa|kysy uudelleen)",
+      "mitä sinä sanoit",
+      "mitä kysyit"
+    ],
+    "puheentunnistuksen_harhat": [
+      "kiitos katsomisesta",
+      "kiitos kun katsoit",
+      "tekstitys",
+      "suomenkielinen tekstitys",
+      "tilaa kanava"
+    ],
+    "min_avg_logprob": -1.0,
+    "max_no_speech_prob": 0.6,
+    "epaselvat_nostaa_keltaiseksi": 2
+  },
+  "lopetuspyynto": {
+    "_kuvaus": "1. pyyntö: kysytään syytä ja kuulumisia. 2. pyyntö: lopetetaan, ellei puhelussa ole huolestuttavaa; jos on, kysytään yksi turvallisuuskysymys. 3. pyyntö: lopetetaan aina (ihmistä ei pidetä puhelimessa vastoin tahtoa).",
+    "tunnisteet": [
+      "\\b(lopeta|lopetetaan|lopettaa|lopetellaan)\\b.{0,15}\\b(puhelu|keskustelu|tämä|tää|nyt|jo)",
+      "^(lopeta|lopetetaan|lopetellaan)\\b",
+      "haluan lopettaa",
+      "en (halua|jaksa) (enää )?(puhua|jutella|jatkaa|vastata)",
+      "^ei (sovi|käy)",
+      "ei (sovi|käy) (nyt|tähän aikaan)",
+      "soita(kaa)? (myöhemmin|toiste|toisella kertaa)",
+      "^ei kiitos",
+      "(hei hei|heippa|näkemiin|moikka|kuulemiin)$",
+      "suljen (puhelimen|puhelun)",
+      "pitää (nyt )?mennä"
+    ],
+    "kysy_syy": "Toki voimme lopettaa. Saanko kuitenkin kysyä, miksi haluat lopettaa? Onko kaikki muuten hyvin?",
+    "turvallisuuskysymys": "Ymmärrän, että haluat lopettaa. Ennen sitä haluan varmistaa, koska mainitsit: {huolet}. Onko sinulla nyt turvallinen olo, ja onko joku, joka voi auttaa tarvittaessa?",
+    "lopetus": "Selvä, lopetetaan tähän. Kiitos juttutuokiosta. Välitän tiedot hoitajalle. Jos olo huononee, soita terveysasemalle, ja hätätilanteessa numeroon 112. Hyvää päivänjatkoa.",
+    "lopetus_huolestuttava": "Selvä, lopetetaan tähän. Koska mainitsit: {huolet}, välitän tämän hoitajalle, ja hän soittaa sinulle tänään. Jos olo huononee, soita heti 112. Hyvää päivänjatkoa."
+  },
+  "sallitut_aiheet": [
+    "kuulumiset ja yleinen vointi",
+    "henkilön itse kertomat oireet ja tilanteet: jatkokysymykset ja kotihoito-ohjeet oireohjeet.json:sta",
+    "lääkkeen tunnetut, yleiset haittavaikutukset (soittoprofiilista)",
+    "onko lääkettä pystynyt ottamaan ohjeen mukaan",
+    "milloin oire alkoi ja haittaako se arkea"
+  ],
+  "kielletyt_aiheet": [
+    "diagnoosien, sairauksien tai laboratoriotulosten mainitseminen",
+    "henkilötunnus, osoite, pankki- tai muut tunnistetiedot",
+    "seksuaaliterveys, ehkäisy, raskaus",
+    "päihteet, talous, perhe- ja ihmissuhdeasiat",
+    "mielenterveyden syvällinen kartoitus",
+    "lääkeneuvonta: annoksen muuttaminen, lääkkeen lopettaminen tai uuden aloittaminen",
+    "diagnoosin tai syyn arvaaminen oireelle"
+  ],
+  "yleiskysymykset": [
+    "Miten olet voinut viime päivinä?",
+    "Oletko pystynyt ottamaan lääkkeen ohjeen mukaan?"
+  ],
+  "max_laakekysymykset": 3,
+  "hataviestit": {
+    "_kuvaus": "Hätämerkkikohtainen viesti. Jos merkille ei ole omaa viestiä, käytetään hataviesti-kenttää.",
+    "itsetuhoisuus": "Kiitos, että kerroit. Tämä on tärkeää, eikä sinun tarvitse olla asian kanssa yksin. Jos olet välittömässä vaarassa, soita nyt 112. Voit soittaa myös MIELI ry:n kriisipuhelimeen numeroon 09 2525 0111. Välitän tämän hoitajalle heti."
+  },
+  "hatamerkit": {
+    "_kuvaus": "Säännöllisiä lausekkeita (pienet kirjaimet). Osuma ilman edeltävää kieltosanaa -> hätäviesti heti, LLM ohitetaan. Väärä hälytys on parempi kuin ohitettu hätä.",
+    "rintakipu": [
+      "rintakip",
+      "rintaa (puristaa|painaa|sattuu)",
+      "rinnassa (puristaa|painaa|kipu|kipua|sattuu)",
+      "kipu(a)? rinnassa",
+      "puristava kipu"
+    ],
+    "hengenahdistus": [
+      "hengenahdist",
+      "en saa (henkeä|happea|hengitettyä)",
+      "hengitys (ahdistaa|ei kulje|vinkuu kovasti)",
+      "hengittäminen on (vaikeaa|raskasta)",
+      "tukehdu"
+    ],
+    "halvausoireet": [
+      "halvau",
+      "suu(pieli)? (on )?(vinossa|roikkuu)",
+      "puhe (sammaltaa|puuroutuu|ei tule)",
+      "toinen puoli",
+      "en pysty liikuttamaan",
+      "käsi ei (toimi|nouse)",
+      "kasvot (ovat )?vinossa"
+    ],
+    "tajunta": [
+      "pyörty",
+      "tajuto",
+      "menetin tajun",
+      "tajunnan menetys"
+    ],
+    "vakava_allergia": [
+      "(kasvot|kieli|kurkku|huulet) (on |ovat )?turvo",
+      "kurkku menee umpeen"
+    ],
+    "runsas_verenvuoto": [
+      "verta oksennuks",
+      "oksensin verta",
+      "verenvuoto ei lopu",
+      "vuotaa paljon verta"
+    ],
+    "akillinen_kova_paansarky": [
+      "äkillinen (ja )?(kova|voimakas|kamala|hirveä) päänsärky",
+      "(kovin|pahin) päänsärky (ikinä|koskaan)",
+      "pää (räjähtää|halkeaa)"
+    ],
+    "itsetuhoisuus": [
+      "en halua (enää )?elää",
+      "haluan kuolla",
+      "tappaa itseni",
+      "päättää päiväni",
+      "itsemurh",
+      "ei ole (enää )?mitään syytä elää"
+    ]
+  },
+  "kieltosanat": [
+    "ei",
+    "en",
+    "et",
+    "eikä",
+    "emme",
+    "eivät",
+    "enkä",
+    "mitään",
+    "ollenkaan"
+  ],
+  "hoitajalle_merkittavat": {
+    "_kuvaus": "Ei hätä, mutta nostaa vähintään keltaiseksi. Sääntö voi vain nostaa tasoa.",
+    "keltainen": [
+      "huima",
+      "kaatu",
+      "kaadu",
+      "pyörry",
+      "musta(a)? uloste",
+      "verta (virtsassa|ulosteessa)",
+      "mustelm",
+      "turvo",
+      "sekav",
+      "lihaskip",
+      "ihottum",
+      "en ole ottanut",
+      "lopetin lääkkeen",
+      "jätin lääkkeen",
+      "päänsär",
+      "sydän hakkaa",
+      "tykyttä",
+      "oksen"
+    ]
+  }
+}
