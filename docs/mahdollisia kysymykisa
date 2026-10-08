@@ -52,6 +52,119 @@ Tarvittaessa:
 Älä pyydä asiakasta muuttamaan annosta, lopettamaan lääkettä tai aloittamaan sitä.
 Välitä lääkehoitoa koskevat huolet hoitajalle.
 
+## Lääkkeen annosta muutettu (`ANNOSMUUTOS`)
+
+**Aloituskysymys**
+
+> Tietojemme mukaan yhden lääkkeesi annosta on muutettu. Oletko ottanut lääkettä
+> uuden annoksen mukaan?
+
+**Jos asiakas ottaa uuden annoksen mukaan**
+
+> Miten olet voinut annoksen muutoksen jälkeen?
+
+Tarvittaessa:
+
+> Onko olossasi jotain erilaista kuin ennen muutosta?
+
+**Jos asiakas ei ole varma annoksesta tai ottaa vanhan annoksen mukaan**
+
+> Kiitos kun kerroit. Ei haittaa, tämä on tavallista. Haluatko, että hoitaja käy annoksen
+> kanssasi läpi?
+
+Älä kerro puhelimessa, mikä annoksen pitäisi olla. Epäselvä annos välitetään aina
+hoitajalle.
+
+## Lääke lopetettu (`LOPETETTU_LAAKE`)
+
+**Aloituskysymys**
+
+> Tietojemme mukaan yksi lääkkeesi on merkitty lopetetuksi. Oletko lopettanut sen
+> käytön?
+
+**Jos asiakas on lopettanut**
+
+> Miten olet voinut lopettamisen jälkeen?
+
+Tarvittaessa:
+
+> Onko jokin vanha oire palannut tai tullut uusia oireita?
+
+**Jos asiakas ottaa lääkettä edelleen**
+
+> Kiitos kun kerroit. Välitän tämän hoitajalle, jotta hän voi varmistaa asian kanssasi.
+
+Älä kehota lopettamaan tai jatkamaan lääkettä. Ristiriita merkinnän ja asiakkaan
+kertoman välillä välitetään hoitajalle.
+
+## Lyhyt lääkekuuri (`LYHYT_KUURI`)
+
+Lääke aloitettiin ja lopetettiin saman tarkastelujakson aikana (esim. antibioottikuuri).
+Kysytään yhtenä asiana, ei erikseen "uusi" ja "lopetettu".
+
+**Aloituskysymys**
+
+> Tietojemme mukaan sinulla on ollut lyhyt lääkekuuri. Saitko sen käytyä loppuun?
+
+**Jos kävi loppuun**
+
+> Miten olet voinut kuurin jälkeen?
+
+**Jos ei käynyt loppuun**
+
+> Jäikö kuuri kesken jostain syystä?
+
+## Voinnin tarkentavat kysymykset (kaikkiin lääkemuutoksiin)
+
+Käytä vain jatkokysymyksenä, kun asiakas kertoo voinnin muuttuneen tai on epävarma.
+Kysy enintään yksi tai kaksi. Älä mainitse lääkkeen nimeä, sairautta tai epäiltyä
+haittavaikutusta: puhelu ei ole salattu, ja kysymys ei saa johdatella.
+
+| Mitä selvitetään | Kysymys |
+|---|---|
+| Huimaus, kaatumisriski | Onko sinua huimannut, esimerkiksi kun nouset ylös? |
+| Kaatuminen | Oletko kaatunut tai ollut kaatumaisillasi viime aikoina? |
+| Väsymys, uneliaisuus | Oletko ollut tavallista väsyneempi tai uneliaampi päivällä? |
+| Sekavuus, muisti | Onko sinusta tai läheisistäsi tuntunut, että ajatus kulkee eri tavalla kuin ennen? |
+| Vatsa | Onko vatsasi toiminut tavalliseen tapaan? |
+| Ruokahalu, juominen | Onko ruoka maistunut ja oletko jaksanut juoda tavalliseen tapaan? |
+| Turvotus | Oletko huomannut turvotusta esimerkiksi nilkoissa? |
+| Mustelmat, verenvuoto | Onko sinulle tullut mustelmia tai verenvuotoa tavallista helpommin? |
+| Lihaskivut | Onko lihaksissa ollut uutta kipua tai heikkoutta? |
+| Iho | Onko iholle tullut ihottumaa tai kutinaa? |
+| Uni | Miten olet nukkunut viime öinä? |
+| Arjessa pärjääminen | Oletko pärjännyt arjen askareissa niin kuin ennenkin? |
+
+Taulukko on esimerkkilista, ei lääketieteellisesti tarkistettu. Tarkistetaan
+UpToDatesta ja hoitajan kanssa ennen käyttöä. Rintakipu, hengenahdistus ja
+halvausoireet eivät kuulu tähän: ne ohjataan aina 112:een (ks. Kiireelliset oireet).
+
+## Muutostyyppi -> aloituskysymys (koodin sopimus)
+
+Lääkemuutosten tunnistus (`GET /potilaat/{id}/laakemuutokset`) palauttaa jokaiselle
+muutokselle kentän `tyyppi`. Kysymyspohjat valitaan sen mukaan:
+
+| `tyyppi` | Osio tässä tiedostossa |
+|---|---|
+| `UUSI_LAAKE` | Uusi lääkemerkintä |
+| `ANNOSMUUTOS` | Lääkkeen annosta muutettu |
+| `LOPETETTU_LAAKE` | Lääke lopetettu |
+| `LYHYT_KUURI` | Lyhyt lääkekuuri |
+| (tuleva `UUSIMATTA_JAANYT`) | Lääkkeen saaminen tai käytössä pysyminen |
+
+Backend antaa puhelulle vain kysymykset (yksi per muutos, tarkennukset ja yleinen vointi)
+sekä kontekstin (ikä, lääkkeiden määrä, muutostyyppi, lääkeryhmä, montako päivää sitten).
+Avaus, jatkokysymykset, reagointi vastauksiin, lopetus ja 112-ohjaus ovat puhelun LLM:n
+ohjeissa; tämän dokumentin keskustelurunko on pohja niille.
+
+Koodissa kysymykset ovat tiedostossa `backend/app/kysymykset/pohjat.py` ja tarkennusten valinta
+lääkeryhmän mukaan tiedostossa `backend/app/kysymykset/laakeryhmat.py`. Pidä nämä ja tämä
+dokumentti samassa sisällössä.
+
+Jos muutoksia on useita, kysy ensin uusimmasta (lista on valmiiksi uusin ensin) ja
+enintään kahdesta per puhelu. Muutoksen kentät `syy` (diagnoosi) ja lääkkeen nimi eivät
+kuulu puheluun, vain hoitajan näkymään.
+
 ## Lääkkeen saaminen tai käytössä pysyminen
 
 > Onko sinulla lääkettä tällä hetkellä riittävästi?

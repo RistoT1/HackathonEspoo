@@ -1,5 +1,2 @@
-<<<<<<< HEAD
-=======
 # Shell-skriptit aina LF:lla, muuten Postgresin init-skripti kaatuu Windows-checkoutissa
->>>>>>> 2b5b9707d5ad36ffafd4ac18c8e049eb3348e64a
 *.sh text eol=lf

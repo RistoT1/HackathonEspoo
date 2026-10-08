@@ -41,14 +41,15 @@ Avoimen lähdekoodin kehyksiä omassa ympäristössä; mikään data ei vuoda ko
 käyttämällä. Compliance riippuu deploymentista: EU-alue, salaus, pääsynhallinta. Tuotannon
 Postgres = Azure Database for PostgreSQL, Sweden Central.
 
-### Azure Speech + Azure OpenAI — tämä on vahvuus, korosta sitä
+### Azure Speech (+ Azure OpenAI tuotannossa) — tämä on vahvuus, korosta sitä
 - Microsoft on käsittelijä (processor), tarjoaa DPA:n.
 - Asiakkaan dataa EI käytetä perustusmallien koulutukseen.
 - EU-datasijainti Azure OpenAI EU Data Zone -deploymentilla (EU:n sisällä) / EU-dataraja.
 - Väärinkäytösvalvonnan prompteja säilytetään 30 pv; säätyisille työkuormille voi hakea
   nollasäilytyksen poikkeusta — hae tämä terveysdatalle.
 - Azure OpenAI on HIPAA-kelpoinen palvelu (kertoo terveyssektorin kypsyydestä).
-- TOIMI NÄIN: Speech + OpenAI Sweden Centralissa, DPA, nollasäilytyspyyntö.
+- TOIMI NÄIN: Speech Sweden Centralissa, DPA. Jos tuotannon LLM on Azure OpenAI: EU Data Zone ja
+  nollasäilytyspyyntö. Demon LLM on paikallinen (ks. alla).
 
 ### Twilio — heikko lenkki, älä piilota sitä
 - Yhdysvaltalainen käsittelijä. Vaatii DPA:n; EU-US DPF + SCC:t siirtoihin.
@@ -59,10 +60,18 @@ Postgres = Azure Database for PostgreSQL, Sweden Central.
 - TOIMI NÄIN: hackathonissa Twilio (nopeus); kerro pitchissä että tuotannossa harkitsisitte
   EU-natiivia operaattoria. Puhelussa ei henkilötunnusta/diagnooseja, ei äänitallenteita.
 
-### Runtime-LLM — vain Azure OpenAI EU Data Zonen kautta
-Keskustelua käyvä LLM käsittelee terveyssisältöä → EU + DPA. ÄLÄ reititä kuluttaja-OpenAI:n,
-suoran Geminin tai suoran Clauden kautta. Kehitystyökalut (Claude Code, Codex, Gemini) käsittelevät
-koodia ja synteettistä dataa → ne ovat kunnossa.
+### Runtime-LLM — demossa paikallinen malli, tuotannossa EU-hostattu
+Keskustelua käyvä LLM käsittelee terveyssisältöä.
+- Demo: avoin malli ajetaan paikallisesti Ollamalla. Puhelun sisältö ei lähde koneelta mallille,
+  joten mallikutsuun ei tarvita käsittelijää eikä siirtoja. Vahva tietosuojaperuste pitchiin.
+- Tuotanto: sama koodi (OpenAI-yhteensopiva rajapinta) EU-hostattuun malliin asetuksilla:
+  joko Azure OpenAI EU Data Zone (DPA, nollasäilytyspyyntö) tai oma malli EU-palvelimella.
+- ÄLÄ reititä kuluttaja-OpenAI:n, suoran Geminin tai suoran Clauden kautta.
+- Rehellinen heikkous: pienen paikallisen mallin suomi ja ohjeiden noudattaminen ovat heikompia
+  kuin suurten mallien. Siksi punaiset liput ja hälytysrajat ovat sääntöpohjaisia, ja LLM vain
+  ehdottaa kiireellisyyttä.
+- Kehitystyökalut (Claude Code, Codex, Gemini) käsittelevät koodia ja synteettistä dataa → ne
+  ovat kunnossa.
 
 ---
 
@@ -82,7 +91,9 @@ koodia ja synteettistä dataa → ne ovat kunnossa.
 
 - TLS kaikessa; Twilion websocket PAKKO olla `wss`, ei `ws`.
 - Pseudonymisoi: erota henkilöllisyys (nimi, puhelinnumero) terveystiedosta, linkitä tunnuksella.
-- Hoitajan näkymä: MFA + roolipohjainen pääsy; jokainen katselu audit-lokiin.
+- Hoitajan näkymä: jokainen katselu audit-lokiin (puhelun jälkeinen osuus, ei vielä tehty). Pääsy tuotannossa
+  Entra ID:n kautta (MFA + roolipohjainen pääsy), ei omaa kirjautumista; hackathonissa ei
+  toteuteta. Kerrotaan pitchissä rehellisesti.
 - Salaisuudet tuotannossa Azure Key Vaultiin; devissä `.env` (gitignore). Ei repoon.
 - Minimoi PII LLM-prompteissa: älä lähetä nimeä/henkilötunnusta mallille, vain mitä kysymys vaatii.
 - Ei äänitallenteiden säilytystä.

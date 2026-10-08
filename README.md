@@ -52,6 +52,7 @@ sääntöpohjaisesti reaaliajassa.
 | Käyttöliittymä | FastAPI + Jinja2 HTML-pohjat, CSS ja tarvittaessa pieni määrä JavaScriptiä | Python-sovelluksen yhteydessä |
 | Puhelu ulos | Twilio Programmable Voice + Media Streams (mulaw/8000/mono/base64) | lukittu |
 | Ääniagentti | Polku A: Azure Speech fi-FI -putki (STT → LLM → TTS). Polku B (venytys): Azure OpenAI Realtime | lukittu |
+| Puhelun LLM | Demo: paikallinen malli Ollamalla (OpenAI-yhteensopiva rajapinta). Tuotanto: EU-hostattu, asetuksilla | mallivalinta TESTATTAVA |
 | Suomen puhe | Azure STT fi-FI + TTS `fi-FI-SelmaNeural`, ulostulo `Raw8Khz8BitMonoMulaw` | TESTATTAVA viikolla |
 | Data | Veil.AI synteettiset profiilit, CSV/JSON (saatavilla vasta 13.10.) | odottaa |
 | Kehitysdata nyt | Synthea (avoin FHIR-generaattori) | otettava käyttöön |
@@ -121,6 +122,41 @@ vain synteettistä dataa, kiinnitetyt image-versiot. Tuotannossa ei composea eik
 hallinnoitu Postgres Sweden Centralissa, salaisuudet Azure Key Vaultissa (ks. SAANTELY.md).
 
 `data/csv/` on `.gitignore`ssa (koko ~80 Mt, Veil.AI-datan käyttöehdot) — jaetaan tiimin kesken erikseen.
+
+### Backend käyntiin MIGRAATIOIDEN AJO TÄRKEÄ!
+
+Edellytykset: kanta pystyssä yllä olevilla ohjeilla, `uv` asennettu (`brew install uv`).
+
+```bash
+# 1. Lisää .env:iin (repon juuressa) dev-asetukset, jos puuttuvat
+grep -q '^DEV_TILA=' .env || echo 'DEV_TILA=true' >> .env
+
+# 2. Riippuvuudet (hakee myös Python 3.12:n)
+cd backend
+uv sync
+
+# 3. Migraatiot: luo sovelluksen taulut ja kysymys-/lääkeryhmäsisällön
+uv run alembic upgrade head
+uv run alembic current          # pitää näyttää "(head)"
+
+# 4. Testit
+uv run pytest
+
+# 5. Käynnistä (ajaa myös puuttuvat migraatiot ja ensimmäisen tunnistuksen)
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+Tarkista: <http://127.0.0.1:8000/terveys> vastaa `{"tila":"ok"}` ja
+<http://127.0.0.1:8000/docs> näyttää reitit. Soittojono: `GET /puhelutehtavat`
+(tai käsin `POST /puhelutehtavat/tunnista` bodylla `{}`).
+
+Kun joku on lisännyt uuden migraation (git pull): aja `uv run alembic upgrade head`
+tai käynnistä backend uudelleen. Kanta sekaisin devissä: nollaa koko kanta
+(`docker compose ... down -v` + `up`) ja aja vaiheet 3–5 uudelleen.
+
+Valinnaiset `.env`-asetukset: `DEMO_PUHELINNUMERO` (Twilioon vahvistettu numero
+soittotiedoille), `TUNNISTUS_VALI_MINUUTIT` (ajastettu tunnistus, oletus 15, 0 = pois),
+`LLM_BASE_URL` ja `LLM_MALLI` (puhelun paikallinen LLM). Kaikki: `.env.example`.
 
 ---
 
