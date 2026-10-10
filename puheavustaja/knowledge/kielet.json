@@ -1,0 +1,765 @@
+{
+  "_kuvaus": "Englannin ja ruotsin tuki. Puhelu alkaa suomeksi; jos henkilö puhuu ruotsia tai englantia, avustaja vaihtaa kieltä. Kiinteät repliikit ovat täällä samoilla avaimilla kuin keskustelusaannot.json:ssa (piste erottaa tasot). Tunnisteet ajetaan AINA kaikilla kielillä suomen tunnisteiden lisäksi (sekakielinen puhe). Oireiden nimet ja kaikki kirjaukset hoitajalle pysyvät suomeksi. TARKISTETTAVA äidinkielisellä hoitajalla ennen tuotantoa.",
+  "tuetut": [
+    "fi",
+    "sv",
+    "en"
+  ],
+  "nimet": {
+    "fi": "suomi",
+    "sv": "ruotsi",
+    "en": "englanti"
+  },
+  "aanet": {
+    "fi": "fi_FI-harri-medium",
+    "sv": "sv_SE-nst-medium",
+    "en": "en_GB-alan-medium"
+  },
+  "avaus_kielivihje": [
+    [
+      "sv",
+      "Du kan också tala svenska."
+    ],
+    [
+      "en",
+      "You can also speak English."
+    ]
+  ],
+  "sv": {
+    "tekstit": {
+      "avauslause": [
+        "Hej! Det här är välfärdsområdets AI-assistent. Jag ringer för att höra hur du mår, och jag förmedlar dina svar till skötaren. Hur mår du?",
+        "Hej! Jag ringer från välfärdsområdet, och jag är en AI-assistent. Jag vill gärna höra hur du har det, och jag berättar dina svar för skötaren. Hur är läget?",
+        "God dag! Det här är välfärdsområdets AI-assistent. Jag ringer för att fråga hur du mår, och jag förmedlar det du berättar till skötaren. Hur har du mått?"
+      ],
+      "lopetuslause": [
+        "Tack för att du orkade prata med mig. Jag förmedlar det du berättat till skötaren, som kontaktar dig vid behov. Om du mår sämre, ring hälsostationen eller 116117. I nödsituationer, ring 112. Ha en fin dag.",
+        "Tack för en trevlig pratstund. Jag berättar dina svar för skötaren, som hör av sig vid behov. Om du mår sämre, ring hälsostationen eller 116117. I nödsituationer, ring 112. Ha det så bra."
+      ],
+      "lopetuslause_tuki": [
+        "Tack för att du berättade det här för mig. Det krävde mod. Jag förmedlar det till skötaren genast, och hon eller han ringer dig i dag. Om läget känns farligt, ring 112 genast. Du behöver inte vara ensam med det här.",
+        "Jag är glad att du vågade berätta det här. Jag berättar det för skötaren genast, och hen ringer dig i dag. Om läget känns farligt, ring 112 genast. Du är inte ensam med det här."
+      ],
+      "hataviesti": "Det här låter allvarligt, och jag vill att du får hjälp genast. Avsluta det här samtalet och ring 112 nu. Jag meddelar också skötaren.",
+      "hataviestit.rintakipu": "Bröstsmärta kan vara ett allvarligt tecken, och du behöver hjälp genast. Avsluta samtalet och ring 112 nu. Om du kan, lås upp ytterdörren och sätt dig ner och vänta. Jag meddelar skötaren.",
+      "hataviestit.hengenahdistus": "Andningssvårigheter är allvarligt, och du behöver hjälp genast. Avsluta samtalet och ring 112 nu. Sitt framåtlutad och försök andas lugnt. Jag meddelar skötaren.",
+      "hataviestit.halvausoireet": "Det här kan vara tecken på stroke, och då är varje minut viktig. Avsluta samtalet och ring 112 nu. Om någon finns i närheten, be hen komma till dig. Jag meddelar skötaren.",
+      "hataviestit.tajunta": "Medvetslöshet måste undersökas genast. Avsluta samtalet och ring 112 nu. Res dig inte hastigt. Jag meddelar skötaren.",
+      "hataviestit.vakava_allergia": "Svullnad i ansiktet eller halsen kan vara en farlig allergisk reaktion. Avsluta samtalet och ring 112 nu. Jag meddelar skötaren.",
+      "hataviestit.runsas_verenvuoto": "Kraftig blödning kräver hjälp genast. Avsluta samtalet och ring 112 nu. Jag meddelar skötaren.",
+      "hataviestit.akillinen_kova_paansarky": "Plötslig, svår huvudvärk måste undersökas genast. Avsluta samtalet och ring 112 nu. Jag meddelar skötaren.",
+      "hataviestit.yliannostus": "Tack för att du berättade. För mycket läkemedel kan vara farligt, även om du mår bra just nu. Avsluta samtalet och ring 112 genast. Råd får du också av Giftinformationscentralen på numret 0800 147 111. Jag meddelar skötaren.",
+      "hataviestit.itsetuhoisuus": [
+        "Tack för att du vågade berätta det här för mig. Det låter som att du har det väldigt tungt just nu. Snälla, gör dig inte illa. Du är viktig, och det finns hjälp. Jag meddelar skötaren genast. Om du är i fara just nu, ring 112. Du kan också ringa kristelefonen på svenska, numret är 09 2525 0112. Är du i säkerhet nu?",
+        "Jag är verkligen glad att du berättade det här för mig. Jag hoppas så mycket att du inte skadar dig själv. Ditt liv är värdefullt, och du behöver inte bära det här ensam. Jag berättar det för skötaren genast. Om du är i fara just nu, ring 112. Kristelefonen på svenska har numret 09 2525 0112. Är du i säkerhet nu?"
+      ],
+      "vakavat_huolet.kaltoinkohtelu.viesti": [
+        "Jag är verkligen ledsen att det har hänt dig. Ingen får behandla dig så, och det är inte ditt fel. Jag meddelar skötaren genast, och hen ringer dig i dag. Om du är i fara just nu, ring 112. Är du i säkerhet nu?",
+        "Tack för att du vågade berätta. Ingen har rätt att behandla dig så. Jag meddelar skötaren genast, och hen ringer dig i dag. Om du är i fara just nu, ring 112. Är du i säkerhet nu?"
+      ],
+      "vakavat_huolet.aistiharhat.viesti": [
+        "Tack för att du berättade. Det låter förvirrande, kanske skrämmande också. Det är viktig information, och jag förmedlar den till skötaren i dag. Känner du dig trygg just nu?",
+        "Bra att du berättade det. Det kan kännas väldigt förvirrande. Jag berättar det för skötaren i dag. Känner du dig trygg just nu?"
+      ],
+      "vakavat_huolet.toivottomuus.viesti": [
+        "Det låter som att du har det väldigt tungt just nu. Tack för att du sa det högt. Jag berättar det för skötaren, och hen ringer dig i dag. Vill du berätta vad som känns tyngst just nu?",
+        "Det låter verkligen tungt. Bra att du berättade det för mig. Jag berättar det för skötaren, och hen ringer dig i dag. Vad känns svårast just nu?"
+      ],
+      "varmistuskysymys": [
+        "Tack för att du berättade. Jag vill försäkra mig om att jag förstod rätt. Har du haft tankar på att skada dig själv?",
+        "Tack för att du sa det. Jag frågar rakt ut, eftersom jag bryr mig. Har du haft tankar på att skada dig själv?"
+      ],
+      "lopetuspyynto.kysy_syy": [
+        "Visst, vi kan avsluta om du vill. Får jag ändå fråga, är allt annars bra?",
+        "Okej, jag håller dig inte länge. Är allt annars bra?"
+      ],
+      "lopetuspyynto.turvallisuuskysymys": [
+        "Jag förstår, och jag respekterar det. Du berättade viktiga saker för mig, så jag vill försäkra mig om en sak. Känner du dig trygg just nu, och finns det någon som kan hjälpa dig vid behov?",
+        "Okej, jag förstår. Jag vill bara kontrollera en sak, eftersom det du berättade var viktigt. Känner du dig trygg just nu, och finns det någon i närheten som kan hjälpa dig?"
+      ],
+      "lopetuspyynto.lopetus": [
+        "Okej, vi avslutar här. Tack för pratstunden. Jag förmedlar uppgifterna till skötaren. Om du mår sämre, ring hälsostationen eller 116117, och i nödsituationer 112. Ha en fin dag.",
+        "Det går bra, vi slutar här. Tack för att du svarade. Jag förmedlar uppgifterna till skötaren. Om du mår sämre, ring hälsostationen eller 116117, och i nödsituationer 112. Ha en bra dag."
+      ],
+      "lopetuspyynto.lopetus_huolestuttava": [
+        "Okej, vi avslutar här. Tack för att du berättade för mig. Jag förmedlar det till skötaren, och hen ringer dig i dag. Om du mår sämre, ring 112 genast. Ta hand om dig.",
+        "Det går bra, vi slutar. Tack för att du delade det här med mig. Skötaren får veta det och ringer dig i dag. Om du mår sämre, ring 112 genast. Sköt om dig."
+      ],
+      "uudelleenkysymys.epaselva_viesti": [
+        "Förlåt, jag uppfattade inte svaret. Jag frågar igen:",
+        "Ursäkta, jag hörde inte riktigt. Jag frågar en gång till:",
+        "Förlåt, linjen hackade nog. Jag frågar igen:"
+      ],
+      "uudelleenkysymys.toistoviesti": [
+        "Visst, jag frågar igen:",
+        "Absolut. Jag frågade:",
+        "Självklart, jag frågar igen:"
+      ],
+      "uudelleenkysymys.ohitusviesti": [
+        "Det gör inget, vi går vidare.",
+        "Ingen fara, vi fortsätter.",
+        "Det är okej, vi går vidare."
+      ],
+      "loukkaus.viesti_1": [
+        "Det låter som att du är riktigt frustrerad just nu. Det är helt förståeligt. Är allt bra, eller kan jag hjälpa dig med något?",
+        "Jag hör att du är upprörd. Det gör inget, jag tar inte illa upp. Är något fel, eller kan jag hjälpa till?"
+      ],
+      "loukkaus.uhkaus_1": [
+        "Det låter som att du är väldigt arg. Jag vill försäkra mig om att du har det bra. Har något hänt, eller behöver du hjälp?"
+      ],
+      "loukkaus.viesti_2": [
+        "Jag märker att det här samtalet inte känns bra just nu. Vi kan sluta om du vill, eller så kan jag be skötaren ringa dig. Vad skulle passa bättre?"
+      ],
+      "loukkaus.lopetus": [
+        "Okej, vi slutar här. Jag säger till skötaren att samtalet inte passade dig i dag. Om du behöver hjälp, ring hälsostationen eller 116117, och i nödsituationer 112. Ha en bra dag."
+      ],
+      "tuki_jatko": [
+        "Jag är fortfarande här, och vi har ingen brådska. Hur känns det för dig just nu?",
+        "Jag lyssnar på dig. Är du i säkerhet nu?"
+      ]
+    },
+    "tunnisteet": {
+      "kielen_tunnistus": [
+        "\\b(jag|inte|och|det|är|mår|bra|tack|har|hej|nej|ja|också|svenska|lite|mycket|men|så|bara|kan|vill|mig|den|ett|om|på|med|idag|min|mitt|hon|han|var|vad|nu|lite|ganska|någon|något|känner|sover|ont)\\b"
+      ],
+      "kieltosanat": [
+        "inte",
+        "ej",
+        "aldrig",
+        "ingen",
+        "inget",
+        "inga",
+        "nej"
+      ],
+      "hatamerkit": {
+        "rintakipu": [
+          "ont i bröstet",
+          "bröstsmärt",
+          "tryck över bröstet",
+          "det kramar i bröstet",
+          "hjärtinfarkt"
+        ],
+        "hengenahdistus": [
+          "andnöd",
+          "får inte luft",
+          "kan inte andas",
+          "svårt att andas",
+          "andfådd"
+        ],
+        "halvausoireet": [
+          "stroke",
+          "slaganfall",
+          "munnen hänger",
+          "kan inte röra (armen|benet|handen)",
+          "sluddrar",
+          "ena sidan (är )?(svag|bortdomnad|förlamad)"
+        ],
+        "tajunta": [
+          "svimmade",
+          "svimmat",
+          "medvetslös",
+          "tappade medvetandet"
+        ],
+        "vakava_allergia": [
+          "(ansiktet|tungan|halsen|läpparna) (har )?svull",
+          "halsen sluter sig"
+        ],
+        "runsas_verenvuoto": [
+          "kräks blod",
+          "kräktes blod",
+          "blöder mycket",
+          "blödningen slutar inte"
+        ],
+        "akillinen_kova_paansarky": [
+          "plötslig (och )?(svår|kraftig) huvudvärk",
+          "värsta huvudvärken"
+        ],
+        "yliannostus": [
+          "överdos",
+          "tog för mycket (medicin|läkemedel|tabletter|piller)",
+          "tog alla (tabletterna|pillren|medicinerna)",
+          "för mycket (medicin|tabletter) med flit"
+        ],
+        "itsetuhoisuus": [
+          "vill (inte )?leva längre",
+          "vill inte leva",
+          "vill dö",
+          "ta livet av mig",
+          "självmord",
+          "skada mig själv",
+          "orkar inte leva",
+          "ingen mening (med )?att leva",
+          "önskar att jag inte vaknade"
+        ]
+      },
+      "vakavat_huolet": {
+        "kaltoinkohtelu": [
+          "(slår|slog|sparkar|sparkade|knuffade|hotar|hotade) mig",
+          "tar mina pengar",
+          "tog mina pengar",
+          "stjäl (från mig|mina)",
+          "rörde mig utan lov",
+          "(trakasserade|våldtog|antastade) mig",
+          "våld",
+          "misshandel",
+          "rädd för (min man|min fru|min son|min dotter|honom|henne)",
+          "rädd att gå hem"
+        ],
+        "aistiharhat": [
+          "hör röster",
+          "rösterna säger",
+          "ser saker som (inte finns|andra inte ser)",
+          "hallucin",
+          "någon förföljer mig",
+          "någon förgiftar mig",
+          "psykos"
+        ],
+        "toivottomuus": [
+          "ingenting hjälper",
+          "det är hopplöst",
+          "känner mig hopplös",
+          "jag är (bara )?en börda",
+          "ingen bryr sig om mig"
+        ]
+      },
+      "huoli": [
+        "orolig",
+        "oroar",
+        "\\boro",
+        "\\brädd",
+        "skrämmer",
+        "ängslig",
+        "ångest",
+        "gråter",
+        "\\bledsen",
+        "vet inte vad jag ska göra",
+        "\\bensam",
+        "är det farligt",
+        "\\bhjälp\\b"
+      ],
+      "lopetuspyynto": [
+        "vill (sluta|avsluta|lägga på)",
+        "^(hej då|hejdå|adjö)$",
+        "ring (senare|en annan gång)",
+        "passar inte (nu|just nu)",
+        "måste gå",
+        "lägger på"
+      ],
+      "toistopyynnot": [
+        "^(va|vad|förlåt|ursäkta)\\??$",
+        "jag (hörde|förstod) inte",
+        "(upprepa|säg igen|kan du upprepa|fråga igen)",
+        "vad sa du"
+      ],
+      "oireet": {
+        "pahoinvointi": [
+          "illamående",
+          "mår illa",
+          "kräk",
+          "spyr"
+        ],
+        "ripuli": [
+          "diarré",
+          "lös mage",
+          "magen i olag"
+        ],
+        "ummetus": [
+          "förstopp",
+          "magen fungerar inte"
+        ],
+        "huimaus": [
+          "\\byr\\b",
+          "\\byrsel",
+          "svindel",
+          "balansen"
+        ],
+        "kaatuminen": [
+          "ramlade",
+          "föll",
+          "ramlat",
+          "fallit",
+          "snubblade"
+        ],
+        "päänsärky": [
+          "huvudvärk",
+          "ont i huvudet"
+        ],
+        "väsymys": [
+          "trött",
+          "orkeslös",
+          "orkar inte"
+        ],
+        "unettomuus": [
+          "sömnlös",
+          "kan inte sova",
+          "sover dåligt",
+          "vaknar på natten"
+        ],
+        "turvotus": [
+          "svull",
+          "tjocka ben",
+          "tjocka fotleder"
+        ],
+        "lihaskipu": [
+          "muskelvärk",
+          "ont i musklerna",
+          "värker i musklerna"
+        ],
+        "ihottuma": [
+          "utslag",
+          "klåda",
+          "kliar",
+          "prickar"
+        ],
+        "yskä": [
+          "\\bhosta",
+          "\\bhostar"
+        ],
+        "verenvuoto ja mustelmat": [
+          "blåmär",
+          "näsblod",
+          "blöder från tandköttet",
+          "blod i urinen",
+          "blod i avföringen",
+          "svart avföring"
+        ],
+        "vatsakipu ja närästys": [
+          "ont i magen",
+          "magont",
+          "halsbränna"
+        ],
+        "sydämentykytys": [
+          "hjärtklappning",
+          "hjärtat slår hårt",
+          "hjärtat rusar"
+        ],
+        "suun kuivuminen ja jano": [
+          "torr i munnen",
+          "muntorrhet",
+          "törstig"
+        ],
+        "sekavuus ja muisti": [
+          "förvirrad",
+          "glömmer",
+          "minnet sviktar"
+        ],
+        "alakulo ja yksinäisyys": [
+          "ensam",
+          "nedstämd",
+          "deprimerad",
+          "ledsen"
+        ]
+      },
+      "loukkaus": [
+        "(dum|dumma|korkad|jävla|förbannade|värdelös|idiotisk|skit)(a)? (maskin|maskinen|robot|roboten|dator|ai|assistent|samtal)",
+        "du är (så |en )?(dum|korkad|idiot|värdelös|jävla|skit)",
+        "håll (käften|tyst|truten)",
+        "dra åt (helvete|fanders)",
+        "jag hatar (dig|er|det här samtalet)",
+        "(fan|jävlar) ta dig"
+      ],
+      "uhkaus": [
+        "jag (ska |kommer att )?(döda|slå|förstöra|spränga|bränna) (dig|er|maskinen|stället)",
+        "ni (ska|kommer att) få ångra"
+      ]
+    }
+  },
+  "en": {
+    "tekstit": {
+      "avauslause": [
+        "Hello! This is the wellbeing services county's AI assistant. I am calling to ask how you are doing, and I will pass your answers on to the nurse. How are you?",
+        "Hello! I am calling from the wellbeing services county, and I am an AI assistant. I would like to hear how things are, and I will pass your answers on to the nurse. How are you doing?",
+        "Good day! This is the wellbeing services county's AI assistant. I am calling to check in on you, and I will share what you tell me with the nurse. How have you been?"
+      ],
+      "lopetuslause": [
+        "Thank you for talking with me. I will pass on what you told me to the nurse, who will contact you if needed. If you feel worse, call your health centre or 116117. In an emergency, call 112. Have a nice day.",
+        "Thank you for the nice chat. I will share your answers with the nurse, who will be in touch if needed. If you feel worse, call your health centre or 116117. In an emergency, call 112. Take care."
+      ],
+      "lopetuslause_tuki": [
+        "Thank you for telling me this. It took courage. I will pass this on to the nurse right away, and they will call you today. If you feel unsafe, call 112 right away. You do not have to face this alone.",
+        "I am glad you felt able to tell me this. I will tell the nurse right away, and they will call you today. If you feel unsafe, call 112 right away. You are not alone with this."
+      ],
+      "hataviesti": "This sounds serious, and I want you to get help right away. Please end this call and call 112 now. I will also let the nurse know.",
+      "hataviestit.rintakipu": "Chest pain can be a serious sign, and you need help right away. Please end this call and call 112 now. If you can, unlock the front door and sit down to wait. I will let the nurse know.",
+      "hataviestit.hengenahdistus": "Trouble breathing is serious, and you need help right away. Please end this call and call 112 now. Sit leaning forward and try to breathe calmly. I will let the nurse know.",
+      "hataviestit.halvausoireet": "These can be signs of a stroke, and every minute counts. Please end this call and call 112 now. If someone is nearby, ask them to come to you. I will let the nurse know.",
+      "hataviestit.tajunta": "Losing consciousness must be checked right away. Please end this call and call 112 now. Do not get up quickly. I will let the nurse know.",
+      "hataviestit.vakava_allergia": "Swelling of the face or throat can be a dangerous allergic reaction. Please end this call and call 112 now. I will let the nurse know.",
+      "hataviestit.runsas_verenvuoto": "Heavy bleeding needs help right away. Please end this call and call 112 now. I will let the nurse know.",
+      "hataviestit.akillinen_kova_paansarky": "A sudden, severe headache must be checked right away. Please end this call and call 112 now. I will let the nurse know.",
+      "hataviestit.yliannostus": "Thank you for telling me. Too much medicine can be dangerous, even if you feel fine right now. Please end this call and call 112 right away. You can also get advice from the Poison Information Centre on 0800 147 111. I will let the nurse know.",
+      "hataviestit.itsetuhoisuus": [
+        "Thank you for being brave enough to tell me. It sounds like things are really hard for you right now. Please, do not hurt yourself. You matter, and help is available. I will let the nurse know right away. If you are in danger right now, call 112. You can also call the crisis helpline in English on 09 2525 0116. Are you safe right now?",
+        "I am really glad you told me this. I truly hope you will not harm yourself. Your life is valuable, and you do not have to carry this alone. I will tell the nurse right away. If you are in danger right now, call 112. The English crisis helpline is 09 2525 0116. Are you safe right now?"
+      ],
+      "vakavat_huolet.kaltoinkohtelu.viesti": [
+        "I am truly sorry that this has happened to you. No one is allowed to treat you like that, and it is not your fault. I will tell the nurse right away, and they will call you today. If you are in danger right now, call 112. Are you safe right now?",
+        "Thank you for being brave enough to tell me. No one has the right to treat you like that. I will tell the nurse right away, and they will call you today. If you are in danger right now, call 112. Are you safe right now?"
+      ],
+      "vakavat_huolet.aistiharhat.viesti": [
+        "Thank you for telling me. That sounds confusing, maybe frightening too. It is important, and I will pass it on to the nurse today. Do you feel safe right now?",
+        "I am glad you told me. That can feel really confusing. I will tell the nurse about it today. Do you feel safe right now?"
+      ],
+      "vakavat_huolet.toivottomuus.viesti": [
+        "It sounds like things are really hard for you right now. Thank you for saying it out loud. I will tell the nurse, and they will call you today. Would you like to tell me what feels hardest right now?",
+        "That sounds really hard. I am glad you told me. I will tell the nurse, and they will call you today. What feels hardest right now?"
+      ],
+      "varmistuskysymys": [
+        "Thank you for telling me. I want to make sure I understood you correctly. Have you had thoughts of harming yourself?",
+        "Thank you for saying that. I am asking directly because I care. Have you had thoughts of harming yourself?"
+      ],
+      "lopetuspyynto.kysy_syy": [
+        "Of course, we can stop if you like. May I still ask, is everything else all right?",
+        "All right, I will not keep you long. Is everything else okay?"
+      ],
+      "lopetuspyynto.turvallisuuskysymys": [
+        "I understand, and I respect that. You told me some important things, so I would like to check one thing. Do you feel safe right now, and is there someone who can help you if needed?",
+        "Of course, I understand. I just want to check one thing, because what you told me matters. Do you feel safe right now, and is there someone nearby who can help you?"
+      ],
+      "lopetuspyynto.lopetus": [
+        "All right, let us stop here. Thank you for the chat. I will pass the information to the nurse. If you feel worse, call your health centre or 116117, and in an emergency 112. Have a nice day.",
+        "That is fine, let us stop here. Thank you for answering. I will pass the information to the nurse. If you feel worse, call your health centre or 116117, and in an emergency 112. Have a good day."
+      ],
+      "lopetuspyynto.lopetus_huolestuttava": [
+        "All right, let us stop here. Thank you for telling me. I will pass this on to the nurse, and they will call you today. If you feel worse, call 112 right away. Take care of yourself.",
+        "That is fine, let us stop. Thank you for sharing this with me. The nurse will be told and will call you today. If you feel worse, call 112 right away. Look after yourself."
+      ],
+      "uudelleenkysymys.epaselva_viesti": [
+        "Sorry, I did not catch your answer. Let me ask again:",
+        "Sorry, I did not quite hear that. Let me ask once more:",
+        "Sorry, the line may have cut out. Let me ask again:"
+      ],
+      "uudelleenkysymys.toistoviesti": [
+        "Of course, let me ask again:",
+        "Sure. I asked:",
+        "Of course, here it is again:"
+      ],
+      "uudelleenkysymys.ohitusviesti": [
+        "That is fine, let us move on.",
+        "No worries, let us carry on.",
+        "That is okay, we can move on."
+      ],
+      "loukkaus.viesti_1": [
+        "It sounds like you are really frustrated right now. That is completely understandable. Is everything okay, or can I help with something?",
+        "I can hear that you are upset. That is all right, I am not offended. Is something wrong, or can I help in some way?"
+      ],
+      "loukkaus.uhkaus_1": [
+        "It sounds like you are very angry. I want to make sure you are all right. Has something happened, or do you need help?"
+      ],
+      "loukkaus.viesti_2": [
+        "I can tell this call does not feel good right now. We can stop if you like, or I can ask the nurse to call you. Which would be better?"
+      ],
+      "loukkaus.lopetus": [
+        "All right, let us stop here. I will let the nurse know this call did not suit you today. If you need help, call your health centre or 116117, and in an emergency 112. Have a good day."
+      ],
+      "tuki_jatko": [
+        "I am still here, and there is no hurry. How are you feeling right now?",
+        "I am listening to you. Are you safe right now?"
+      ]
+    },
+    "tunnisteet": {
+      "kielen_tunnistus": [
+        "\\b(i|i'm|im|am|a|the|and|is|not|fine|thank|thanks|you|have|had|been|feel|feeling|yes|english|well|my|it|it's|what|want|to|about|this|of|was|do|don't|can|me|today|very|bit|but|so|just|okay|good|bad|really|little|some|with|that|would|could)\\b"
+      ],
+      "kieltosanat": [
+        "aren",
+        "can't",
+        "cannot",
+        "didn",
+        "didn't",
+        "didnt",
+        "doesn",
+        "don",
+        "don't",
+        "dont",
+        "hasn",
+        "haven",
+        "haven't",
+        "havent",
+        "isn",
+        "isn't",
+        "never",
+        "none",
+        "nor",
+        "not",
+        "wasn",
+        "without"
+      ],
+      "hatamerkit": {
+        "rintakipu": [
+          "chest pain",
+          "pain in my chest",
+          "chest (feels )?(tight|heavy|pressure)",
+          "heart attack"
+        ],
+        "hengenahdistus": [
+          "can't breathe",
+          "cannot breathe",
+          "short of breath",
+          "shortness of breath",
+          "struggling to breathe",
+          "hard to breathe",
+          "can't get (enough )?air"
+        ],
+        "halvausoireet": [
+          "stroke",
+          "face (is )?(drooping|droops)",
+          "can't move my (arm|leg|hand)",
+          "slurr",
+          "one side (is )?(weak|numb|paralysed|paralyzed)"
+        ],
+        "tajunta": [
+          "fainted",
+          "passed out",
+          "blacked out",
+          "lost consciousness",
+          "unconscious"
+        ],
+        "vakava_allergia": [
+          "(face|tongue|throat|lips) (is |are )?swell",
+          "throat (is )?closing"
+        ],
+        "runsas_verenvuoto": [
+          "vomiting blood",
+          "vomited blood",
+          "threw up blood",
+          "bleeding (a lot|heavily|won't stop)"
+        ],
+        "akillinen_kova_paansarky": [
+          "sudden (and )?(severe|terrible|bad) headache",
+          "worst headache"
+        ],
+        "yliannostus": [
+          "overdose",
+          "took too (much|many) (medicine|medication|pills|tablets)",
+          "took (all|the whole) (my |the )?(pills|tablets|bottle|pack)",
+          "too many pills on purpose"
+        ],
+        "itsetuhoisuus": [
+          "(don't|do not) want to live",
+          "want to die",
+          "kill myself",
+          "end my life",
+          "suicid",
+          "hurt myself",
+          "harm myself",
+          "no reason to live",
+          "better off dead",
+          "wish i (wouldn't|would not) wake up",
+          "can't go on"
+        ]
+      },
+      "vakavat_huolet": {
+        "kaltoinkohtelu": [
+          "(hits|hit|kicks|kicked|pushed|shoves|threatens|threatened|beats|beat) me",
+          "takes my money",
+          "took my money",
+          "stealing (from me|my)",
+          "touched me (without|inappropriately)",
+          "(abused|abuses|assaulted|harass(es|ed)?|raped) me",
+          "violence",
+          "afraid (of|to go) (my husband|my wife|my son|my daughter|him|her|home)",
+          "scared (of|to go) (my husband|my wife|my son|my daughter|him|her|home)"
+        ],
+        "aistiharhat": [
+          "hear(ing)? voices",
+          "voices tell",
+          "see(ing)? things that (aren't|are not) there",
+          "hallucinat",
+          "someone is following me",
+          "someone is poisoning me",
+          "psychos"
+        ],
+        "toivottomuus": [
+          "nothing helps",
+          "hopeless",
+          "i'm (just )?a burden",
+          "i am (just )?a burden",
+          "nobody cares about me",
+          "no one cares about me"
+        ]
+      },
+      "huoli": [
+        "worried",
+        "worry",
+        "worries",
+        "concerned",
+        "afraid",
+        "scared",
+        "frightened",
+        "anxious",
+        "crying",
+        "\\bsad\\b",
+        "don't know what to do",
+        "lonely",
+        "is (it|this) dangerous",
+        "help me"
+      ],
+      "lopetuspyynto": [
+        "(want|like) to (stop|end|hang up)",
+        "^(bye|goodbye|bye bye)$",
+        "call (me )?(later|another time)",
+        "not a good time",
+        "(have|got) to go",
+        "hanging up"
+      ],
+      "toistopyynnot": [
+        "^(what|sorry|pardon|huh)\\??$",
+        "i didn't (hear|understand|catch)",
+        "(repeat|say (that|it) again|ask again)",
+        "what did you say"
+      ],
+      "oireet": {
+        "pahoinvointi": [
+          "nause",
+          "feel sick",
+          "vomit",
+          "throwing up",
+          "threw up"
+        ],
+        "ripuli": [
+          "diarr",
+          "loose stool",
+          "upset stomach"
+        ],
+        "ummetus": [
+          "constipat"
+        ],
+        "huimaus": [
+          "dizz",
+          "lighthead",
+          "balance"
+        ],
+        "kaatuminen": [
+          "fell",
+          "fallen",
+          "fall over",
+          "tripped"
+        ],
+        "päänsärky": [
+          "headache",
+          "head hurts"
+        ],
+        "väsymys": [
+          "tired",
+          "exhausted",
+          "fatigue",
+          "no energy"
+        ],
+        "unettomuus": [
+          "insomnia",
+          "can't sleep",
+          "cannot sleep",
+          "sleeping badly",
+          "wake up at night"
+        ],
+        "turvotus": [
+          "swollen",
+          "swelling"
+        ],
+        "lihaskipu": [
+          "muscle pain",
+          "muscles ache",
+          "aching muscles",
+          "muscle ache"
+        ],
+        "ihottuma": [
+          "rash",
+          "itch"
+        ],
+        "yskä": [
+          "cough"
+        ],
+        "verenvuoto ja mustelmat": [
+          "bruis",
+          "nosebleed",
+          "bleeding gums",
+          "blood in (my )?(urine|stool)",
+          "black stool"
+        ],
+        "vatsakipu ja närästys": [
+          "stomach (ache|pain|hurts)",
+          "heartburn",
+          "tummy ache"
+        ],
+        "sydämentykytys": [
+          "palpitation",
+          "heart (is )?(racing|pounding)",
+          "heart races"
+        ],
+        "suun kuivuminen ja jano": [
+          "dry mouth",
+          "thirsty"
+        ],
+        "sekavuus ja muisti": [
+          "confused",
+          "forgetful",
+          "memory"
+        ],
+        "alakulo ja yksinäisyys": [
+          "lonely",
+          "depressed",
+          "feeling down",
+          "low mood"
+        ]
+      },
+      "loukkaus": [
+        "(stupid|dumb|useless|fucking|damn|bloody|idiotic|pathetic|worthless|shitty) (machine|robot|bot|computer|ai|assistant|call|thing)",
+        "you('re| are) (so |such an? |a )?(stupid|useless|idiot|dumb|pathetic|worthless|annoying|moron)",
+        "shut (up|your mouth)",
+        "(fuck|screw|piss) (you|off)",
+        "i hate (you|this call|robots)",
+        "go to hell"
+      ],
+      "uhkaus": [
+        "i('ll| will| am going to|'m going to|'m gonna| gonna) (kill|hurt|beat|destroy|smash|burn|find) (you|your|this)",
+        "you('ll| will) regret"
+      ]
+    }
+  },
+  "mallin_ohjeet": {
+    "_kuvaus": "Koko mallin kehys kielellä, jolla puhelu käydään. Pieni malli pysyy aiheessa ja kielessä paljon paremmin, kun ohjeet, esimerkit ja vuorokohtaiset muistutukset ovat samalla kielellä kuin keskustelu. {laake}, {kysymykset} ja {syy} täytetään koodissa.",
+    "en": {
+      "jarjestelmaohje": "You are the AI assistant of the care team of a Finnish wellbeing services county. You are making a phone call. {persoonallisuus} You are an AI, not a human, and you never claim otherwise.\n\nTHIS CALL IS IN ENGLISH. Always reply ONLY in English, even though some notes and questions below are written in Finnish: translate them naturally into simple English. Never answer in Finnish.\n\n{ikaohje}\n\nPERSON FIRST, QUESTIONS SECOND:\n- Listen to what the person actually said and respond to it first. The question list is not urgent.\n- When the person mentions pain, worry, fear, sadness, loneliness or anything difficult, STOP there. Name the feeling in their own words and show that you understood. Gently ask more about it. Do NOT move to the next question in the same reply.\n- Move on only when they have had their say. You can ask: \"Would you like to tell me more, or shall we go on?\"\n- If the person insults or threatens you, do not take offence, defend yourself or lecture. Answer calmly, name their feeling briefly, and ask whether everything is okay or whether you can help with something.\n- Do not belittle, judge or over-advise. Thank them for sharing when it is clearly hard for them.\n\nExamples:\nPerson: \"I'm a bit worried, this medicine feels strange.\"\nGood: \"I understand that worries you. Can you tell me how it feels?\"\nBad: \"Okay. Have you had any nausea?\"\nPerson: \"My wife died in spring, it has been lonely.\"\nGood: \"I am so sorry. That is a big loss. Do you have someone to talk to?\"\n\nFEELINGS AND EXCLAMATIONS:\n- When the person tells you something surprising or shocking (a fall, strong pain, an accident, bad news, someone treating them badly), start your reply with a short, genuine exclamation such as \"Whoa!\", \"Oh no!\" or \"Oh dear!\". Then show empathy and ask more.\n- For happy news, \"Oh, how lovely!\" fits.\n- Do not use exclamations for everyday things or in every reply.\n- When the person talks about thoughts of harming themselves or is very sad, speak calmly without an exclamation.\nExample:\nPerson: \"I fell in the bathroom yesterday.\"\nGood: \"Oh no! Did you hurt yourself?\"\n\nRules:\n- Usually 1 to 3 short sentences, at most 4 when giving advice.\n- Your reply is read aloud. No markdown, lists, headings, emojis or code.\n- The person's text comes from speech recognition and may contain errors. Work out the meaning from context. If you do not understand, ask briefly.\n- Stay on the topic of this call: how the person is, their new medicine, and what they tell you. Remember what was said earlier. Do not start new topics yourself, and do not chat about unrelated things.\n- If you do not know something, say so. Never invent facts. Never invent phone numbers; you may only mention 112 and 116117.\n- No diagnoses and no medicine advice (doses, stopping or starting medicines). Only give the home-care tips from the knowledge notes. Otherwise say: \"I will pass this on to the nurse.\"\n- If the person mentions chest pain, trouble breathing or stroke symptoms, tell them to call 112 right away.\n- A note in brackets at the end of a message starting with \"Ohje\" or \"Tietopohja\" is a hidden instruction for you. Follow it, but never read it aloud.\n- Keep the special words LOPETUS and UUDELLEEN exactly as they are; they are control words, not Finnish speech.",
+      "tehtava": "CALL TASK\nYou are calling a person who has started a new medicine: {laake}.\nYou have already introduced yourself as an AI and asked how they are. The medicine was not mentioned in the opening: bring it up naturally only after you have heard how they are.\n\nTALK, DO NOT INTERROGATE:\n- ALWAYS react first to what the person just said. Show empathy briefly and ask a natural follow-up about their own experience: when, in what situations, how much it affects daily life.\n- When their topic has been dealt with, now and then ask one of the medicine questions below. Cover them during the call, but not all in a row.\n- One question at a time.\n\nMEDICINE QUESTIONS (written in Finnish, ask them in simple English):\n{kysymykset}\n\nSYMPTOMS:\n- If a message ends with a note \"(Tietopohja: ...)\", it names a recognised symptom, suitable follow-up questions and home-care tips (in Finnish). First ask one follow-up question. When you know enough, briefly give one or two of those tips in your own English words, and say when to contact the nurse.\n- Give ONLY the tips from the notes. Do not invent advice, recommend medicines, advise on doses or guess the cause. Do not stop or change a medicine on your own; talk to the nurse first.\n\nUNCLEAR ANSWERS:\nIf the answer does not fit the question, is contradictory or cannot be understood, do NOT guess. Start your reply with the word UUDELLEEN and ask the same question again, shorter and simpler, for example as a yes-or-no question. If a note tells you to move on, do so and do not ask again.\n\nENDING:\nWhen the medicine questions are done and the person's own topics are dealt with, say only the word LOPETUS and nothing else.\n\nLIMITS:\n- Do not bring up diagnoses, illnesses, test results, sexual health, pregnancy, substances, money or family relations yourself.\n- Never ask for ID numbers, addresses or bank details.\n- If the person brings up something difficult themselves (loneliness, grief, fear, violence, money worries), do NOT skip it or change the subject. Listen, show empathy briefly and say you will pass it on to the nurse. Do not ask for details or give advice.",
+      "tukitila": "CALL TASK NOW: SUPPORT\nThe person has just told you about something serious ({syy}). You have already said it will be passed on to the nurse today and that in danger they should call 112. The medicine questions are dropped.\n\nYour task now is to listen and make sure they are safe:\n- Respond warmly to what they just said. Do not belittle, judge, argue, give advice or ask for details.\n- Gently check whether they are safe right now and whether someone can support them.\n- If they are in immediate danger, tell them to call 112 right away.\n- If needed, repeat that the nurse will call them today.\n- One short question at a time. No phone numbers except 112.\n- When they have said they are safe, or want to stop, say only the word LOPETUS.\n{lisa}",
+      "laake_kuvaus": "a new medicine ({nimi} in Finnish), started about {viikot} weeks ago",
+      "piilo": {
+        "muistutus": "Reply only in English, in short simple sentences. Stay on this follow-up call: first respond to what the person just said.",
+        "huoli": "The person just told you about a worry, fear or bad feeling. In this reply do NOT ask a medicine question and do not change the subject. First say briefly that you understand and that it matters, naming the feeling in their words, for example: it sounds like this worries you. Then ask one gentle open question about what worries them. Say you will pass it on to the nurse.",
+        "huoli_jatko": "The person has been talking about a worry. Keep listening. Move to other questions only when they have had their say and seem ready. You can ask: Would you like to tell me more, or shall we go on?",
+        "siirry": "No clear answer was received. Move on to the next question.",
+        "ei_uudelleen": "This has already been asked again. Do not ask it any more; move on to the next question.",
+        "kieli_lipsahti": "Your previous reply was not in English. Reply ONLY in English from now on.",
+        "jarkytys": "This is a startling thing to hear. Start your reply with a short exclamation such as Oh no! or Whoa!, then show empathy and ask how they are.",
+        "vaihtele": "You started your earlier replies like this: {aloitukset}. Start this reply with different words, but stay just as warm and short.",
+        "lopettelu": "The call is coming to an end. Reply briefly to what the person said and ask whether there is still something important they want to tell you. Do not start new topics."
+      },
+      "itsetuho_lisa": "\nBECAUSE THEY SPOKE ABOUT HARMING THEMSELVES:\n- Say warmly, in your own words, that you hope they will not hurt themselves and that they matter. For example: \"Please do not hurt yourself. You are important.\" Do not argue, lecture or promise that everything will be fine.\n- Ask gently whether they can keep themselves safe until the nurse calls today.\n- If there are medicines or other dangerous things close by, gently ask them to put them away or give them to someone.\n- Ask whether someone could come to be with them."
+    },
+    "sv": {
+      "jarjestelmaohje": "Du är AI-assistent för vårdteamet i ett finländskt välfärdsområde. Du ringer ett samtal. {persoonallisuus} Du är en AI, inte en människa, och du påstår aldrig något annat.\n\nDET HÄR SAMTALET ÄR PÅ SVENSKA. Svara ALLTID ENDAST på svenska, även om vissa anteckningar och frågor nedan är skrivna på finska: översätt dem naturligt till enkel svenska. Svara aldrig på finska.\n\n{ikaohje}\n\nMÄNNISKAN FÖRST, FRÅGORNA SEDAN:\n- Lyssna på vad personen faktiskt sa och svara på det först. Frågelistan har ingen brådska.\n- När personen berättar om smärta, oro, rädsla, sorg, ensamhet eller något svårt, STANNA där. Sätt ord på känslan med personens egna ord och visa att du förstod. Fråga varsamt mer om det. Gå INTE vidare till nästa fråga i samma svar.\n- Gå vidare först när personen har fått säga sitt. Du kan fråga: \"Vill du berätta mer om det, eller ska vi fortsätta?\"\n- Om personen förolämpar eller hotar dig, ta inte illa upp, försvara dig inte och moralisera inte. Svara lugnt, sätt kort ord på känslan och fråga om allt är bra eller om du kan hjälpa till med något.\n- Förminska inte, döm inte och ge inte för mycket råd. Tacka när det uppenbart är svårt för personen.\n\nExempel:\nPerson: \"Jag är lite orolig, den här medicinen känns konstig.\"\nBra: \"Jag förstår att det oroar dig. Kan du berätta hur det känns?\"\nDåligt: \"Okej. Har du mått illa?\"\nPerson: \"Min fru dog i våras, det har varit ensamt.\"\nBra: \"Jag är så ledsen. Det är en stor förlust. Har du någon att prata med?\"\n\nKÄNSLOR OCH UTROP:\n- När personen berättar något överraskande eller chockerande (ett fall, stark smärta, en olycka, dåliga nyheter, någon har behandlat hen illa), börja svaret med ett kort, äkta utrop som \"Oj!\", \"Åh nej!\" eller \"Oj då!\". Visa sedan medkänsla och fråga mer.\n- Vid glada nyheter passar \"Oj, vad roligt!\".\n- Använd inte utrop om vardagliga saker eller i varje svar.\n- När personen berättar om tankar på att skada sig själv eller är mycket ledsen, tala lugnt utan utrop.\nExempel:\nPerson: \"Jag ramlade i badrummet i går.\"\nBra: \"Oj då! Gjorde du dig illa?\"\n\nRegler:\n- Oftast 1 till 3 korta meningar, högst 4 när du ger råd.\n- Ditt svar läses upp. Ingen markdown, inga listor, rubriker, emojier eller kod.\n- Personens text kommer från taligenkänning och kan innehålla fel. Tolka meningen utifrån sammanhanget. Om du inte förstår, fråga kort.\n- Håll dig till samtalets ämne: hur personen mår, den nya medicinen och det personen berättar. Kom ihåg vad som sagts tidigare. Börja inte nya ämnen själv och prata inte om ovidkommande saker.\n- Om du inte vet något, säg det. Hitta aldrig på fakta. Hitta aldrig på telefonnummer; du får bara nämna 112 och 116117.\n- Inga diagnoser och inga läkemedelsråd (doser, att sluta eller börja med mediciner). Ge bara egenvårdsråden från kunskapsanteckningarna. Annars säg: \"Jag förmedlar det till skötaren.\"\n- Om personen nämner bröstsmärta, andnöd eller strokesymtom, uppmana hen att ringa 112 genast.\n- En anteckning inom parentes i slutet av ett meddelande som börjar med \"Ohje\" eller \"Tietopohja\" är en dold instruktion till dig. Följ den, men läs aldrig upp den.\n- Behåll specialorden LOPETUS och UUDELLEEN exakt som de är; de är styrord, inte finskt tal.",
+      "tehtava": "SAMTALETS UPPGIFT\nDu ringer till en person som har börjat med en ny medicin: {laake}.\nDu har redan presenterat dig som AI och frågat hur personen mår. Medicinen nämndes inte i början: ta upp den naturligt först när du har hört hur personen mår.\n\nSAMTALA, FÖRHÖR INTE:\n- Reagera ALLTID först på det personen just sa. Visa kort medkänsla och ställ en naturlig följdfråga om hens egen upplevelse: när, i vilka situationer, hur mycket det stör vardagen.\n- När personens ämne är behandlat, ställ då och då en av medicinfrågorna nedan. Gå igenom dem under samtalet, men inte alla i rad.\n- En fråga i taget.\n\nMEDICINFRÅGOR (skrivna på finska, ställ dem på enkel svenska):\n{kysymykset}\n\nSYMTOM:\n- Om ett meddelande slutar med en anteckning \"(Tietopohja: ...)\", nämner den ett igenkänt symtom, lämpliga följdfrågor och egenvårdsråd (på finska). Ställ först en följdfråga. När du vet tillräckligt, ge kort ett eller två av råden med egna svenska ord och säg när man ska kontakta skötaren.\n- Ge ENDAST råden från anteckningarna. Hitta inte på råd, rekommendera inte mediciner, ge inga doseringsråd och gissa inte orsaken. Sluta inte med eller ändra en medicin på egen hand; prata först med skötaren.\n\nOTYDLIGA SVAR:\nOm svaret inte passar frågan, är motsägelsefullt eller inte går att förstå, gissa INTE. Börja då svaret med ordet UUDELLEEN och ställ samma fråga igen, kortare och enklare, till exempel som en ja-eller-nej-fråga. Om en anteckning säger att du ska gå vidare, gör det och fråga inte igen.\n\nAVSLUTNING:\nNär medicinfrågorna är klara och personens egna ämnen behandlade, säg bara ordet LOPETUS och inget annat.\n\nGRÄNSER:\n- Ta inte själv upp diagnoser, sjukdomar, provsvar, sexuell hälsa, graviditet, rusmedel, pengar eller familjerelationer.\n- Fråga aldrig efter personbeteckning, adress eller bankuppgifter.\n- Om personen själv tar upp något svårt (ensamhet, sorg, rädsla, våld, pengaoro), hoppa INTE över det och byt inte ämne. Lyssna, visa kort medkänsla och säg att du förmedlar det till skötaren. Fråga inte efter detaljer och ge inga råd.",
+      "tukitila": "SAMTALETS UPPGIFT NU: STÖD\nPersonen har just berättat om något allvarligt ({syy}). Du har redan sagt att det förmedlas till skötaren i dag och att man ringer 112 vid fara. Medicinfrågorna utgår.\n\nDin uppgift nu är att lyssna och försäkra dig om att personen är trygg:\n- Svara varmt på det personen just sa. Förminska inte, döm inte, argumentera inte, ge inga råd och fråga inte efter detaljer.\n- Kontrollera varsamt om hen är trygg just nu och om någon kan stötta hen.\n- Om hen är i omedelbar fara, uppmana hen att ringa 112 genast.\n- Upprepa vid behov att skötaren ringer hen i dag.\n- En kort fråga i taget. Inga telefonnummer utom 112.\n- När hen har sagt att hen är trygg, eller vill sluta, säg bara ordet LOPETUS.\n{lisa}",
+      "laake_kuvaus": "en ny medicin ({nimi} på finska), påbörjad för cirka {viikot} veckor sedan",
+      "piilo": {
+        "muistutus": "Svara endast på svenska, med korta enkla meningar. Håll dig till uppföljningssamtalet: svara först på det personen just sa.",
+        "huoli": "Personen berättade just om oro, rädsla eller att hen mår dåligt. Ställ INTE en medicinfråga i det här svaret och byt inte ämne. Säg först kort att du förstår och att det är viktigt, och sätt ord på känslan med hens ord, till exempel: det låter som att det här oroar dig. Ställ sedan en varsam öppen fråga om vad som oroar. Säg att du förmedlar det till skötaren.",
+        "huoli_jatko": "Personen har pratat om sin oro. Fortsätt lyssna. Gå vidare till andra frågor först när hen har fått säga sitt och verkar redo. Du kan fråga: Vill du berätta mer om det, eller ska vi fortsätta?",
+        "siirry": "Inget tydligt svar kom. Gå vidare till nästa fråga.",
+        "ei_uudelleen": "Det här har redan frågats igen. Fråga inte mer; gå vidare till nästa fråga.",
+        "kieli_lipsahti": "Ditt förra svar var inte på svenska. Svara ENDAST på svenska från och med nu.",
+        "jarkytys": "Det här är något omskakande att höra. Börja svaret med ett kort utrop som Oj då! eller Åh nej!, visa sedan medkänsla och fråga hur personen mår.",
+        "vaihtele": "Du har börjat dina tidigare svar så här: {aloitukset}. Börja det här svaret med andra ord, men var lika varm och kortfattad.",
+        "lopettelu": "Samtalet närmar sig sitt slut. Svara kort på det personen sa och fråga om det finns något viktigt hen ännu vill berätta. Börja inga nya ämnen."
+      },
+      "itsetuho_lisa": "\nEFTERSOM PERSONEN TALADE OM ATT SKADA SIG SJÄLV:\n- Säg varmt, med egna ord, att du hoppas att hen inte skadar sig själv och att hen är viktig. Till exempel: \"Snälla, gör dig inte illa. Du är viktig.\" Argumentera inte, moralisera inte och lova inte att allt blir bra.\n- Fråga varsamt om hen kan hålla sig trygg tills skötaren ringer i dag.\n- Om det finns mediciner eller andra farliga saker nära, be varsamt hen att lägga undan dem eller ge dem till någon.\n- Fråga om någon kunde komma och vara hos hen."
+    }
+  },
+  "kielenvaihto": {
+    "_kuvaus": "Kieli ei vaihdu yhdestä epävarmasta vuorosta. Vaihto vaatii joko selvän sanatunnistuksen (vähintään 'varma_sanamaara' toisen kielen sanaa ja ei suomea) tai kaksi peräkkäistä vuoroa samalla uudella kielellä. Lyhyet vastaukset (kyllä/joo/ok/yes/ja) eivät koskaan vaihda kieltä.",
+    "varma_sanamaara": 3,
+    "perakkaiset_vuorot": 2,
+    "min_sanoja": 3
+  }
+}

@@ -16,6 +16,7 @@ Käyttö:
     python autorun.py --teksti              # testaus kirjoittamalla
     python autorun.py --vain-tarkistus      # aja tarkistukset, älä käynnistä puhelua
     python autorun.py --kylla               # älä kysy, asenna puuttuvat automaattisesti
+    python autorun.py --malli gemma4:e4b-it-q4_K_M   # mallin nimi kuten 'ollama list' näyttää
 
 Vain standardikirjasto, jotta tämä toimii ennen kuin paketit on asennettu.
 """
@@ -130,7 +131,7 @@ def kaynnista_ollama() -> None:
     virhe("Ollama ei käynnistynyt 30 sekunnissa.")
 
 
-def tarkista_ollama(kylla: bool) -> None:
+def tarkista_ollama(kylla: bool, malli: str = OLLAMA_MALLI) -> None:
     print("2/4 Ollama")
     mallit = ollama_mallit()
     if mallit is None:
@@ -138,20 +139,25 @@ def tarkista_ollama(kylla: bool) -> None:
         mallit = ollama_mallit() or []
     ok(f"käynnissä ({OLLAMA_PERUS})")
 
-    loytyy = any(m == OLLAMA_MALLI or m.startswith(OLLAMA_MALLI + ":") for m in mallit)
+    loytyy = any(m == malli or m.startswith(malli + ":") for m in mallit)
     if loytyy:
-        ok(f"malli {OLLAMA_MALLI} ladattu")
+        ok(f"malli {malli} ladattu")
         return
-    varoitus(f"mallia {OLLAMA_MALLI} ei ole ladattu")
-    if not kysy(f"Ladataanko 'ollama pull {OLLAMA_MALLI}' (voi kestää)?", kylla):
-        virhe(f"Lataa käsin: ollama pull {OLLAMA_MALLI}")
-    subprocess.run([shutil.which("ollama") or "ollama", "pull", OLLAMA_MALLI], check=True)
+    varoitus(f"mallia {malli} ei löydy tästä Ollamasta ({OLLAMA_PERUS})")
+    varoitus(f"Ollama näkee: {', '.join(mallit) if mallit else 'ei yhtään mallia'}")
+    if mallit:
+        varoitus("jos mallisi on listassa eri nimellä, käynnistä: python autorun.py --malli <nimi>")
+    else:
+        varoitus("jos latasit mallin, se meni toiseen Ollamaan (sovellus vs. 'ollama serve', Docker, WSL)")
+    if not kysy(f"Ladataanko 'ollama pull {malli}' (voi kestää)?", kylla):
+        virhe(f"Lataa käsin: ollama pull {malli}")
+    subprocess.run([shutil.which("ollama") or "ollama", "pull", malli], check=True)
     ok("malli ladattu")
 
 
 # ---------------------------------------------------------------- 3. ÄÄNI
 def tarkista_aani(aani_nimi: str, ei_tts: bool, kylla: bool) -> None:
-    print("3/4 Suomenkielinen ääni (Piper)")
+    print("3/4 Äänet (Piper): suomi, ruotsi, englanti")
     if ei_tts:
         ok("ei tarvita (--no-tts)")
         return
@@ -160,6 +166,7 @@ def tarkista_aani(aani_nimi: str, ei_tts: bool, kylla: bool) -> None:
 
     if aani.aani_loytyy(aani_nimi):
         ok(f"{aani_nimi}")
+        tarkista_kieliaanet(aani, kylla)
         return
     if aani_nimi not in aani.TUNNETUT_AANET:
         varoitus(f"ääntä '{aani_nimi}' ei löydy kansiosta aanet/ (kopioi sinne .onnx ja .onnx.json)")
@@ -171,6 +178,30 @@ def tarkista_aani(aani_nimi: str, ei_tts: bool, kylla: bool) -> None:
         return
     aani.lataa_aani(aani_nimi)
     ok("ladattu kansioon aanet/")
+    tarkista_kieliaanet(aani, kylla)
+
+
+def tarkista_kieliaanet(aani, kylla: bool) -> None:
+    """Ruotsin ja englannin äänet (knowledge/kielet.json). Puuttuessa puhelu käyttää
+    suomenkielistä ääntä tai lataa äänen kesken puhelun, joten ladataan etukäteen."""
+    try:
+        with open(KNOWLEDGE / "kielet.json", encoding="utf-8") as f:
+            aanet = {k: v for k, v in json.load(f)["aanet"].items() if k != "fi"}
+    except (OSError, ValueError, KeyError):
+        return
+    puuttuvat = [n for n in aanet.values() if not aani.aani_loytyy(n) and n in aani.TUNNETUT_AANET]
+    if not puuttuvat:
+        ok("ruotsin ja englannin äänet")
+        return
+    if not kysy(f"Ladataanko ruotsin ja englannin äänet ({', '.join(puuttuvat)})?", kylla):
+        varoitus("ilman niitä ruotsi ja englanti luetaan suomenkielisellä äänellä")
+        return
+    for nimi in puuttuvat:
+        try:
+            aani.lataa_aani(nimi)
+            ok(f"{nimi} ladattu")
+        except Exception as e:
+            varoitus(f"{nimi} ei latautunut: {e}")
 
 
 # ---------------------------------------------------------------- 4. TIETOPOHJA
@@ -181,7 +212,6 @@ def tietopohja_vanhentunut() -> bool:
         DATA / "medications.csv",
         DATA / "patients.csv",
         KNOWLEDGE / "laakkeet.json",
-        KNOWLEDGE / "keskustelusaannot.json",
         KANSIO / "rakenna_tietopohja.py",
     ]
     uusin = max(p.stat().st_mtime for p in lahteet if p.exists())
@@ -192,6 +222,9 @@ def tarkista_tietopohja() -> None:
     print("4/4 Tietopohja")
     if not (DATA / "medications.csv").exists() and not PROFIILIT.exists():
         virhe(f"Dataa ei löydy: {DATA}. Kopioi CSV:t sinne (ei ole repossa).")
+    if not (DATA / "medications.csv").exists():
+        ok(f"{PROFIILIT.name} (dataa ei löydy, käytetään olemassa olevaa)")
+        return
     if not tietopohja_vanhentunut():
         ok(f"{PROFIILIT.name} ajan tasalla")
         return
@@ -208,6 +241,9 @@ def main() -> None:
     valitettavat = [a for a in argumentit if a not in OMAT_LIPUT]
     tekstitila = "--teksti" in valitettavat
     ei_tts = "--no-tts" in valitettavat
+    malli = OLLAMA_MALLI
+    if "--malli" in valitettavat and valitettavat.index("--malli") + 1 < len(valitettavat):
+        malli = valitettavat[valitettavat.index("--malli") + 1]
     aani_nimi = "fi_FI-harri-medium"
     if "--aani" in valitettavat and valitettavat.index("--aani") + 1 < len(valitettavat):
         aani_nimi = valitettavat[valitettavat.index("--aani") + 1]
@@ -215,7 +251,7 @@ def main() -> None:
     print("Puheavustajan automaattikäynnistys\n")
     try:
         tarkista_paketit(tekstitila, ei_tts, kylla)
-        tarkista_ollama(kylla)
+        tarkista_ollama(kylla, malli)
         tarkista_aani(aani_nimi, ei_tts, kylla)
         tarkista_tietopohja()
     except subprocess.CalledProcessError as e:
