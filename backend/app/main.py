@@ -9,6 +9,9 @@ from app.config import hae_asetukset
 from app.data.adapteri import DataEiSaatavilla
 from app.dev.reitit import router as dev_router
 from app.muutokset.reitit import router as muutokset_router
+from app.puhelu.puhe import TwimlLiianPitka
+from app.puhelu.reitit import router as puhelu_router
+from app.puhelu.soittaja import SoittoEiKaytossa, SoittoEpaonnistui
 from app.puhelutehtavat.ajastus import kaynnista_ajastin
 from app.puhelutehtavat.reitit import router as puhelutehtavat_router
 from app.tietokanta import aja_migraatiot, hae_engine
@@ -32,8 +35,24 @@ async def data_ei_saatavilla(_: Request, virhe: DataEiSaatavilla) -> JSONRespons
     return JSONResponse(status_code=503, content={"detail": str(virhe)})
 
 
+@app.exception_handler(SoittoEiKaytossa)
+async def soitto_ei_kaytossa(_: Request, virhe: SoittoEiKaytossa) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"detail": str(virhe)})
+
+
+@app.exception_handler(SoittoEpaonnistui)
+async def soitto_epaonnistui(_: Request, virhe: SoittoEpaonnistui) -> JSONResponse:
+    return JSONResponse(status_code=502, content={"detail": str(virhe)})
+
+
+@app.exception_handler(TwimlLiianPitka)
+async def twiml_liian_pitka(_: Request, virhe: TwimlLiianPitka) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": str(virhe)})
+
+
 app.include_router(muutokset_router)
 app.include_router(puhelutehtavat_router)
+app.include_router(puhelu_router)
 app.include_router(dev_router)
 
 

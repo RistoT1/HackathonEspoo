@@ -181,6 +181,60 @@ class Soittotiedot(BaseModel):
     konteksti: Puhelukonteksti
 
 
+class PuhelunAloitus(BaseModel):
+    """Kaynnistetty soitto. Ei puhelinnumeroa (datan minimointi); repliikit debuggausta varten."""
+
+    puhelu_sid: str  # Twilion CallSid, loytyy Twilio Consolen lokeista
+    tehtava_id: str
+    repliikit: list[str]  # mita puhelussa sanotaan, jarjestyksessa
+
+
+class PuhelunLoppu(StrEnum):
+    VALMIS = "VALMIS"  # kaikki kysymykset kayty
+    HATAMERKKI = "HATAMERKKI"  # saanto tunnisti hatamerkin, ohjattiin 112:een
+    HALUAA_HOITAJAN = "HALUAA_HOITAJAN"  # vanhus pyysi ihmista
+    EI_LUPAA = "EI_LUPAA"  # ei aikaa nyt
+    EI_VASTAUSTA = "EI_VASTAUSTA"  # vastasi puhelimeen, mutta ei sanonut mitaan
+    KESKEYTYI = "KESKEYTYI"  # puhelu katkesi kesken
+    EI_VASTANNUT = "EI_VASTANNUT"  # ei vastannut puhelimeen (no-answer, busy, failed)
+
+
+class KysymyksenVastaus(BaseModel):
+    tunniste: str
+    kysymys: str  # sellaisena kuin se sanottiin
+    vastaus: str  # puheentunnistuksen tulos; tyhja = ei vastausta
+    varmuus: float | None = None  # Twilion Confidence 0..1
+    # Matalan varmuuden vastaus pyydetaan toistamaan kerran; toisto tallentuu tahan.
+    selvennys: str | None = None
+    # True = tunnistus jai epavarmaksi (tai vastausta ei saatu). Triagen pitaa nostaa
+    # vahintaan keltaiseksi: epavarmuus siirtyy aina ihmiselle.
+    epavarma: bool = False
+    jatkokysymys: str | None = None
+    jatkovastaus: str | None = None
+
+
+class PuhelunTulos(BaseModel):
+    """Puhelun lopputulos triagelle. VAIN MUISTISSA: raakavastauksia ei tallenneta kantaan
+    (datan minimointi); triage tallentaa niista vain yhteenvedon."""
+
+    istunto_id: str
+    tehtava_id: str
+    loppu: PuhelunLoppu | None = None  # None = puhelu kesken
+    hatamerkki: str | None = None  # hatamerkin luokka, esim. "rintakipu"
+    vastaukset: list[KysymyksenVastaus] = Field(default_factory=list)
+    paattyi: datetime | None = None
+
+
+class KaikuTulos(BaseModel):
+    """VAIN DEV: puheentunnistuksen testi. Mita Twilio kuuli ja osuiko hatasana."""
+
+    kierros: int
+    kuultu: str
+    varmuus: float | None
+    hatamerkki: str | None
+    stt_malli: str | None = None  # millä mallilla tunnistettiin (vertailua varten)
+
+
 class Yhteystieto(BaseModel):
     puhelinnumero: str = Field(
         pattern=r"^\+[1-9]\d{6,14}$", description="E.164, esim. +358401234567"

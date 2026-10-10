@@ -1,0 +1,57 @@
+{
+  "_kommentti": "Turvallisuuskriittinen: hatamerkit tunnistetaan saannolla, ei LLM:lla. Muutokset aina testipankin (tests/test_hatasanat.py) kanssa. Ei kliinisesti tarkistettu: tuotannossa kliininen hyvaksynta. Ilmaukset ovat sanan alkuja (pienilla kirjaimilla), jotta taivutusmuodot osuvat; vaarahalytys on turvallisempi kuin ohitus. Ei yleisiä fraaseja: 'hätä' osuisi lauseeseen 'ei mitään hätää'. Kieltoa ei tulkita: 'ei rintakipua' laukaisee tarkoituksella (nosto on turvallinen suunta).",
+  "rintakipu": [
+    "rintakip",
+    "rintaan sattu",
+    "rintaan koske",
+    "rintaa puristaa",
+    "rintaa purista",
+    "puristaa rinnassa",
+    "puristusta rinnassa",
+    "kipua rinnassa",
+    "kipu rinnassa",
+    "sydämeen sattu",
+    "sydäntä puristaa"
+  ],
+  "hengenahdistus": [
+    "hengenahdistu",
+    "hengästy",
+    "en saa henkeä",
+    "ei saa henkeä",
+    "henki ei kulje",
+    "hengitys ei kulje",
+    "vaikea hengittää",
+    "vaikeaa hengittää",
+    "en pysty hengittämään",
+    "tukehtu"
+  ],
+  "halvausoire": [
+    "halvau",
+    "halvaant",
+    "puhe puuroutu",
+    "puhe sammaltaa",
+    "sammaltaa",
+    "suupieli roikku",
+    "suu roikku",
+    "kasvot roikku",
+    "käsi ei toimi",
+    "jalka ei toimi",
+    "toispuoleis",
+    "en saa sanoja",
+    "en pysty puhumaan"
+  ],
+  "tajunta": [
+    "tajuton",
+    "tajunnan",
+    "pyörtyi",
+    "pyörryin",
+    "menin tajut"
+  ],
+  "hatapyynto": [
+    "112",
+    "yksi yksi kaksi",
+    "satakaksitoista",
+    "hätänumero",
+    "ambulanssi"
+  ]
+}

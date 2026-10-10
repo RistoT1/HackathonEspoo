@@ -73,6 +73,10 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 # Lint:     uv run ruff check . && uv run ruff format .
 # Migraatio mallimuutoksen jalkeen:  uv run alembic revision --autogenerate -m "kuvaus"
 # Synthean ATC-vastaavuus uudelleen:  PYTHONPATH=. uv run python scripts/hae_synthea_atc.py
+# Testisoitot DEMO_PUHELINNUMEROON (ngrok käyntiin ensin: ngrok http --url=<domain> 8000):
+#   lukee vain:        curl -X POST http://127.0.0.1:8000/dev/puhelu/testi
+#   puheentunnistus:   curl -X POST http://127.0.0.1:8000/dev/puhelu/kaiku   -> GET /dev/puhelu/kaiut
+#   koko keskustelu:   curl -X POST http://127.0.0.1:8000/dev/puhelu/keskustelu -> GET /dev/puhelu/tulokset
 # Dev-reitit (/dev/...): DEV_TILA=true .env:iin. API-dokumentaatio: http://127.0.0.1:8000/docs
 # wss ulos devissä:  ngrok http 8000   (Twilio tarvitsee julkisen wss-osoitteen)
 
@@ -156,7 +160,14 @@ data/            ADAPTERIKERROS: lue KAIKKI data tämän kautta
 muutokset/       lääkemuutosten tunnistus (deterministinen) + lukureitit
 kysymykset/      kysymykset ja LLM:n konteksti muutoksista; sisältö kannasta (varasto.py)
 puhelutehtavat/  soittojono: tunnistus -> rivi (kysymykset, konteksti, prioriteetti), ajastin
-puhelu/          (tulossa) Twilio-soitto + Media Streams -websocket + ääniagentti
+puhelu/          Twilio-puhelu <Gather>/<Say>-webhookeilla (vaatii JULKINEN_URL/ngrok):
+  keskustelu.py  tilakone (avaus+AI-ilmoitus -> lupa -> kysymykset -> lopetus), puhdas
+  agentti.py     LLM:N KYTKENTAKOHTA (Keskusteluagentti); nyt KiinteaAgentti ilman LLM:aa
+  hatasanat.json hätämerkit säännöllä (versionhallittu, testipankki tests/test_hatasanat.py)
+  vihjesanat.json  puheentunnistuksen vihjeet; malli/tauko/varmuusraja .env:stä (STT_*, ks. .env.example)
+  Matala varmuus -> toisto kerran -> epavarma=True tulokseen (triage nostaa vähintään keltaiseksi)
+  istunnot.py    kesken olevat puhelut + tulokset MUISTISSA (raakavastaukset eivät kantaan)
+  twilio_tarkistus.py  X-Twilio-Signature; soittaja.py = ainoa Twilio-reuna
 dev/             VAIN DEV (DEV_TILA=true): testimuutokset, jonon nollaus, demonumero
 (ei vielä)       puhelun jälkeinen osuus: triage, hoitajan tapaukset/jono, audit-loki
 ```
@@ -183,7 +194,15 @@ ei LLM-tulkintaa: uusi lääke, annosmuutos, lopetettu lääke, poikkeava mittau
 hiljaisiin signaaleihin (uusimatta jäänyt resepti, väliin jäänyt aika, tekemätön labra, kotiutus) —
 nämä erottavat ratkaisun kilpailussa.
 
-### Puhelu ja ääni (LUKITTU: Polku A = Azure Speech fi-FI -putki)
+### Puhelu ja ääni
+
+**Toteutettu (demo, 10.10.):** Twilio `<Gather input="speech" language="fi-FI">` + `<Say>`
+(`Polly.Suvi-Neural`) webhookeilla. Twilio tekee puheentunnistuksen (Google/Deepgram) ja
+-synteesin (Amazon Polly) = US-käsittelijät; kerrotaan pitchissä rehellisesti. Mitattu
+kaikutestillä: suomi tunnistui varmuudella 0,74–0,97. Tilakone, hätäsanat ja agentti ovat
+ääniputkesta riippumattomia, joten vaihto alla olevaan putkeen muuttaa vain reunan.
+
+**Tuotannon polku (ei toteutettu): Polku A = Azure Speech fi-FI -putki**
 Ketju: `Twilio ↔ Azure STT (fi-FI) → LLM (paikallinen, Ollama) → Azure TTS (fi-FI) ↔ Twilio`.
 Valittu luotettavuuden ja suomen laadun takia; antaa myös puhtaan litteroinnin triagelle. Twilio
 vain kuljettaa äänen, se ei tee puheentunnistusta eikä -synteesiä. Polku B (Azure OpenAI Realtime,

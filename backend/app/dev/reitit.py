@@ -2,19 +2,35 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.config import Settings, hae_asetukset
 from app.data.adapteri import Datalahde, Testikirjoittaja, hae_datalahde, hae_testikirjoittaja
 from app.dev.palvelu import TestimuutosVirhe, tee_testimuutos
 from app.mallit import (
+    KaikuTulos,
     PotilaanLaakemuutokset,
+    PuhelunAloitus,
+    PuhelunTulos,
     PuhelutehtavienNollaus,
     Testimuutos,
     TestimuutostenNollaus,
     Yhteystieto,
 )
+from app.puhelu.istunnot import Istuntovarasto, hae_istuntovarasto
+from app.puhelu.palvelu import (
+    aloita_testikeskustelu,
+    kaiun_url,
+    kasittele_kaiku,
+    kuuntelu_asetuksista,
+    soita_kaikutesti,
+    soita_testipuhelu,
+)
+from app.puhelu.puhe import vuoro_twiml
+from app.puhelu.reitit import twiml_vastaus
+from app.puhelu.soittaja import Soittaja, hae_soittaja
+from app.puhelu.twilio_tarkistus import julkinen_url, twilion_lomake
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.palvelu import aseta_yhteystieto
 from app.tietokanta import hae_sessio
@@ -75,3 +91,83 @@ def aseta_puhelinnumero(
     """Asettaa vanhukselle demonumeron (oma, Twilioon vahvistettu numero). Ei oikeita numeroita."""
     aseta_yhteystieto(sessio, vanhus_id, yhteystieto.puhelinnumero)
     return yhteystieto
+
+
+SessioDep = Annotated[Session, Depends(hae_sessio)]
+SoittajaDep = Annotated[Soittaja, Depends(hae_soittaja)]
+AsetuksetDep = Annotated[Settings, Depends(hae_asetukset)]
+IstunnotDep = Annotated[Istuntovarasto, Depends(hae_istuntovarasto)]
+
+_JONO_TYHJA = "Jonossa ei ole tehtavia: aja ensin POST /puhelutehtavat/tunnista"
+
+
+def _demonumero(asetukset: Settings) -> str:
+    if not asetukset.demo_puhelinnumero:
+        raise HTTPException(status_code=409, detail="DEMO_PUHELINNUMERO puuttuu .env:sta")
+    return asetukset.demo_puhelinnumero
+
+
+@router.post("/puhelu/testi", response_model=PuhelunAloitus)
+def testipuhelu(
+    sessio: SessioDep, soittaja: SoittajaDep, asetukset: AsetuksetDep
+) -> PuhelunAloitus:
+    """Soittaa DEMO_PUHELINNUMEROON ja lukee suomeksi satunnaisen jonotehtavan muutokset ja
+    kysymykset. Ei kuuntele. Ei muuta jonoa. Ei tarvitse ngrokia."""
+    numero = _demonumero(asetukset)
+    tulos = soita_testipuhelu(sessio, soittaja, numero, asetukset.puhe_aani)
+    if tulos is None:
+        raise HTTPException(status_code=409, detail=_JONO_TYHJA)
+    return tulos
+
+
+@router.post("/puhelu/keskustelu", response_model=PuhelunAloitus)
+def testikeskustelu(
+    sessio: SessioDep, soittaja: SoittajaDep, istunnot: IstunnotDep, asetukset: AsetuksetDep
+) -> PuhelunAloitus:
+    """Koko keskustelu DEMO_PUHELINNUMEROON satunnaisen tehtavan kysymyksilla: kuuntelee
+    vastaukset ja tunnistaa hatasanat. Ei muuta jonoa. Vaatii ngrokin (JULKINEN_URL).
+    Tulos: GET /dev/puhelu/tulokset."""
+    numero = _demonumero(asetukset)
+    perus_url = julkinen_url(asetukset)
+    tulos = aloita_testikeskustelu(
+        sessio, soittaja, istunnot, numero, perus_url, asetukset.matala_varmuus
+    )
+    if tulos is None:
+        raise HTTPException(status_code=409, detail=_JONO_TYHJA)
+    return tulos
+
+
+@router.get("/puhelu/tulokset", response_model=list[PuhelunTulos])
+def puhelujen_tulokset(istunnot: IstunnotDep) -> list[PuhelunTulos]:
+    """Paattyneiden puhelujen vastaukset (muistissa, uusin ensin). Triagen tuleva syote."""
+    return istunnot.tulokset()
+
+
+@router.post("/puhelu/kaiku")
+def kaikutesti(soittaja: SoittajaDep, asetukset: AsetuksetDep) -> dict[str, str]:
+    """Puheentunnistuksen testi: soittaa DEMO_PUHELINNUMEROON, kuuntelee ja toistaa kuullun
+    kolmesti (myos varmuus ja hatamerkki). Vaatii ngrokin. Tulos: GET /dev/puhelu/kaiut."""
+    numero = _demonumero(asetukset)
+    puhelu_sid = soita_kaikutesti(soittaja, numero, julkinen_url(asetukset))
+    return {"puhelu_sid": puhelu_sid}
+
+
+@router.get("/puhelu/kaiut", response_model=list[KaikuTulos])
+def kaikujen_tulokset(istunnot: IstunnotDep) -> list[KaikuTulos]:
+    """Mita puheentunnistus kuuli kaikutesteissa (uusin ensin)."""
+    return istunnot.kaiut()
+
+
+@router.post("/puhelu/kaiku/vuoro/{kierros}", include_in_schema=False)
+def kaiun_vuoro(
+    kierros: int,
+    kentat: Annotated[dict[str, str], Depends(twilion_lomake)],
+    istunnot: IstunnotDep,
+    asetukset: AsetuksetDep,
+) -> Response:
+    """Twilion webhook kaikutestille."""
+    vuoro = kasittele_kaiku(kierros, kentat, istunnot, asetukset.stt_malli)
+    seuraava_url = kaiun_url(julkinen_url(asetukset), kierros + 1)
+    kuuntelu = kuuntelu_asetuksista(asetukset, konteksti=None)
+    twiml = vuoro_twiml(vuoro.sanottavat, vuoro.kuuntele, seuraava_url, kuuntelu)
+    return twiml_vastaus(twiml)

@@ -11,6 +11,8 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "apscheduler>=3.10,<4",
     "alembic>=1.13",
+    "twilio>=9.11.2",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
