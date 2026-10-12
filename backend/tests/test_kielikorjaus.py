@@ -3,7 +3,7 @@ vastauksista (puhelulokit ja testipankki 11.-12.10.)."""
 
 import pytest
 
-from app.puhelu.kielentarkistus import korjaa_kieli
+from app.puhelu.kielentarkistus import korjaa_kieli, sinuttelee
 
 
 @pytest.mark.parametrize(
@@ -59,3 +59,15 @@ def test_toistuvat_virheet_korjataan(raaka, odotettu):
 )
 def test_oikeaa_suomea_ei_muuteta(oikea):
     assert korjaa_kieli(oikea) == (oikea, [])
+
+
+@pytest.mark.parametrize(
+    ("teksti", "odotettu"),
+    [
+        ("Oho! Onpa huolestuttava tilanne. Satutitko itsesi kaatuessa?", True),
+        ("Miten vointinne on?", False),
+        ("Voitteko kertoa lisää?", False),
+    ],
+)
+def test_sinuttelu(teksti, odotettu):
+    assert sinuttelee(teksti) is odotettu

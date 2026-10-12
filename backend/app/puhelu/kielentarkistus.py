@@ -38,9 +38,12 @@ _TEITITTELY = re.compile(
     r"otitte|sanoitte|nukuitte|aloititte|soittakaa|älkää|kertokaa)\b",
     re.IGNORECASE,
 )
-# Omistusliite -nne ("vointinne", "olonne"); paikan adverbit eivät ole teitittelyä.
+# Omistusliite -nne ("vointinne", "olonne"); paikan adverbit ja -nne-loppuiset perusmuodot
+# eivät ole teitittelyä (12.10. testipankki: "tilanne" luettiin teitittelyksi).
 _NNE = re.compile(r"\b\w{3,}nne\b", re.IGNORECASE)
-_EI_OMISTUSLIITE = frozenset({"sinne", "tänne", "minne", "jonne", "tuonne", "kanne"})
+_EI_OMISTUSLIITE = frozenset(
+    {"sinne", "tänne", "minne", "jonne", "tuonne", "kanne", "tilanne", "rinne", "vanne", "lanne"}
+)
 
 
 def sinuttelee(teksti: str) -> bool:
