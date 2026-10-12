@@ -1,0 +1,129 @@
+{% extends "perus.html" %}
+
+{% block title %}Soittojono{% endblock %}
+
+{% block content %}
+<section class="sivun-otsikko">
+  <div class="sivun-otsikko-tekstit">
+    <p class="ylateksti">HOITAJAN TYÖJONO</p>
+    <h1>Soittotehtävät</h1>
+    <p class="toissijainen">Tunnistetut lääkemuutokset ja niihin liittyvät tehtävät.</p>
+  </div>
+  <a class="painike painike-toissijainen" href="/hoitaja/">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 8A6.5 6.5 0 0 0 5 4.5L3.5 6"/><path d="M3.5 2.8V6H6.7M3.5 12A6.5 6.5 0 0 0 15 15.5l1.5-1.5"/><path d="M16.5 17.2V14h-3.2"/></svg>
+    Päivitä jono
+  </a>
+</section>
+
+<section class="mittaririvi" aria-label="Jonon yhteenveto">
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-avoin" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5zM8 9h8M8 12h8M8 15h5"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Avoimet tehtävät</span>
+      <strong>{{ yhteenveto.avoimet }}</strong>
+    </span>
+    <span class="mittari-kuvaus">odottaa käsittelyä tai puhelua</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-kiireellinen" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Odottaa soittoa</span>
+      <strong>{{ yhteenveto.odottavat }}</strong>
+    </span>
+    <span class="mittari-kuvaus">backendin soittojonossa</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-valmis" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Päätetyt tehtävät</span>
+      <strong>{{ yhteenveto.kasitellyt }}</strong>
+    </span>
+    <span class="mittari-kuvaus">valmis tai peruttu</span>
+  </article>
+</section>
+
+<section class="kortti jonokortti">
+  <div class="kortin-otsikko">
+    <div>
+      <h2>Soittojono</h2>
+      <p class="toissijainen">Järjestetty backendin määrittämän soittojärjestyksen mukaan.</p>
+    </div>
+    <span class="tapausmaara">{{ tapaukset | length }} tehtävää</span>
+  </div>
+
+  <form class="suodatinrivi" method="get" action="/hoitaja/">
+    <label for="tila">Rajaa tilan mukaan</label>
+    <select id="tila" name="tila">
+      <option value="">Kaikki tilat</option>
+      {% for tila in tilat %}
+      <option value="{{ tila.value }}" {% if valittu_tila == tila %}selected{% endif %}>
+        {{ tilan_nimet[tila] }}
+      </option>
+      {% endfor %}
+    </select>
+    <button class="painike painike-toissijainen" type="submit">Suodata</button>
+  </form>
+
+  {% if tapaukset %}
+  <div class="taulukko-sailio">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Soittojärjestys</th>
+          <th scope="col">Tehtävä / pseudonyymi</th>
+          <th scope="col">Tunnistetut lääkemuutokset</th>
+          <th scope="col">Luotu</th>
+          <th scope="col">Tila</th>
+          <th scope="col"><span class="sr-only">Toiminto</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tapaus in tapaukset %}
+        <tr>
+          <td><span class="prioriteetti">{{ tapaus.prioriteetti }}</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">{{ tapaus.id[:8] }}</span>
+            <span class="tunniste-ala">Pseudonyymi {{ tapaus.vanhus_id }}</span>
+          </td>
+          <td>
+            {% for muutos in tapaus.muutokset[:2] %}
+            <span class="yhteenveto-otsikko">{{ muutos.tyyppi.value | replace("_", " ") | lower }}</span>
+            <span class="yhteenveto-kuvaus">{{ muutos.laake.nimi }}</span>
+            {% endfor %}
+            {% if tapaus.muutokset | length > 2 %}
+            <span class="yhteenveto-kuvaus">+ {{ tapaus.muutokset | length - 2 }} muuta muutosta</span>
+            {% endif %}
+            {% if not tapaus.muutokset %}
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            {% endif %}
+          </td>
+          <td class="aikaleima">{{ tapaus.luotu.strftime("%d.%m.%Y %H:%M") }}</td>
+          <td>
+            <span class="tilamerkki tilamerkki-{{ tilan_css[tapaus.tila] }}">
+              {{ tilan_nimet[tapaus.tila] }}
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/{{ tapaus.id }}">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="tyhja-tila">
+    <span class="tyhja-kuvake" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5zM8 9h8M8 12h8M8 15h5"/></svg>
+    </span>
+    <h3>Ei näytettäviä tehtäviä</h3>
+    <p>Vaihda tilasuodatusta tai päivitä jono.</p>
+  </div>
+  {% endif %}
+</section>
+<p class="nakyma-huomio">Soittoprioriteetti määrittää järjestystä, eikä ole triage- tai kiireellisyysluokitus.</p>
+{% endblock %}

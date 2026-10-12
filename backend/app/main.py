@@ -1,13 +1,16 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.config import hae_asetukset
 from app.data.adapteri import DataEiSaatavilla
 from app.dev.reitit import router as dev_router
+from app.hoitaja.reitit import reititin as hoitaja_reititin
 from app.muutokset.reitit import router as muutokset_router
 from app.puhelu.istunnot import hae_istuntovarasto
 from app.puhelu.puhe import TwimlLiianPitka
@@ -22,7 +25,7 @@ from app.triage.tyontekija import Triagetyontekija
 
 
 @asynccontextmanager
-async def elinkaari(_: FastAPI) -> AsyncIterator[None]:
+async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
     aja_migraatiot()
     asetukset = hae_asetukset()
     if asetukset.llm_malli:
@@ -71,6 +74,14 @@ app.include_router(puhelutehtavat_router)
 app.include_router(puhelu_router)
 app.include_router(relay_router)
 app.include_router(dev_router)
+app.include_router(hoitaja_reititin)
+
+_app_hakemisto = Path(__file__).resolve().parent
+app.mount(
+    "/static",
+    StaticFiles(directory=_app_hakemisto / "static"),
+    name="static",
+)
 
 
 @app.get("/terveys")
