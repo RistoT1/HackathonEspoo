@@ -1,5 +1,5 @@
 {
-  "_kommentti": "Turvallisuuskriittinen: hatamerkit tunnistetaan saannolla, ei LLM:lla. Muutokset aina testipankin (tests/test_hatasanat.py) kanssa. Ei kliinisesti tarkistettu: tuotannossa kliininen hyvaksynta. Ilmaukset ovat sanan alkuja (pienilla kirjaimilla), jotta taivutusmuodot osuvat; vaarahalytys on turvallisempi kuin ohitus. Ei yleisiä fraaseja: 'hätä' osuisi lauseeseen 'ei mitään hätää'. Kieltoa ei tulkita: 'ei rintakipua' laukaisee tarkoituksella (nosto on turvallinen suunta).",
+  "_kommentti": "Turvallisuuskriittinen: hatamerkit tunnistetaan saannolla, ei LLM:lla. Muutokset aina testipankin (tests/test_hatasanat.py) kanssa. Ei kliinisesti tarkistettu: tuotannossa kliininen hyvaksynta. Ilmaukset ovat sanan alkuja (pienilla kirjaimilla), jotta taivutusmuodot osuvat; vaarahalytys on turvallisempi kuin ohitus. Ei yleisiä fraaseja: 'hätä' osuisi lauseeseen 'ei mitään hätää'. Kieltoa ei tulkita: 'ei rintakipua' laukaisee tarkoituksella (nosto on turvallinen suunta). Itsetuho (10.10.): oma viesti keskustelu.py:ssa (HATAVIESTIT); tuotannossa tukitila puheavustaja-haarasta, ei pelkkää lopetusta.",
   "rintakipu": [
     "rintakip",
     "rintaan sattu",
@@ -47,11 +47,28 @@
     "pyörryin",
     "menin tajut"
   ],
+  "itsetuho": [
+    "en halua elää",
+    "en halua enää elää",
+    "haluan kuolla",
+    "haluun kuolla",
+    "en jaksa elää",
+    "itsemurha",
+    "tappaa itseni",
+    "tapan itseni",
+    "tappaa itteni",
+    "päättää päiväni",
+    "vahingoittaa itseäni",
+    "satuttaa itseäni"
+  ],
   "hatapyynto": [
     "112",
     "yksi yksi kaksi",
     "satakaksitoista",
     "hätänumero",
-    "ambulanssi"
+    "ambulanssi",
+    "hengenvaara",
+    "henki on vaarassa",
+    "hätätilanne"
   ]
 }

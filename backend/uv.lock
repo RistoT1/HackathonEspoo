@@ -309,6 +309,8 @@ dependencies = [
     { name = "alembic" },
     { name = "apscheduler" },
     { name = "fastapi" },
+    { name = "httpx" },
+    { name = "libvoikko" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -320,7 +322,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -330,6 +331,8 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
     { name = "apscheduler", specifier = ">=3.10,<4" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "libvoikko", specifier = ">=4.3" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "pydantic-settings", specifier = ">=2.4" },
@@ -341,7 +344,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.27" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.6" },
 ]
@@ -362,6 +364,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/e1/2069291243c926a2ff1cd706c7f3eeb9b62144bf60f77c9fb9ff2fb26bd3/iniconfig-2.3.1.tar.gz", hash = "sha256:67f4b9c50da0dedf52af349e7749a80a9057a5031199791b906c3bb3ae878960", size = 21209, upload-time = "2026-10-06T22:48:38.076Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl", hash = "sha256:9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7", size = 7552, upload-time = "2026-10-06T22:48:36.959Z" },
+]
+
+[[package]]
+name = "libvoikko"
+version = "4.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/12/96d70c432646ed26e33eabe114dacecc239ec471787ffca3fdfa8b1c0170/libvoikko-4.3.tar.gz", hash = "sha256:35df124f7d0a5ee8f6d4efbfc1b28613eeceb94925aebc8badd6d40d8ae3b4be", size = 9552, upload-time = "2019-11-22T19:38:53.81Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/db/ab875d42670d92f77d8e73f4799cde51f2145bbddf450f9947074fb775f7/libvoikko-4.3-py3-none-any.whl", hash = "sha256:29abe70c04a21411263c73e005e952d62f641941a7965a41d86f773253577bb1", size = 9726, upload-time = "2019-11-22T19:38:51.338Z" },
 ]
 
 [[package]]

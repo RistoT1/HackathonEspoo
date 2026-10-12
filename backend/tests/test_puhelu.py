@@ -1,5 +1,7 @@
 """Puhelu: repliikit ja TwiML puhtaina funktioina, reitit feikatulla Twiliolla (ei verkkoa)."""
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from twilio.request_validator import RequestValidator
@@ -9,10 +11,10 @@ from app.data.adapteri import hae_datalahde
 from app.main import app
 from app.mallit import Kysymys, Muutoskonteksti, MuutosTyyppi, Puhelukonteksti
 from app.puhelu.istunnot import Istuntovarasto, hae_istuntovarasto
-from app.puhelu.keskustelu import HATAOHJE, LUPAKYSYMYS
+from app.puhelu.loki import Puheluloki, hae_puheluloki
+from app.puhelu.palvelu import rajat_asetuksista
 from app.puhelu.puhe import (
     AVAUS,
-    LOPETUS,
     MAX_TWIML_PITUUS,
     Kuuntelu,
     TwimlLiianPitka,
@@ -76,7 +78,7 @@ def polku(url: str) -> str:
 # --- Puhtaat funktiot ---
 
 
-def test_puhelu_alkaa_ai_ilmoituksella_ja_paattyy_hoitajaan():
+def test_puhelu_alkaa_ai_ilmoituksella():
     kysymykset = [Kysymys(tunniste="vointi", teksti="Miten voit?")]
 
     repliikit = puhelun_repliikit(kysymykset)
@@ -84,8 +86,7 @@ def test_puhelu_alkaa_ai_ilmoituksella_ja_paattyy_hoitajaan():
     assert repliikit[0] == AVAUS
     assert "tekoäly" in AVAUS
     assert repliikit[1] == "Miten voit?"
-    assert repliikit[-1] == LOPETUS
-    assert "hoitajalle" in LOPETUS
+    assert "hoitajalle" in AVAUS
 
 
 def test_muutoksen_kuvaus_ilman_ryhmaa_ja_eilen():
@@ -215,7 +216,7 @@ def test_koko_keskustelu_webhookeilla_merkitsee_tehtavan_valmiiksi(client, soitt
     avaus = twilio_post(client, vuoro, {"CallSid": "CA1"})
     assert avaus.status_code == 200
     assert "tekoäly" in avaus.text
-    assert LUPAKYSYMYS in avaus.text
+    assert "hoitajalle" in avaus.text
     assert "<Gather" in avaus.text
 
     vastaus = twilio_post(client, vuoro, {"CallSid": "CA1", "SpeechResult": "Kyllä on."})
@@ -231,8 +232,8 @@ def test_koko_keskustelu_webhookeilla_merkitsee_tehtavan_valmiiksi(client, soitt
     assert client.get(f"/puhelutehtavat/{tehtava_id}").json()["tila"] == "VALMIS"
     tulos = client.get("/dev/puhelu/tulokset").json()[0]
     assert tulos["loppu"] == "VALMIS"
-    assert tulos["vastaukset"][0]["vastaus"] == "Hyvin menee."
-    assert tulos["vastaukset"][0]["varmuus"] == 0.9
+    assert tulos["vastaukset"][1]["vastaus"] == "Hyvin menee."
+    assert tulos["vastaukset"][1]["varmuus"] == 0.9
 
 
 def test_hatasana_webhookissa_ohjaa_112_ja_lopettaa(client, soittaja):
@@ -244,7 +245,7 @@ def test_hatasana_webhookissa_ohjaa_112_ja_lopettaa(client, soittaja):
         client, vuoro, {"CallSid": "CA1", "SpeechResult": "Rintaan sattuu kovasti."}
     )
 
-    assert HATAOHJE in vastaus.text
+    assert "yksi, yksi, kaksi" in vastaus.text  # 112 numero kerrallaan
     assert "<Hangup" in vastaus.text
     assert client.get("/dev/puhelu/tulokset").json()[0]["hatamerkki"] == "rintakipu"
 
@@ -283,11 +284,12 @@ def test_dev_keskustelu_ei_muuta_jonoa(client, soittaja):
     _, url, _ = soittaja.webhooksoitot[0]
     twilio_post(client, polku(url), {"CallSid": "CA1"})
     twilio_post(client, polku(url), {"CallSid": "CA1", "SpeechResult": "En ehdi nyt."})
+    twilio_post(client, polku(url), {"CallSid": "CA1", "SpeechResult": "Joo kaikki hyvin."})
 
     assert vastaus.status_code == 200
     tilat = {tehtava["tila"] for tehtava in client.get("/puhelutehtavat").json()}
     assert tilat == {"ODOTTAA"}
-    assert client.get("/dev/puhelu/tulokset").json()[0]["loppu"] == "EI_LUPAA"
+    assert client.get("/dev/puhelu/tulokset").json()[0]["loppu"] == "LOPETTI"
 
 
 def test_kaikutesti_toistaa_kuullun(client, soittaja):
@@ -402,3 +404,62 @@ def test_asetukset_kulkevat_webhookin_twimliin(client, soittaja):
     assert "kuopio,savo" in avaus.text
     assert kaiku.status_code == 200
     assert client.get("/dev/puhelu/kaiut").json()[0]["stt_malli"] == "experimental_conversations"
+
+
+# --- Dev-puheluloki ---
+
+
+def test_puheluloki_kirjaa_vuoron_ja_syyn(client, soittaja, tmp_path):
+    loki = Puheluloki(tmp_path)
+    app.dependency_overrides[hae_puheluloki] = lambda: loki
+    _, vuoro = _aloita_keskustelu(client, soittaja)
+    istunto_id = vuoro.rsplit("/", 1)[-1]
+
+    twilio_post(client, vuoro, {"CallSid": "CA1"})
+    twilio_post(client, vuoro, {"CallSid": "CA1", "SpeechResult": "Kuka soittaa?"})
+
+    kaikki = [json.loads(rivi) for rivi in loki.tiedosto(istunto_id).read_text().splitlines()]
+    rivit = [rivi for rivi in kaikki if rivi["tapahtuma"] == "vuoro"]
+    assert [rivi["kuultu"] for rivi in kaikki if rivi["tapahtuma"] == "kuultu"] == [
+        None,
+        "Kuka soittaa?",
+    ]
+    assert [rivi["syyt"] for rivi in rivit] == [["avaus"], ["usein_kysytty"]]
+    assert rivit[1]["kuultu"] == "Kuka soittaa?"
+    assert rivit[1]["kuuntele"] is True
+
+
+def test_puheluloki_oletuksena_pois():
+    asetukset_ilman = Settings(_env_file=None, database_url="sqlite://", dev_tila=True)
+    asetukset_tuotanto = Settings(
+        _env_file=None, database_url="sqlite://", dev_tila=False, puhelu_loki=True
+    )
+
+    assert hae_puheluloki(asetukset_ilman) is None
+    assert hae_puheluloki(asetukset_tuotanto) is None
+
+
+def test_rajat_ja_kesto_asetuksista(monkeypatch):
+    luodut = {}
+
+    class FeikkiClient:
+        def __init__(self, sid, token):
+            self.calls = self
+
+        def create(self, **kwargs):
+            luodut.update(kwargs)
+            return type("Puhelu", (), {"sid": "CA1"})()
+
+    monkeypatch.setattr("app.puhelu.soittaja.Client", FeikkiClient)
+    maaritys = asetukset(
+        twilio_account_sid="AC",
+        twilio_numero="+1",
+        puhelu_max_kesto_s=1200,
+        matala_varmuus=0.4,
+    )
+
+    hae_soittaja(maaritys).soita_webhookilla(DEMONUMERO, "https://x/v", None)
+    rajat = rajat_asetuksista(maaritys)
+
+    assert luodut["time_limit"] == 1200
+    assert rajat.varmuusraja == 0.4

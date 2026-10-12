@@ -5,10 +5,12 @@ jalkeen; tilakone (keskustelu.py) paattaa seuraavan repliikin. Paattyessa tulos 
 triagea varten ja soittojonon tehtava merkitaan valmiiksi.
 """
 
+import asyncio
 import logging
 import random
 import uuid
 from collections.abc import Callable
+from dataclasses import replace
 
 from sqlalchemy.orm import Session
 
@@ -24,15 +26,24 @@ from app.mallit import (
 from app.puhelu.agentti import Keskusteluagentti
 from app.puhelu.istunnot import Istuntovarasto
 from app.puhelu.keskustelu import (
-    LUPAKYSYMYS,
     Puheluistunto,
+    Rajat,
     Vuoro,
     kaiun_vuoro,
     kasittele,
     lopeta,
 )
-from app.puhelu.puhe import AVAUS, Kuuntelu, luo_twiml, testipuhelun_repliikit
+from app.puhelu.kielentarkistus import Tarkistin
+from app.puhelu.puhe import (
+    AVAUS,
+    Kuuntelu,
+    Relay,
+    luo_twiml,
+    relay_twiml,
+    testipuhelun_repliikit,
+)
 from app.puhelu.soittaja import Soittaja
+from app.puhelu.tietopohja import ikaluokka, puhelutyypit
 from app.puhelu.vihjeet import puhelun_vihjeet
 from app.puhelutehtavat import varasto as jonovarasto
 from app.puhelutehtavat.palvelu import (
@@ -51,6 +62,28 @@ TESTIN_ARVONTARAJA = 1000
 _EI_VASTATTU = {"busy", "no-answer", "failed", "canceled"}
 
 Valitsin = Callable[[list[Puhelutehtava]], Puhelutehtava]
+# Mallin lämmitys järjestelmäohjeella (reitti ajaa sen taustatyönä soiton aikana).
+# Argumentit: keskustelun alku (viestit) ja kutsu, kun lämmitys on valmis.
+Lammitys = Callable[[list[dict[str, str]], Callable[[], None]], None]
+
+
+def relay_asetuksista(asetukset: Settings) -> Relay | None:
+    """ConversationRelay, jos PUHELU_TAPA=relay; muuten None (Gather-webhookit)."""
+    if asetukset.puhelu_tapa != "relay":
+        return None
+    return Relay(
+        tts=asetukset.relay_tts,
+        aani=asetukset.relay_aani,
+        stt=asetukset.relay_stt,
+        stt_malli=asetukset.relay_stt_malli or None,
+        tauko_ms=asetukset.relay_puheen_tauko_ms,
+        vihjeet=asetukset.relay_vihjeet,
+        osittaiset=asetukset.relay_osittaiset,
+    )
+
+
+def rajat_asetuksista(asetukset: Settings) -> Rajat:
+    return Rajat(varmuusraja=asetukset.matala_varmuus)
 
 
 def kuuntelu_asetuksista(asetukset: Settings, konteksti: Puhelukonteksti | None) -> Kuuntelu:
@@ -87,6 +120,14 @@ def _arvo_tehtava(sessio: Session, valitse: Valitsin) -> Puhelutehtava | None:
     return valitse(kysyttavat)
 
 
+def _relay_ikaluokalle(relay: Relay, konteksti: Puhelukonteksti) -> Relay:
+    """Puheen loppumisen tauko ikäluokan mukaan (Jere: iäkkäällä 1,8 s): liian lyhyt tauko
+    katkaisee hitaasti puhuvan vanhuksen kesken lauseen. Asetus on alaraja."""
+    luokka = puhelutyypit()["ikaluokat"][ikaluokka(konteksti.ika)]
+    tauko_ms = max(relay.tauko_ms, round(luokka["hiljaisuus_s"] * 1000))
+    return replace(relay, tauko_ms=tauko_ms)
+
+
 def _kaynnista_keskustelu(
     soittaja: Soittaja,
     istunnot: Istuntovarasto,
@@ -96,7 +137,9 @@ def _kaynnista_keskustelu(
     kysymykset: list[Kysymys],
     konteksti: Puhelukonteksti,
     paivita_jono: bool,
-    varmuusraja: float,
+    rajat: Rajat,
+    relay: Relay | None = None,
+    lammitys: Lammitys | None = None,
 ) -> PuhelunAloitus:
     istunto = Puheluistunto(
         istunto_id=str(uuid.uuid4()),
@@ -104,21 +147,35 @@ def _kaynnista_keskustelu(
         kysymykset=kysymykset,
         konteksti=konteksti,
         paivita_jono=paivita_jono,
-        varmuusraja=varmuusraja,
+        rajat=rajat,
     )
     # Istunto ensin: Twilio voi kutsua vuoroa heti, kun puheluun vastataan.
     istunnot.lisaa(istunto)
+    if lammitys is not None:
+        # Järjestelmäohje mallin välimuistiin soiton ajaksi (Gemma 12B M2:lla: ohjeen
+        # käsittely jopa 43 s, avauksen aikana ei ehdi; mitattu 11.10.).
+        istunto.lammitetty = True
+        lammitys(istunto.lammitysviestit(), istunto.merkitse_malli_lammin)
+    tila_url = _tila_url(perus_url, istunto.istunto_id)
     try:
-        puhelu_sid = soittaja.soita_webhookilla(
-            numero,
-            _vuoro_url(perus_url, istunto.istunto_id),
-            _tila_url(perus_url, istunto.istunto_id),
-        )
+        if relay is not None:
+            ws_url = perus_url.replace("https://", "wss://", 1)
+            twiml = relay_twiml(
+                f"{ws_url}/puhelu/relay/{istunto.istunto_id}",
+                f"{perus_url}/puhelu/relay-loppu/{istunto.istunto_id}",
+                _relay_ikaluokalle(relay, konteksti),
+                puhelun_vihjeet(konteksti, ()),
+            )
+            puhelu_sid = soittaja.soita_twimlilla(numero, twiml, tila_url)
+        else:
+            vuoro_url = _vuoro_url(perus_url, istunto.istunto_id)
+            puhelu_sid = soittaja.soita_webhookilla(numero, vuoro_url, tila_url)
     except Exception:
         istunnot.poista(istunto.istunto_id)
         raise
+    istunto.puhelu_sid = puhelu_sid
 
-    suunnitelma = [AVAUS, LUPAKYSYMYS, *(kysymys.teksti for kysymys in kysymykset)]
+    suunnitelma = [AVAUS, *(kysymys.teksti for kysymys in kysymykset)]
     return PuhelunAloitus(puhelu_sid=puhelu_sid, tehtava_id=tehtava_id, repliikit=suunnitelma)
 
 
@@ -129,7 +186,9 @@ def aloita_puhelu(
     tehtava_id: str,
     oletusnumero: str | None,
     perus_url: str,
-    varmuusraja: float,
+    rajat: Rajat,
+    relay: Relay | None = None,
+    lammitys: Lammitys | None = None,
 ) -> PuhelunAloitus:
     """Keskustelupuhelu jonon tehtavalle. Tehtavan pitaa olla tilassa SOITETAAN."""
     tiedot = hae_soittotiedot(sessio, tehtava_id, oletusnumero)
@@ -142,7 +201,9 @@ def aloita_puhelu(
         tiedot.kysymykset,
         tiedot.konteksti,
         paivita_jono=True,
-        varmuusraja=varmuusraja,
+        rajat=rajat,
+        relay=relay,
+        lammitys=lammitys,
     )
 
 
@@ -152,8 +213,10 @@ def aloita_testikeskustelu(
     istunnot: Istuntovarasto,
     numero: str,
     perus_url: str,
-    varmuusraja: float,
+    rajat: Rajat,
     valitse: Valitsin = random.choice,
+    relay: Relay | None = None,
+    lammitys: Lammitys | None = None,
 ) -> PuhelunAloitus | None:
     """VAIN DEV: keskustelupuhelu satunnaisen tehtavan kysymyksilla. Ei muuta jonoa."""
     tehtava = _arvo_tehtava(sessio, valitse)
@@ -168,7 +231,9 @@ def aloita_testikeskustelu(
         tehtava.kysymykset,
         tehtava.konteksti,
         paivita_jono=False,
-        varmuusraja=varmuusraja,
+        rajat=rajat,
+        relay=relay,
+        lammitys=lammitys,
     )
 
 
@@ -223,21 +288,40 @@ def _paata(istunto: Puheluistunto, istunnot: Istuntovarasto, sessio: Session) ->
         logger.warning("Jonon tilaa ei paivitetty (%s): %s", istunto.tehtava_id, virhe)
 
 
+def aloita_vuoro(
+    istunto: Puheluistunto,
+    kentat: dict[str, str],
+    agentti: Keskusteluagentti,
+    tarkistin: Tarkistin,
+) -> "asyncio.Task[Vuoro]":
+    """Vuoron käsittely taustatehtävänä: webhook voi vastata välivastauksella ja hakea
+    tuloksen myöhemmin. Ei kantaa: se viimeistellään toimittavan pyynnön sessiolla."""
+    puhe = kentat.get("SpeechResult")
+    return asyncio.create_task(kasittele(istunto, puhe, _varmuus(kentat), agentti, tarkistin))
+
+
+def viimeistele_vuoro(
+    istunto: Puheluistunto, vuoro: Vuoro, istunnot: Istuntovarasto, sessio: Session
+) -> None:
+    """Puhelun päättyessä tulos muistiin ja jonon tila kantaan."""
+    if not vuoro.kuuntele:
+        _paata(istunto, istunnot, sessio)
+
+
 async def kasittele_vuoro(
     istunto_id: str,
     kentat: dict[str, str],
     istunnot: Istuntovarasto,
     agentti: Keskusteluagentti,
     sessio: Session,
+    tarkistin: Tarkistin,
 ) -> Vuoro | None:
-    """Twilion vuoro. None = istuntoa ei ole (esim. backend kaynnistyi uudelleen)."""
+    """Vuoro alusta loppuun ilman välivastausta. None = istuntoa ei ole."""
     istunto = istunnot.hae(istunto_id)
     if istunto is None:
         return None
-
-    vuoro = await kasittele(istunto, kentat.get("SpeechResult"), _varmuus(kentat), agentti)
-    if not vuoro.kuuntele:
-        _paata(istunto, istunnot, sessio)
+    vuoro = await aloita_vuoro(istunto, kentat, agentti, tarkistin)
+    viimeistele_vuoro(istunto, vuoro, istunnot, sessio)
     return vuoro
 
 

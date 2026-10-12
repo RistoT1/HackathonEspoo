@@ -9,18 +9,34 @@ from app.config import hae_asetukset
 from app.data.adapteri import DataEiSaatavilla
 from app.dev.reitit import router as dev_router
 from app.muutokset.reitit import router as muutokset_router
+from app.puhelu.istunnot import hae_istuntovarasto
 from app.puhelu.puhe import TwimlLiianPitka
 from app.puhelu.reitit import router as puhelu_router
+from app.puhelu.relay import router as relay_router
 from app.puhelu.soittaja import SoittoEiKaytossa, SoittoEpaonnistui
 from app.puhelutehtavat.ajastus import kaynnista_ajastin
 from app.puhelutehtavat.reitit import router as puhelutehtavat_router
 from app.tietokanta import aja_migraatiot, hae_engine
+from app.triage.analyysi import LlmAnalysoija
+from app.triage.tyontekija import Triagetyontekija
 
 
 @asynccontextmanager
 async def elinkaari(_: FastAPI) -> AsyncIterator[None]:
     aja_migraatiot()
-    vali = hae_asetukset().tunnistus_vali_minuutit
+    asetukset = hae_asetukset()
+    if asetukset.llm_malli:
+        # Puhelun jälkeinen analyysi hoitajalle samalla mallilla (paikallinen/EU).
+        analysoija = LlmAnalysoija(
+            asetukset.llm_base_url,
+            asetukset.llm_malli,
+            asetukset.llm_api_avain,
+            ajattelu=asetukset.llm_analyysi_ajattelu,
+            pida_muistissa=asetukset.llm_pida_muistissa,
+        )
+        varasto = hae_istuntovarasto()
+        varasto.aseta_triage(Triagetyontekija(analysoija, varasto.puheluita_kaynnissa))
+    vali = asetukset.tunnistus_vali_minuutit
     ajastin = kaynnista_ajastin(vali) if vali > 0 else None
     yield
     if ajastin is not None:
@@ -53,6 +69,7 @@ async def twiml_liian_pitka(_: Request, virhe: TwimlLiianPitka) -> JSONResponse:
 app.include_router(muutokset_router)
 app.include_router(puhelutehtavat_router)
 app.include_router(puhelu_router)
+app.include_router(relay_router)
 app.include_router(dev_router)
 
 

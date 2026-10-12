@@ -17,13 +17,17 @@ class SoittoEpaonnistui(RuntimeError):
     """Twilio hylkasi soiton (esim. numeroa ei vahvistettu, maa ei sallittu)."""
 
 
-# Puhelun enimmaiskesto (Twilion time_limit). Pitaa puhelun lyhyena myos jos jokin jumittaa.
-MAX_KESTO_S = 300
+# Puhelun enimmaiskesto oletuksena (Twilion time_limit); .env: PUHELU_MAX_KESTO_S.
+MAX_KESTO_S = 900
 
 
 class Soittaja(Protocol):
     def soita(self, numero: str, twiml: str) -> str:
         """Kaynnistaa soiton valmiilla TwiML:lla ja palauttaa Twilion CallSidin."""
+        ...
+
+    def soita_twimlilla(self, numero: str, twiml: str, tila_url: str | None) -> str:
+        """Soitto valmiilla TwiML:llä ja tilakutsulla (ConversationRelay)."""
         ...
 
     def soita_webhookilla(self, numero: str, url: str, tila_url: str | None) -> str:
@@ -33,13 +37,30 @@ class Soittaja(Protocol):
 
 
 class TwilioSoittaja:
-    def __init__(self, account_sid: str, auth_token: str, lahettaja: str) -> None:
+    def __init__(
+        self, account_sid: str, auth_token: str, lahettaja: str, max_kesto_s: int = MAX_KESTO_S
+    ) -> None:
         self._client = Client(account_sid, auth_token)
         self._lahettaja = lahettaja
+        self._max_kesto_s = max_kesto_s
 
     def soita(self, numero: str, twiml: str) -> str:
         try:
             puhelu = self._client.calls.create(to=numero, from_=self._lahettaja, twiml=twiml)
+        except TwilioRestException as virhe:
+            raise SoittoEpaonnistui(f"Twilio {virhe.code}: {virhe.msg}") from virhe
+        return puhelu.sid
+
+    def soita_twimlilla(self, numero: str, twiml: str, tila_url: str | None) -> str:
+        lisat = {"status_callback": tila_url, "status_callback_method": "POST"} if tila_url else {}
+        try:
+            puhelu = self._client.calls.create(
+                to=numero,
+                from_=self._lahettaja,
+                twiml=twiml,
+                time_limit=self._max_kesto_s,
+                **lisat,
+            )
         except TwilioRestException as virhe:
             raise SoittoEpaonnistui(f"Twilio {virhe.code}: {virhe.msg}") from virhe
         return puhelu.sid
@@ -52,7 +73,7 @@ class TwilioSoittaja:
                 from_=self._lahettaja,
                 url=url,
                 method="POST",
-                time_limit=MAX_KESTO_S,
+                time_limit=self._max_kesto_s,
                 **lisat,
             )
         except TwilioRestException as virhe:
@@ -74,5 +95,8 @@ def hae_soittaja(asetukset: Annotated[Settings, Depends(hae_asetukset)]) -> Soit
     if puuttuvat:
         raise SoittoEiKaytossa(f"Puuttuu .env:sta: {', '.join(puuttuvat)}")
     return TwilioSoittaja(
-        asetukset.twilio_account_sid, asetukset.twilio_auth_token, asetukset.twilio_numero
+        asetukset.twilio_account_sid,
+        asetukset.twilio_auth_token,
+        asetukset.twilio_numero,
+        asetukset.puhelu_max_kesto_s,
     )

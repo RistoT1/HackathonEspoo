@@ -19,6 +19,11 @@ HATA = [
     ("Soitanko 112?", "hatapyynto"),
     ("pitäisikö soittaa yksi yksi kaksi", "hatapyynto"),
     ("tarvitsen ambulanssin", "hatapyynto"),
+    # Regressio 10.10.: "hengenvaarassa" ei laukaissut hatailmoitusta.
+    ("Ajattelen, että minä olen hengenvaarassa", "hatapyynto"),
+    ("en halua enää elää", "itsetuho"),
+    ("joskus haluan kuolla", "itsetuho"),
+    ("mietin itsemurhaa", "itsetuho"),
 ]
 
 EI_HATAA = [
@@ -29,6 +34,8 @@ EI_HATAA = [
     "Nukuin huonosti.",
     "Vatsa on ollut ihan normaali.",
     "Toinen puoli vuotta sitten aloitin lenkkeilyn.",
+    "Ei ole ollut kipua, mutta masentaa.",
+    "Haluan elää terveenä.",
     "",
 ]
 

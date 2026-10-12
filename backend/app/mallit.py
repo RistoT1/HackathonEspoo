@@ -197,6 +197,28 @@ class PuhelunLoppu(StrEnum):
     EI_VASTAUSTA = "EI_VASTAUSTA"  # vastasi puhelimeen, mutta ei sanonut mitaan
     KESKEYTYI = "KESKEYTYI"  # puhelu katkesi kesken
     EI_VASTANNUT = "EI_VASTANNUT"  # ei vastannut puhelimeen (no-answer, busy, failed)
+    LOPETTI = "LOPETTI"  # henkilö halusi lopettaa kesken (lopetuspyyntö tai loukkaukset)
+    TUKI = "TUKI"  # vakava asia: tukitila (kuuntelu ja turvallisuus), hoitaja soittaa tänään
+
+
+class Havainto(BaseModel):
+    """Vastauksesta loytynyt asia triagelle: oire, mieliala tai muu huoli tarkennuksineen.
+    lahde "malli" = LLM:n arvio, "saanto" = saantotunnistin (malli ei loytanyt)."""
+
+    tyyppi: str  # oire | mieliala | toimintakyky | laakkeenotto | turvallisuus | muu
+    kuvaus: str  # perusmuodossa, esim. "vatsakipu"
+    kielletty: bool = False  # "ei ole vatsakipua"
+    sijainti: str | None = None
+    alkoi: str | None = None
+    voimakkuus: str | None = None
+    tilanne: str | None = None
+    vaikutus: str | None = None
+    lahde: str = "malli"
+
+
+class Tarkennus(BaseModel):
+    kysymys: str
+    vastaus: str = ""  # tyhja = ei vastattu (hiljaisuus tai puhelu paattyi)
 
 
 class KysymyksenVastaus(BaseModel):
@@ -209,8 +231,68 @@ class KysymyksenVastaus(BaseModel):
     # True = tunnistus jai epavarmaksi (tai vastausta ei saatu). Triagen pitaa nostaa
     # vahintaan keltaiseksi: epavarmuus siirtyy aina ihmiselle.
     epavarma: bool = False
-    jatkokysymys: str | None = None
-    jatkovastaus: str | None = None
+    # True = henkilo kysyi laakeneuvoa (esim. "pitaisiko lopettaa"); agentti ei vastannut,
+    # vaan lupasi valittaa hoitajalle. Hoitajan on vastattava.
+    kysymys_hoitajalle: bool = False
+    # Arvio + paatos (kerrokset 1-2): mita vastauksesta loytyi ja miten se tulkittiin.
+    # tulkinta: "ongelma" | "kunnossa" | "epaselva"; None = ei arvioitu (esim. hiljaisuus).
+    havainnot: list["Havainto"] = Field(default_factory=list)
+    tulkinta: str | None = None
+    # Agentin tarkennukset samaan aiheeseen (enintaan MAX_TARKENNUKSET per kysymys):
+    # epaselva vastaus, oire jota tarkennetaan tai henkilon oma kysymys valissa.
+    tarkennukset: list["Tarkennus"] = Field(default_factory=list)
+
+
+class Kiireellisyys(StrEnum):
+    VIHREA = "vihreä"  # kirjataan
+    KELTAINEN = "keltainen"  # hoitaja soittaa tänään
+    PUNAINEN = "punainen"  # heti
+
+
+class OireYhteenvedossa(BaseModel):
+    oire: str
+    voimakkuus: str = "ei tiedossa"  # lievä | kohtalainen | voimakas | ei tiedossa
+    alkoi_laakkeen_jalkeen: str = "ei tiedossa"  # kyllä | ei | ei tiedossa
+    tilanne: str = ""
+    varmuus: str = "epäselvä"  # selvä | epäselvä
+
+
+class Saantoloydokset(BaseModel):
+    """Mitä säännöt tunnistivat puhelusta (deterministinen, ei LLM:ää)."""
+
+    taso: Kiireellisyys
+    perusteet: list[str] = Field(default_factory=list)  # miksi tämä taso, selkokielellä
+    hatamerkit: list[str] = Field(default_factory=list)
+    hatamerkit_kieltomuodossa: list[str] = Field(default_factory=list)
+    vakavat_huolet: list[str] = Field(default_factory=list)
+    huolen_ilmaukset: list[str] = Field(default_factory=list)
+    huomiosanat: list[str] = Field(default_factory=list)
+    tunnistetut_oireet: list[str] = Field(default_factory=list)
+    huolestuttavat_oireet: list[str] = Field(default_factory=list)
+    loukkaavia_puheenvuoroja: int = 0
+    uhkauksia: int = 0
+
+
+class Yhteenveto(BaseModel):
+    """Hoitajalle: puhelun triage (Jeren analyysi). Taso = korkeampi säännön ja mallin
+    tasosta (sääntö voi vain nostaa). Litterointia ei tallenneta (datan minimointi)."""
+
+    taso: Kiireellisyys
+    saanto: Saantoloydokset
+    mallin_taso: Kiireellisyys | None = None  # None = analyysi kesken tai epäonnistui
+    analyysi_valmis: bool = False
+    varayhteenveto: bool = False  # malli epäonnistui: yhteenveto pelkillä säännöillä
+    yleisvointi: str = ""
+    oireet: list[OireYhteenvedossa] = Field(default_factory=list)
+    turvallisuushuolet: list[str] = Field(default_factory=list)
+    tunnetila: str = ""
+    annetut_ohjeet: list[str] = Field(default_factory=list)
+    laakkeen_kaytto: str = "ei tiedossa"  # otettu ohjeen mukaan: kyllä | ei | ei tiedossa
+    laakkeen_huomiot: str = ""
+    lopettamisen_syy: str = ""
+    huolet: list[str] = Field(default_factory=list)
+    muuta_hoitajalle: str = ""
+    perustelu: str = ""
 
 
 class PuhelunTulos(BaseModel):
@@ -223,6 +305,8 @@ class PuhelunTulos(BaseModel):
     hatamerkki: str | None = None  # hatamerkin luokka, esim. "rintakipu"
     vastaukset: list[KysymyksenVastaus] = Field(default_factory=list)
     paattyi: datetime | None = None
+    tukitila: str | None = None  # vakava asia, jonka takia puhelu jäi tukitilaan
+    yhteenveto: Yhteenveto | None = None  # triage; sääntötaso heti, mallin analyysi perässä
 
 
 class KaikuTulos(BaseModel):

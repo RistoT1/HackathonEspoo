@@ -29,3 +29,6 @@ puheavustaja/knowledge/soittoprofiilit.json
 puheavustaja/yhteenvedot/
 puheavustaja/aanet/
 puheavustaja/yhteenvedot.zip
+
+# Dev-puheluloki (litterointeja, vain synteettisista testipuheluista)
+lokit/

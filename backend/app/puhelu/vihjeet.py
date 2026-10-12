@@ -17,6 +17,13 @@ def perusvihjeet() -> tuple[str, ...]:
     )
 
 
+@lru_cache
+def oiresanat() -> tuple[str, ...]:
+    """vihjesanat.json:n oireet pienellä, esim. 'huimaa', 'ummetus'."""
+    sisalto = json.loads(_TIEDOSTO.read_text(encoding="utf-8"))
+    return tuple(sana.lower() for sana in sisalto["oireet"])
+
+
 def puhelun_vihjeet(
     konteksti: Puhelukonteksti | None, lisavihjeet: tuple[str, ...]
 ) -> tuple[str, ...]:

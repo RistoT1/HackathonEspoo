@@ -6,14 +6,30 @@ katkaisee puhelun (Twilio saa virhe-TwiML:n), mika on demossa hyvaksyttava.
 Yksi prosessi (uvicorn ilman workereita); useampi prosessi vaatisi jaetun varaston.
 """
 
+import asyncio
 from collections import deque
+from dataclasses import dataclass
 from threading import Lock
 
 from app.mallit import KaikuTulos, PuhelunTulos
-from app.puhelu.keskustelu import Puheluistunto
+from app.puhelu.keskustelu import Puheluistunto, Vuoro
+from app.triage.tyontekija import Triagetyontekija
 
 # Paattyneita tuloksia pidetaan vain rajallinen maara (dev-nakyma, triagen syote).
 MAX_TULOKSIA = 100
+
+
+@dataclass
+class Keskenvuoro:
+    """Vuoro, jonka käsittely jatkuu välivastauksen jälkeen (Twilio hakee sen uudelleen)."""
+
+    tehtava: asyncio.Task[Vuoro]
+    alku: float  # time.perf_counter() vuoron alussa
+    kentat: dict[str, str]
+    vaihe_ennen: str | None
+    odotuksia: int = 0
+    valivastattu: bool = False  # välitäyte sanottu: lyhyt kuittaus jätetään pois
+    ajoitus: dict | None = None  # lokia varten: aika edellisestä vastauksesta ym.
 
 
 class Istuntovarasto:
@@ -22,6 +38,20 @@ class Istuntovarasto:
         self._istunnot: dict[str, Puheluistunto] = {}
         self._tulokset: deque[PuhelunTulos] = deque(maxlen=MAX_TULOKSIA)
         self._kaiut: deque[KaikuTulos] = deque(maxlen=MAX_TULOKSIA)
+        self._kesken: dict[str, Keskenvuoro] = {}
+        self._triage: Triagetyontekija | None = None
+
+    def aseta_triage(self, triage: Triagetyontekija | None) -> None:
+        """LLM-analyysi päättyneille puheluille (main.py käynnistää, kun LLM_MALLI on)."""
+        self._triage = triage
+
+    def aseta_kesken(self, istunto_id: str, kesken: Keskenvuoro) -> None:
+        with self._lukko:
+            self._kesken[istunto_id] = kesken
+
+    def ota_kesken(self, istunto_id: str) -> Keskenvuoro | None:
+        with self._lukko:
+            return self._kesken.pop(istunto_id, None)
 
     def lisaa(self, istunto: Puheluistunto) -> None:
         with self._lukko:
@@ -30,6 +60,12 @@ class Istuntovarasto:
     def hae(self, istunto_id: str) -> Puheluistunto | None:
         with self._lukko:
             return self._istunnot.get(istunto_id)
+
+    def puheluita_kaynnissa(self) -> bool:
+        """Triage odottaa tätä: Ollama palvelee yhtä pyyntöä kerrallaan, ja analyysi
+        hidastaisi käynnissä olevan puhelun vuoroja (11.10.: puhelu odotti 70 s)."""
+        with self._lukko:
+            return bool(self._istunnot)
 
     def poista(self, istunto_id: str) -> None:
         """Kun soitto ei edes lahtenyt (Twilio hylkasi)."""
@@ -42,8 +78,11 @@ class Istuntovarasto:
             poistettu = self._istunnot.pop(istunto.istunto_id, None)
             if poistettu is None:
                 return False
-            self._tulokset.append(istunto.tulos())
-            return True
+            tulos = istunto.tulos()
+            self._tulokset.append(tulos)
+        if self._triage is not None:
+            self._triage.lisaa(tulos, istunto.litterointi())
+        return True
 
     def tulokset(self) -> list[PuhelunTulos]:
         with self._lukko:

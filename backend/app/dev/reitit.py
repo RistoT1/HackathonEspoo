@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.config import Settings, hae_asetukset
@@ -18,12 +18,15 @@ from app.mallit import (
     TestimuutostenNollaus,
     Yhteystieto,
 )
+from app.puhelu.agentti import Keskusteluagentti, hae_agentti, lammita_ja_merkitse
 from app.puhelu.istunnot import Istuntovarasto, hae_istuntovarasto
 from app.puhelu.palvelu import (
     aloita_testikeskustelu,
     kaiun_url,
     kasittele_kaiku,
     kuuntelu_asetuksista,
+    rajat_asetuksista,
+    relay_asetuksista,
     soita_kaikutesti,
     soita_testipuhelu,
 )
@@ -122,7 +125,12 @@ def testipuhelu(
 
 @router.post("/puhelu/keskustelu", response_model=PuhelunAloitus)
 def testikeskustelu(
-    sessio: SessioDep, soittaja: SoittajaDep, istunnot: IstunnotDep, asetukset: AsetuksetDep
+    sessio: SessioDep,
+    soittaja: SoittajaDep,
+    istunnot: IstunnotDep,
+    asetukset: AsetuksetDep,
+    agentti: Annotated[Keskusteluagentti, Depends(hae_agentti)],
+    taustatyot: BackgroundTasks,
 ) -> PuhelunAloitus:
     """Koko keskustelu DEMO_PUHELINNUMEROON satunnaisen tehtavan kysymyksilla: kuuntelee
     vastaukset ja tunnistaa hatasanat. Ei muuta jonoa. Vaatii ngrokin (JULKINEN_URL).
@@ -130,7 +138,17 @@ def testikeskustelu(
     numero = _demonumero(asetukset)
     perus_url = julkinen_url(asetukset)
     tulos = aloita_testikeskustelu(
-        sessio, soittaja, istunnot, numero, perus_url, asetukset.matala_varmuus
+        sessio,
+        soittaja,
+        istunnot,
+        numero,
+        perus_url,
+        rajat_asetuksista(asetukset),
+        relay=relay_asetuksista(asetukset),
+        # Järjestelmäohje mallin välimuistiin sillä aikaa kun puhelin soi.
+        lammitys=lambda viestit, valmis: taustatyot.add_task(
+            lammita_ja_merkitse, agentti, viestit, valmis
+        ),
     )
     if tulos is None:
         raise HTTPException(status_code=409, detail=_JONO_TYHJA)
