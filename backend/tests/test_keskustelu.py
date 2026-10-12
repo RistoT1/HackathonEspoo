@@ -3,6 +3,8 @@ mallin LOPETUS/UUDELLEEN, tukitila, varatoiminta ilman mallia."""
 
 import asyncio
 
+import pytest
+
 from app.mallit import Kysymys, Puhelukonteksti, PuhelunLoppu
 from app.puhelu.agentti import KiinteaAgentti
 from app.puhelu.keskustelu import (
@@ -171,6 +173,38 @@ def test_uuteen_oireeseen_viimeisessa_vastauksessa_ei_lopeteta():
     assert tila.loppu is None
     assert seuraava.sanottavat[-1].endswith(OIREEN_TARKENNUS)
     assert "malli:lopetus_ohitettu_oire" in tila.syyt
+
+
+@pytest.mark.parametrize(
+    "vastaus",
+    [
+        # 12.10. testipankki: kuulumisvastaus luettiin kieltäytymiseksi ja puhelu päättyi.
+        "en muista ihan tarkkaan, mutta ihan hyvin",
+        "ei mitään erikoista",
+        "no ei tässä mitään ihmeempiä",
+        "ei nyt kummempia",
+        "en oikein tiedä, ihan hyvin kai",
+    ],
+)
+def test_kieltomuotoinen_kuulumisvastaus_ei_lopeta_puhelua(vastaus):
+    tila = istunto()
+    malli = Malli("Selvä. Miten uusi lääke on sopinut?")
+    vuoro(tila, None, malli)
+
+    seuraava = vuoro(tila, vastaus, malli)
+
+    assert seuraava.kuuntele
+    assert not any(syy.startswith("lopetuspyynto") for syy in tila.syyt)
+
+
+@pytest.mark.parametrize("vastaus", ["en ehdi nyt", "soita myöhemmin", "ei ole aikaa nyt"])
+def test_selva_kieltaytyminen_avauksen_jalkeen_on_lopetuspyynto(vastaus):
+    tila = istunto()
+    vuoro(tila, None, Malli())
+
+    vuoro(tila, vastaus, Malli())
+
+    assert any(syy.startswith("lopetuspyynto") for syy in tila.syyt)
 
 
 def test_huoli_saa_piilo_ohjeen_pysahtya():

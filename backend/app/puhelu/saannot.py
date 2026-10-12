@@ -102,15 +102,17 @@ _OIREEN_MERKIT = (
 # Varaus: "ei ole, MUTTA ..." / "hyvin menee, MUTTA ..." on aina hälyttävä merkki.
 _VARAUSSANAT = ("mutta", "paitsi", "kuitenkin", "vaikka")
 _KIELTOSANAT = ("ei", "en", "eikä", "enkä", "eivät", "emme")
-_KIELTAVAT_ALUT = ("ei", "en", "eipä", "eikä")
+# Kieltäytyminen avauksen jälkeen. Avaus kysyy kuulumisia, ei lupaa, joten pelkkä kieltosana
+# ei riitä: "ei mitään erikoista", "no ei tässä mitään" ja "ei nyt kummempia" ovat kuulumisia
+# (12.10. testipankki: "en muista ihan tarkkaan, mutta ihan hyvin" lopetti puhelun).
 _KIELTAVAT_ILMAUKSET = (
     "myöhemmin",
-    "ei nyt",
     "ei ole aikaa",
+    "ei oo aikaa",
     "en ehdi",
     "ei sovi",
-    "no ei",
-    "no en",
+    "ei nyt kiitos",
+    "en halua puhua",
 )
 _MYONTAVAT_ALUT = ("kyllä", "joo", "juu", "jep", "on", "voi", "voin", "sopii", "ok", "okei")
 _MYONTAVAT_ILMAUKSET = (
@@ -327,10 +329,8 @@ def tervehtii(teksti: str) -> bool:
 
 
 def kieltaytyy(teksti: str) -> bool:
-    normalisoitu = normalisoi(teksti)
-    sanat = normalisoitu.split()
-    alkaa_kiellolla = bool(sanat) and sanat[0] in _KIELTAVAT_ALUT
-    return alkaa_kiellolla or _sisaltaa(normalisoitu, _KIELTAVAT_ILMAUKSET) is not None
+    """Selvä kieltäytyminen puhelusta ("en ehdi nyt", "soita myöhemmin")."""
+    return _sisaltaa(normalisoi(teksti), _KIELTAVAT_ILMAUKSET) is not None
 
 
 @dataclass(frozen=True)
