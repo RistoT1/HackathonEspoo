@@ -191,6 +191,29 @@ def test_kotihoito_lisataan_kun_malli_ohittaa_sen():
     assert sanottu.endswith("Miten uusi lääke on sopinut?")
 
 
+def test_kotihoito_lisataan_oireelle_jonka_ohje_puuttuu():
+    # Varmistusajo 12.10.: pahoinvointi ja huimaus, malli kertoi vain pahoinvoinnin ohjeen.
+    malli = Malli(
+        "Ikävä kuulla. Milloin oireet alkoivat?",
+        "Selvä. Onko pahoinvointia enemmän ruokailun jälkeen?",
+        "Ymmärrän. Pystytkö syömään ja juomaan normaalisti?",
+        "Syö pieniä annoksia kerrallaan ja useammin. Miten uusi lääke on sopinut?",
+    )
+    tila = istunto()
+    vuoro(tila, None, malli)
+    vuoro(tila, "Kuvottaa aamuisin ja on vähän huimannut.", malli)
+    vuoro(tila, "Pari päivää sitten alkoi.", malli)
+    vuoro(tila, "Aamuisin lähinnä.", malli)
+
+    kotihoito = vuoro(tila, "Kyllä pystyn.", malli)
+
+    sanottu = " ".join(kotihoito.sanottavat)
+    assert "kotihoito:lisatty:huimaus" in tila.syyt
+    assert sanottu.count("Syö pieniä annoksia") == 1
+    assert "Nouse ylös rauhallisesti" in sanottu
+    assert sanottu.endswith("Miten uusi lääke on sopinut?")
+
+
 def test_kotihoitoa_ei_lisata_kun_malli_antoi_sen():
     malli = Malli(
         "Ikävä kuulla. Milloin huimaus alkoi?",

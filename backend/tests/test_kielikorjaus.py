@@ -36,6 +36,7 @@ from app.puhelu.kielentarkistus import korjaa_kieli, sinuttelee
             "Onko sinulla ollut pahoinvointia enemmän ruokailun jälkeen?",
         ),
         ("ettei huimaus ole häIRjännyt sinua.", "ettei huimaus ole häirinnyt sinua."),
+        ("Haittaaako tämä väsymys sinua?", "Haittaako tämä väsymys sinua?"),
     ],
 )
 def test_toistuvat_virheet_korjataan(raaka, odotettu):

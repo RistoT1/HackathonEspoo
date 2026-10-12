@@ -754,13 +754,13 @@ def _yksi_kysymys(istunto: Puheluistunto, puhuttava: str) -> str:
 
 def _varmista_kotihoito(istunto: Puheluistunto, oireet: list[str], puhuttava: str) -> str:
     """Kotihoito-ohjeen vuoro: malli ohitti ohjeen 14 kertaa 16:sta (12.10. testipankki),
-    joten tietopohjan ohje lisätään ennen kysymystä, jos se puuttuu mallin vastauksesta."""
-    if not oireet or sisaltaa_kotihoidon(puhuttava, oireet):
-        return puhuttava
-    ohje = kotihoito_puheeksi(oireet)
+    joten tietopohjan ohje lisätään ennen kysymystä jokaiselle oireelle, jonka ohje puuttuu
+    mallin vastauksesta (varmistusajo: kahdesta oireesta malli kertoi vain toisen ohjeen)."""
+    puuttuvat = [oire for oire in oireet if not sisaltaa_kotihoidon(puhuttava, [oire])]
+    ohje = kotihoito_puheeksi(puuttuvat)
     if not ohje:
         return puhuttava
-    _syy(istunto, f"kotihoito:lisatty:{','.join(oireet)}")
+    _syy(istunto, f"kotihoito:lisatty:{','.join(puuttuvat)}")
     lauseet = _lauseet(puhuttava)
     if lauseet and lauseet[-1].endswith("?"):
         return " ".join([*lauseet[:-1], ohje, lauseet[-1]])
