@@ -14,7 +14,7 @@ from dataclasses import replace
 
 from sqlalchemy.orm import Session
 
-from app.config import Settings
+from app.config import Settings, hae_asetukset
 from app.mallit import (
     Kysymys,
     Puhelukonteksti,
@@ -34,6 +34,7 @@ from app.puhelu.keskustelu import (
     lopeta,
 )
 from app.puhelu.kielentarkistus import Tarkistin
+from app.puhelu.loki import hae_puheluloki
 from app.puhelu.puhe import (
     AVAUS,
     Kuuntelu,
@@ -278,6 +279,13 @@ def _paata(istunto: Puheluistunto, istunnot: Istuntovarasto, sessio: Session) ->
         istunto.hatamerkki,
         len(istunto.vastaukset),
     )
+    loki = hae_puheluloki(hae_asetukset())
+    if loki is not None:
+        otsikko = (
+            f"Puhelu {istunto.istunto_id}, tehtävä {istunto.tehtava_id}, "
+            f"loppu {istunto.loppu}, hätämerkki {istunto.hatamerkki}"
+        )
+        loki.kirjaa_keskustelu(istunto.istunto_id, otsikko, istunto.litterointi())
     if not istunto.paivita_jono:
         return
 

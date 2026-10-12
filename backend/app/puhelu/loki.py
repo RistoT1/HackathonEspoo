@@ -44,6 +44,17 @@ class Puheluloki:
             # Loki ei saa koskaan kaataa puhelua.
             logger.warning("Puhelulokiin ei voitu kirjoittaa: %s", virhe)
 
+    def kirjaa_keskustelu(self, istunto_id: str, otsikko: str, litterointi: str) -> None:
+        """Koko keskustelu luettavana tekstinä (<paiva>_<istunto>.txt) testisoittojen
+        läpikäyntiin. Tilapäinen dev-apu (12.10.), sama rajaus kuin jsonl-lokilla."""
+        tiedosto = self.tiedosto(istunto_id).with_suffix(".txt")
+        try:
+            with self._lukko:
+                self._kansio.mkdir(parents=True, exist_ok=True)
+                tiedosto.write_text(f"{otsikko}\n\n{litterointi}\n", encoding="utf-8")
+        except OSError as virhe:
+            logger.warning("Keskustelua ei voitu kirjoittaa tiedostoon: %s", virhe)
+
 
 def hae_puheluloki(asetukset: Annotated[Settings, Depends(hae_asetukset)]) -> Puheluloki | None:
     """FastAPI-dependency. None = loki pois (oletus)."""
