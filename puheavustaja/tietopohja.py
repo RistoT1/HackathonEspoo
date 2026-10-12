@@ -17,6 +17,7 @@ Mallille EI lähetetä nimeä, henkilötunnusta, diagnooseja eikä potilastunnus
 """
 
 import json
+import random
 import re
 from difflib import SequenceMatcher
 from dataclasses import dataclass, field
@@ -34,6 +35,10 @@ SAANNOT = _lue_json("keskustelusaannot.json")
 OIREOHJEET = _lue_json("oireohjeet.json")
 _OIREET = {o["oire"]: o for o in OIREOHJEET["oireet"]}
 KIELET = _lue_json("kielet.json")
+PUHELUTYYPIT = _lue_json("puhelutyypit.json")
+KONTEKSTIT = {k: v for k, v in PUHELUTYYPIT["kontekstit"].items() if not k.startswith("_")}
+IKALUOKAT = {k: v for k, v in PUHELUTYYPIT["ikaluokat"].items() if not k.startswith("_")}
+PERSOONALLISUUDET = {k: v for k, v in PUHELUTYYPIT["persoonallisuudet"].items() if not k.startswith("_")}
 MUUT_KIELET = [k for k in KIELET["tuetut"] if k != "fi"]
 
 
@@ -48,20 +53,36 @@ def _muut(*polku):
     return tulos
 
 
+_VIIMEKSI_VALITTU: dict[str, str] = {}
+_ARPA = random.Random()
+
+
+def valitse_versio(arvo, avain: str = "") -> str:
+    """Lista -> arvotaan yksi versio, mutta ei samaa kuin viimeksi samalla avaimella.
+    Merkkijono palautetaan sellaisenaan."""
+    if isinstance(arvo, str) or not arvo:
+        return arvo or ""
+    vaihtoehdot = [v for v in arvo if v != _VIIMEKSI_VALITTU.get(avain)] or list(arvo)
+    valinta = _ARPA.choice(vaihtoehdot)
+    _VIIMEKSI_VALITTU[avain] = valinta
+    return valinta
+
+
 def teksti(avain: str, kieli: str = "fi") -> str:
     """Kiinteä repliikki puhelun kielellä. avain kuten 'lopetuspyynto.lopetus'.
     Suomi luetaan keskustelusaannot.json:sta, muut kielet kielet.json:sta.
+    Jos repliikki on lista, siitä arvotaan versio (ei samaa kahdesti peräkkäin).
     Jos käännös puuttuu, käytetään suomea (parempi kuin hiljaisuus)."""
     if kieli != "fi":
         kaannos = KIELET.get(kieli, {}).get("tekstit", {}).get(avain)
         if kaannos:
-            return kaannos
+            return valitse_versio(kaannos, f"{kieli}:{avain}")
     if avain == "varmistuskysymys":
-        return SAANNOT["kieltomuodossa_varmistettavat"]["varmistuskysymys"]
+        return valitse_versio(SAANNOT["kieltomuodossa_varmistettavat"]["varmistuskysymys"], f"fi:{avain}")
     x = SAANNOT
     for osa in avain.split("."):
         x = x[osa]
-    return x
+    return valitse_versio(x, f"fi:{avain}")
 
 
 _PIILO_FI = {
@@ -71,14 +92,22 @@ _PIILO_FI = {
     "ei_uudelleen": "Tätä on jo kysytty uudelleen. Älä kysy enää, siirry seuraavaan kysymykseen.",
     "kieli_lipsahti": "Edellinen vastauksesi ei ollut suomeksi. Vastaa vain suomeksi.",
     "muistutus": "",
+    "lopettelu": "Puhelu on lopuillaan. Vastaa lyhyesti siihen, mitä henkilö sanoi, ja kysy, onko "
+                 "vielä jotain tärkeää, mitä hän haluaa kertoa. Älä aloita uusia aiheita.",
+    "vaihtele": "Olet aloittanut aiemmat vastauksesi näin: {aloitukset}. Aloita tämä vastaus eri "
+                "sanoilla, mutta pysy yhtä lämpimänä ja lyhyenä.",
+    "jarkytys": "Tämä on säikäyttävä asia kuulla. Aloita vastaus lyhyellä huudahduksella, "
+                "kuten Oho! tai Voi ei!, ja jatka myötäelämällä ja kysymällä, miten hän voi.",
 }
 
 
-def piilo_ohje(avain: str, kieli: str = "fi") -> str:
+def piilo_ohje(avain: str, kieli: str = "fi", **taytot) -> str:
     """Vuorokohtainen piilo-ohje mallille puhelun kielellä, muodossa "\n(Ohje: ...)".
     Tyhjä merkkijono, jos ohjetta ei ole (esim. suomen muistutus)."""
     teksti_ = (KIELET["mallin_ohjeet"][kieli]["piilo"].get(avain) if kieli != "fi"
                else _PIILO_FI.get(avain))
+    if teksti_ and taytot:
+        teksti_ = teksti_.format(**taytot)
     return f"\n(Ohje: {teksti_})" if teksti_ else ""
 
 
@@ -223,11 +252,75 @@ def _laakkeen_kuvaus(laake: dict) -> str:
     return f"{nimi}, aloitettu noin {laake['viikkoa_sitten']} viikkoa sitten"
 
 
-def puhelun_tehtava(profiili: dict, kieli: str = "fi") -> str:
+# ---------------------------------------------------------------- PUHELUN ASETUKSET
+def ratkaise_konteksti(arvo: str | None) -> str:
+    k = (arvo or PUHELUTYYPIT["oletukset"]["konteksti"]).strip().lower()
+    if k not in KONTEKSTIT:
+        raise ValueError(f"Tuntematon konteksti '{arvo}'. Vaihtoehdot: {', '.join(KONTEKSTIT)}")
+    return k
+
+
+def ratkaise_ikaluokka(arvo: str | None, profiili: dict | None = None) -> str:
+    """'auto' -> profiilin ikäryhmästä ('80-89' -> iakas). Numero tai väli ('72', '70-79')
+    -> luokka ikävälin mukaan. Avain ('iakas') sellaisenaan."""
+    a = (arvo or PUHELUTYYPIT["oletukset"]["ikaluokka"]).strip().lower()
+    if a in IKALUOKAT:
+        return a
+    if a == "auto":
+        a = str((profiili or {}).get("ikaryhma", ""))
+        if not re.search(r"\d", a):
+            return "ikaihminen"
+    luvut = re.findall(r"\d+", a)
+    if luvut:
+        ika = int(luvut[-1])     # väli '60-69' -> yläraja: profiilit ovat 65+, joten varovaisempi luokka
+        for nimi, l in IKALUOKAT.items():
+            if l["ikavali"][0] <= ika <= l["ikavali"][1]:
+                return nimi
+        raise ValueError(f"Ikä {ika} ei osu mihinkään ikäluokkaan (vähintään 18).")
+    raise ValueError(f"Tuntematon ikäluokka '{arvo}'. Vaihtoehdot: auto, {', '.join(IKALUOKAT)} tai ikä (esim. 72)")
+
+
+def ikaohje(luokka: str, kieli: str = "fi") -> str:
+    l = IKALUOKAT[luokka]
+    return l.get(kieli) or l["fi"]
+
+
+def persoonallisuusohje(arvo: str | None, kieli: str = "fi") -> str:
+    """Valmis persoonallisuus avaimella tai oma vapaa kuvaus. Vaikuttaa vain tyyliin."""
+    a = (arvo or PUHELUTYYPIT["oletukset"]["persoonallisuus"]).strip()
+    if a.lower() in PERSOONALLISUUDET:
+        p = PERSOONALLISUUDET[a.lower()]
+        return p.get(kieli) or p["fi"]
+    pohja = PUHELUTYYPIT["vapaa_persoonallisuus"]
+    return (pohja.get(kieli) or pohja["fi"]).replace("{kuvaus}", a)
+
+
+def kontekstin_avaus(konteksti: str, kieli: str = "fi") -> str | None:
+    """Kontekstin oma avauslause (versio arvotaan), tai None -> yleinen avaus."""
+    avaus = KONTEKSTIT[konteksti].get("avauslause")
+    if not avaus:
+        return None
+    return valitse_versio(avaus.get(kieli) or avaus["fi"], f"avaus:{konteksti}:{kieli}")
+
+
+def puhelun_tehtava(profiili: dict, kieli: str = "fi", konteksti: str = "laakeseuranta") -> str:
     """Muodostaa mallille tehtävänannon. Sisältää vain kysymykset, ei tunnistetietoja.
-    Ruotsiksi ja englanniksi koko kehys on sillä kielellä (kielet.json: mallin_ohjeet)."""
+    Ruotsiksi ja englanniksi koko kehys on sillä kielellä (kielet.json: mallin_ohjeet).
+    Muut kontekstit (mielenterveys, juttuseura, lääkemuistutus) tulevat puhelutyypit.json:sta."""
     laake = profiili["uudet_laakkeet"][0]   # yksi lääke per puhelu: lyhyt ja selkeä
     laakekysymykset = "\n".join(f"- {k}" for k in [*laake["kysymykset"], SAANNOT["yleiskysymykset"][1]])
+    k = KONTEKSTIT[konteksti]
+    if k.get("tehtava"):
+        pohja = k["tehtava"].get(kieli) or k["tehtava"]["fi"]
+        nimi = laake["selkonimi"] if laake["kerro_kayttotarkoitus"] else "uusi lääke"
+        kuvaus = (f"{nimi}, aloitettu noin {laake['viikkoa_sitten']} viikkoa sitten" if kieli == "fi"
+                  else KIELET["mallin_ohjeet"][kieli]["laake_kuvaus"].format(nimi=nimi, viikot=laake["viikkoa_sitten"]))
+        lisa = ""
+        if k.get("laakekysymykset"):
+            otsikko = {"fi": "LÄÄKKEESEEN LIITTYVÄT KYSYMYKSET", "sv": "MEDICINFRÅGOR (på finska, ställ dem på svenska)",
+                       "en": "MEDICINE QUESTIONS (in Finnish, ask them in English)"}[kieli]
+            lisa = f"\n{otsikko}:\n{laakekysymykset}\n"
+        return pohja.replace("{laake}", kuvaus).replace("{laakekysymykset}", lisa)
     if kieli != "fi":
         o = KIELET["mallin_ohjeet"][kieli]
         nimi = laake["selkonimi"] if laake["kerro_kayttotarkoitus"] else "uusi lääke"
@@ -276,10 +369,26 @@ RAJAT:
 """
 
 
-def tukitilan_tehtava(syy: str, kieli: str = "fi") -> str:
-    """Tehtävänanto vakavan asian jälkeen: lääkekysymykset pois, kuuntelu ja turvallisuus."""
+_ITSETUHO_LISA_FI = """
+KOSKA HENKILÖ PUHUI ITSENSÄ VAHINGOITTAMISESTA:
+- Sano lämpimästi omin sanoin, että toivot, ettei hän tee itselleen mitään, ja että hän
+  on tärkeä. Esimerkiksi: "Pyydän, älä tee itsellesi mitään. Sinä olet tärkeä."
+  Älä väittele, älä moralisoi äläkä lupaa, että kaikki järjestyy.
+- Kysy lempeästi, pystyykö hän pitämään itsensä turvassa siihen asti, kun hoitaja soittaa tänään.
+- Jos lähellä on lääkkeitä tai muita vaarallisia välineitä, pyydä lempeästi laittamaan ne
+  kauemmas tai antamaan ne jollekulle.
+- Kysy, voisiko joku tulla hänen luokseen.
+"""
+
+
+def tukitilan_tehtava(syy: str, kieli: str = "fi", itsetuho: bool = False) -> str:
+    """Tehtävänanto vakavan asian jälkeen: lääkekysymykset pois, kuuntelu ja turvallisuus.
+    itsetuho=True lisää ohjeet: lämmin pyyntö olla vahingoittamatta itseään, turvassa
+    pysyminen hoitajan soittoon asti ja vaarallisten välineiden laittaminen kauemmas."""
     if kieli != "fi":
-        return KIELET["mallin_ohjeet"][kieli]["tukitila"].format(syy=syy)
+        o = KIELET["mallin_ohjeet"][kieli]
+        return o["tukitila"].format(syy=syy, lisa=o["itsetuho_lisa"] if itsetuho else "")
+    lisa = _ITSETUHO_LISA_FI if itsetuho else ""
     return f"""PUHELUN TEHTÄVÄ NYT: TUKI
 Henkilö kertoi juuri vakavasta asiasta ({syy}). Olet jo sanonut, että asia välitetään
 hoitajalle tänään ja että vaaratilanteessa soitetaan 112. Lääkekysymykset jäävät pois.
@@ -292,7 +401,7 @@ Tehtäväsi on nyt kuunnella ja varmistaa turvallisuus:
 - Kerro tarvittaessa uudelleen, että hoitaja soittaa hänelle tänään.
 - Yksi lyhyt kysymys kerrallaan. Ei puhelinnumeroita, paitsi 112.
 - Kun hän on kertonut olevansa turvassa tai haluaa lopettaa, sano tasan sana LOPETUS.
-"""
+{lisa}"""
 
 
 # ---------------------------------------------------------------- SÄÄNTÖPOHJAINEN TUNNISTUS
@@ -353,6 +462,8 @@ _OIRETUNNISTEET = {
     nimi: _kaanna(o["tunnisteet"] + [p for m in _muut("oireet") for p in m.get(nimi, [])])
     for nimi, o in _OIREET.items()
 }
+_LOUKKAUS = _kaanna(SAANNOT["loukkaus"]["tunnisteet"] + [p for m in _muut("loukkaus") for p in m])
+_UHKAUS = _kaanna(SAANNOT["loukkaus"]["uhkaus_tunnisteet"] + [p for m in _muut("uhkaus") for p in m])
 _LOPETUS = _kaanna(SAANNOT["lopetuspyynto"]["tunnisteet"] + [p for m in _muut("lopetuspyynto") for p in m])
 
 
@@ -367,6 +478,8 @@ class Havainto:
     huolestuttavat: list[str] = field(default_factory=list)  # oireista ne, jotka nostavat tasoa
     lopetuspyynto: bool = False
     kaikuharha: bool = False                               # Whisperin kaiku, ei puhetta
+    loukkaus: bool = False                                 # haukkuu avustajaa tai puhelua
+    uhkaus: bool = False                                   # uhkailee avustajaa tai palvelua
 
 
 _JALKIKIELTO = re.compile(
@@ -411,6 +524,8 @@ def tarkista(teksti: str, kaikuharha: bool = False) -> Havainto:
         if _osuma_ilman_kieltoa(t, kuviot):
             h.vakavat.append(syy)
     h.lopetuspyynto = _osuma_ilman_kieltoa(t.strip(" .,!"), _LOPETUS) is not None
+    h.uhkaus = _osuma_ilman_kieltoa(t, _UHKAUS) is not None
+    h.loukkaus = h.uhkaus or _osuma_ilman_kieltoa(t, _LOUKKAUS) is not None
     if kaikuharha:
         return h
     for k in _HUOLI:
@@ -543,6 +658,28 @@ def viimeisin_kysymys(history: list[dict]) -> str:
     return ""
 
 
+def puhelun_vuororaja(havainnot: list[Havainto], perusraja: int, vuoro: int,
+                      tukitila: bool = False, itsetuho: bool = False) -> int | None:
+    """Montako vuoroa puhelu saa kestää tällä hetkellä. None = ei rajaa.
+    - itsetuhoinen puhe: ei rajaa (puhelu päättyy vain henkilön tai turvallisuuden mukaan)
+    - huoli tai huolestuttava oire: + huoli_lisavuorot
+    - vakava asia, hätämerkki tai tukitila: + vakava_lisavuorot
+    - huolta viimeisissä vuoroissa: ei katkaista kesken, jatketaan vähintään yksi vuoro
+      (enintään ehdoton_ylaraja)"""
+    k = SAANNOT["puhelun_kesto"]
+    if itsetuho and k["itsetuho_ei_rajaa"]:
+        return None
+    raja = perusraja
+    if any(h.huoli or h.huolestuttavat or h.uhkaus for h in havainnot):
+        raja += k["huoli_lisavuorot"]
+    if tukitila or any(h.vakavat or h.hata for h in havainnot):
+        raja += k["vakava_lisavuorot"]
+    viime = havainnot[-k["viime_vuorot"]:] if havainnot else []
+    if any(h.huoli or h.vakavat or h.hata or h.hata_kielletty or h.huolestuttavat for h in viime):
+        raja = max(raja, vuoro + 1)
+    return min(raja, max(k["ehdoton_ylaraja"], perusraja))
+
+
 def kiireellisyys(havainnot: list[Havainto], epaselvia_sisaltoja: int = 0) -> str:
     """Sääntöpohjainen alaraja tasolle. LLM tai hoitaja voi vain nostaa tätä.
 
@@ -554,7 +691,9 @@ def kiireellisyys(havainnot: list[Havainto], epaselvia_sisaltoja: int = 0) -> st
     if epaselvia_sisaltoja >= _UUDELLEEN["epaselvat_nostaa_keltaiseksi"]:
         return "keltainen"
     # Kieltomuotoinen maininta ("ei ole rintakipua") kirjataan perusteluun, ei nosta tasoa.
-    if any(h.keltainen or h.huolestuttavat or h.huoli for h in havainnot):
+    if any(h.keltainen or h.huolestuttavat or h.huoli or h.uhkaus for h in havainnot):
+        return "keltainen"
+    if sum(h.loukkaus for h in havainnot) >= SAANNOT["loukkaus"]["nostaa_keltaiseksi"]:
         return "keltainen"
     return "vihreä"
 

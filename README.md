@@ -79,7 +79,7 @@ sääntöpohjaisesti reaaliajassa.
 | Käyttöliittymä | FastAPI + Jinja2 HTML-pohjat, CSS ja tarvittaessa pieni määrä JavaScriptiä | Python-sovelluksen yhteydessä |
 | Puhelu ulos | Twilio Programmable Voice + Media Streams (mulaw/8000/mono/base64) | lukittu |
 | Ääniagentti | Polku A: Azure Speech fi-FI -putki (STT → LLM → TTS). Polku B (venytys): Azure OpenAI Realtime | lukittu |
-| Puhelun LLM | Demo: paikallinen malli Ollamalla (OpenAI-yhteensopiva rajapinta). Tuotanto: EU-hostattu, asetuksilla | mallivalinta TESTATTAVA |
+| Puhelun LLM | Demo: Gemma 4 12B paikallisesti Ollamalla (OpenAI-yhteensopiva rajapinta), keskustelu Jeren ohjeistuksella. Tuotanto: EU-hostattu, asetuksilla | valittu 11.10., laatu TESTATTAVA |
 | Suomen puhe | Azure STT fi-FI + TTS `fi-FI-SelmaNeural`, ulostulo `Raw8Khz8BitMonoMulaw` | TESTATTAVA viikolla |
 | Data | Veil.AI synteettiset profiilit, CSV/JSON (saatavilla vasta 13.10.) | odottaa |
 | Kehitysdata nyt | Synthea (avoin FHIR-generaattori) | otettava käyttöön |
@@ -196,6 +196,16 @@ tai käynnistä backend uudelleen. Kanta sekaisin devissä: nollaa koko kanta
 Valinnaiset `.env`-asetukset: `DEMO_PUHELINNUMERO` (Twilioon vahvistettu numero
 soittotiedoille), `TUNNISTUS_VALI_MINUUTIT` (ajastettu tunnistus, oletus 15, 0 = pois),
 `LLM_BASE_URL` ja `LLM_MALLI` (puhelun paikallinen LLM). Kaikki: `.env.example`.
+
+Puhelun malli (Ollama natiivisti; ajuri vie välimuisteineen ~15 Gt, joten 16 Gt Macilla sulje
+raskaat ohjelmat ja pienennä Docker Desktopin muistia):
+
+```bash
+ollama pull gemma4:12b
+ollama create hyvinvointi-gemma12 -f ollama/Modelfile.gemma12
+OLLAMA_KEEP_ALIVE=-1 ollama serve   # malli ja välimuisti pysyvät muistissa
+# .env: LLM_MALLI=hyvinvointi-gemma12, LLM_AJATTELU_POIS=true, LLM_VUORON_AIKARAJA_S=120
+```
 
 ---
 

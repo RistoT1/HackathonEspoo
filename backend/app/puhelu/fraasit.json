@@ -1,0 +1,179 @@
+{
+  "_kommentti": "Tarkistetut suomenkieliset lauseet (sinuttelu, kuten Jeren tietopohja ja kannan kysymykset). Käytetään, kun mallin oma lause hylätään kielentarkistuksessa tai malli ei anna lausetta. Kuittaukset vaihtelevat järjestyksessä, jotta sama ei toistu. Tarkennukset: avainsana osuu havainnon kuvaukseen (esim. 'vatsa' -> vatsakipu); {k} = havainnon kuvaus. Muokkaa vapaasti, mutta pidä lauseet lyhyinä ja kysymys yhtenä asiana.",
+  "kuittaukset": {
+    "ongelma": [
+      "Ikävä kuulla.",
+      "Kiitos, että kerroit.",
+      "Ymmärrän.",
+      "Kuulostaa ikävältä."
+    ],
+    "mieliala": [
+      "Kuulostaa raskaalta.",
+      "Kiitos, että kerroit tästä.",
+      "Olen pahoillani, että olo on ollut raskas."
+    ],
+    "kunnossa": [
+      "Hyvä kuulla.",
+      "Selvä.",
+      "Mukava kuulla."
+    ],
+    "epaselva": [
+      ""
+    ]
+  },
+  "tarkennukset_yleiset": {
+    "kuvaus": "Millaista {k} on ollut?",
+    "sijainti": "Missä kohtaa {k} tuntuu?",
+    "alkoi": "Milloin {k} alkoi?",
+    "voimakkuus": "Kuinka voimakas {k} on: lievä vai kova?",
+    "tilanne": "Missä tilanteissa {k} tulee?",
+    "vaikutus": "Haittaako {k} arkeasi?"
+  },
+  "tarkennukset_oireittain": {
+    "vatsa": {
+      "sijainti": "Mistä kohtaa vatsaa sattuu, ylä- vai alavatsasta?",
+      "tilanne": "Liittyykö vaiva ruokailuun?"
+    },
+    "pää": {
+      "sijainti": "Missä kohtaa päätä särkee?",
+      "tilanne": "Missä tilanteissa päänsärky tulee?"
+    },
+    "selkä": {
+      "sijainti": "Mistä kohtaa selkää sattuu?"
+    },
+    "huimaus": {
+      "tilanne": "Tuleeko huimaus esimerkiksi ylös noustessa?",
+      "voimakkuus": "Onko huimaus niin kovaa, että pitää ottaa tukea?"
+    },
+    "väsymys": {
+      "tilanne": "Onko väsymys pahinta tiettyyn aikaan päivästä?",
+      "vaikutus": "Jaksatko hoitaa tavalliset askareet?"
+    },
+    "uni": {
+      "tilanne": "Onko nukahtaminen vaikeaa, vai heräätkö yöllä?"
+    },
+    "turvotus": {
+      "sijainti": "Missä turvotusta on, esimerkiksi nilkoissa?"
+    },
+    "iho": {
+      "sijainti": "Missä kohtaa ihoa ihottumaa on?"
+    },
+    "kutina": {
+      "sijainti": "Missä kohtaa kutisee?"
+    },
+    "mustelm": {
+      "sijainti": "Missä kohtaa mustelmia on?"
+    },
+    "lihas": {
+      "sijainti": "Missä lihaksissa kipua tai heikkoutta on?"
+    }
+  },
+  "usein_kysytyt": {
+    "_kommentti": "Henkilön tavallisimmat kysymykset: vastaus säännöllä ilman LLM:ää (heti ja aina oikein). Tunnisteet ovat lauseen osia normalisoidusta tekstistä. Vastauksen jälkeen kysytään käsiteltävä kysymys uudelleen.",
+    "kuka": {
+      "tunnisteet": [
+        "kuka soittaa",
+        "kuka siellä",
+        "kuka te olette",
+        "kuka sä oot",
+        "kuka olet",
+        "kenen kanssa",
+        "mikä sinä olet",
+        "mikä te olette",
+        "mikä sä oot",
+        "oletko ihminen",
+        "oletteko ihminen",
+        "ootko ihminen",
+        "oletko robotti",
+        "onko tämä robotti",
+        "oletko kone",
+        "kuka sinä olet",
+        "kuka sinä oot",
+        "kuka sie oot",
+        "kuka puhuu",
+        "kuka sä olet",
+        "kenen kanssa puhun"
+      ],
+      "vastaus": "Olen hyvinvointialueen tekoälyavustaja, tietokoneohjelma, en ihminen."
+    },
+    "laake": {
+      "tunnisteet": [
+        "mikä lääke",
+        "mistä lääkkeestä",
+        "minkä lääkkeen",
+        "mitä lääkettä",
+        "mikä se lääke",
+        "lääkkeen nimi",
+        "mikä tämä lääke"
+      ],
+      "vastaus": "Lääkkeen nimeä en kerro puhelimessa tietosuojan vuoksi. Nimen näet reseptistä tai apteekista, tai hoitaja voi kertoa sen."
+    },
+    "syy": {
+      "tunnisteet": [
+        "mitä asiaa",
+        "miksi soitat",
+        "miksi soitatte",
+        "miks soitat",
+        "mikä asia",
+        "mistä on kyse",
+        "mistä tässä on kyse",
+        "mitä te haluatte",
+        "mitä haluat"
+      ],
+      "vastaus": "Soitan, koska lääkitykseesi on tullut muutos, ja haluamme kuulla, miten voit."
+    },
+    "numero": {
+      "tunnisteet": [
+        "mistä sait",
+        "mistä saitte",
+        "mistä te sait",
+        "mistä sä sait",
+        "mun numeron",
+        "minun numeroni",
+        "numeroni"
+      ],
+      "vastaus": "Yhteystietosi ovat hyvinvointialueen asiakastiedoissa."
+    },
+    "aanitys": {
+      "tunnisteet": [
+        "äänitetäänkö",
+        "nauhoitetaanko",
+        "nauhoitatko",
+        "äänitätkö",
+        "tallennetaanko"
+      ],
+      "vastaus": "Puhelua ei äänitetä. Hoitajalle välitetään vain lyhyt yhteenveto."
+    }
+  },
+  "hammennys": {
+    "_kommentti": "Henkilö ei ymmärtänyt tai pitää puhetta sekavana: pahoitellaan ja kysytään uudelleen yksinkertaisemmin.",
+    "tunnisteet": [
+      "häh",
+      "hä nyt",
+      "mitä tarkoitat",
+      "mitä tarkoitatte",
+      "en ymmärrä",
+      "en ymmärtänyt",
+      "en tajua",
+      "selität jotain",
+      "selität ihan",
+      "sekoilet",
+      "mitä sä puhut",
+      "mitä te puhutte",
+      "mitä sinä puhut",
+      "ei liity",
+      "haluat että minä sanon",
+      "haluatte että minä sanon",
+      "haluat että sanon",
+      "haluatte että sanon",
+      "mitä pitäisi sanoa",
+      "mitä minun pitäisi sanoa",
+      "en tiedä mitä sanoa",
+      "mitä tarkoitit",
+      "en kuullut",
+      "sano uudestaan",
+      "sanotko uudestaan"
+    ],
+    "vastaus": "Anteeksi, ilmaisin asian huonosti. Kysyn uudelleen."
+  }
+}

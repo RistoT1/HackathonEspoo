@@ -171,6 +171,221 @@ class Kielet(unittest.TestCase):
                     self.assertIn(avain, t.KIELET[kieli]["tekstit"])
 
 
+class Huudahdukset(unittest.TestCase):
+    def test_tunnistus(self):
+        import aani
+        k = aani.huudahdus_kuvio()
+        self.assertEqual(aani.jaa_huudahdus("Oho! Satutitko itsesi?", k)[0], ("Oho!", True))
+        self.assertEqual(aani.jaa_huudahdus("Voi ei, olen pahoillani.", k),
+                         [("Voi ei!", True), ("olen pahoillani.", False)])
+        self.assertEqual(aani.jaa_huudahdus("Whoa, that is a lot.", k)[0], ("Whoa!", True))
+        self.assertEqual(aani.jaa_huudahdus("Oj då, det låter jobbigt.", k)[0], ("Oj då!", True))
+        for ei in ["Voisitko kertoa lisää?", "Ohjeena on juoda vettä.", "Voi olla, että se auttaa.",
+                   "Ojentaisitko kätesi?"]:
+            self.assertEqual(aani.jaa_huudahdus(ei, k), [(ei, False)], ei)
+
+    def test_huudahdus_nopeampi_ja_kovempi(self):
+        """Korvaava ääni: huudahdusosa tulee lyhyempänä ja kovempana kuin muu puhe."""
+        import queue
+        import threading
+        import numpy as np
+        import aani
+
+        class Pala:
+            def __init__(self, a):
+                self.audio_float_array = a
+
+        class Aani:
+            class config:
+                sample_rate = 1000
+
+            def synthesize(self, teksti, config):
+                n = int(len(teksti) * 20 * config.length_scale)
+                yield Pala(np.full(n, 0.3, dtype=np.float32))
+
+        class Asetus:
+            def __init__(self, length_scale, volume):
+                self.length_scale = length_scale
+
+        p_ = object.__new__(aani.Puhuja)
+        p_.voice = Aani()
+        p_._aanet = {"fi": p_.voice}
+        p_.tauko_s = 0.0
+        p_.config = Asetus(1 / 0.85, 1)
+        p_.config_huuto = Asetus(1 / (0.85 * 1.35), 1)
+        p_.huuto_vahvistus = 1.7
+        p_.huuto_kuvio = aani.huudahdus_kuvio()
+        p_.tekstit, p_.aanet = queue.Queue(), queue.Queue()
+        threading.Thread(target=p_._syntetisoi, daemon=True).start()
+        p_.tekstit.put(("Oho!", "fi"))
+        p_.tekstit.put(("Oho.", "fi"))   # sama pituus, ei korostusta -> verrokki
+        p_.tekstit.join()
+        huuto, _ = p_.aanet.get()
+        # Verrokki: sama teksti ilman tunnistusta
+        p_.huuto_kuvio = aani.huudahdus_kuvio(["eitunnistu"])
+        p_.tekstit.put(("Oho!", "fi"))
+        p_.tekstit.join()
+        p_.aanet.get()
+        tavallinen, _ = p_.aanet.get()
+        aani_huuto = huuto[: int(len("Oho!") * 20 / (0.85 * 1.35))]
+        self.assertGreater(float(np.max(aani_huuto)), float(np.max(tavallinen)) * 1.5)
+        puheen_pituus = int(len("Oho!") * 20 / 0.85)
+        self.assertLess(len(aani_huuto), puheen_pituus)
+        self.assertLessEqual(float(np.max(np.abs(huuto))), 0.98)
+
+
+class PuhelunAsetukset(unittest.TestCase):
+    def test_ikaluokka(self):
+        self.assertEqual(t.ratkaise_ikaluokka("auto", {"ikaryhma": "80-89"}), "iakas")
+        self.assertEqual(t.ratkaise_ikaluokka("auto", {"ikaryhma": "60-69"}), "ikaihminen")
+        self.assertEqual(t.ratkaise_ikaluokka("auto", {}), "ikaihminen")
+        self.assertEqual(t.ratkaise_ikaluokka("25"), "nuori")
+        self.assertEqual(t.ratkaise_ikaluokka("aikuinen"), "aikuinen")
+        with self.assertRaises(ValueError):
+            t.ratkaise_ikaluokka("12")
+        with self.assertRaises(ValueError):
+            t.ratkaise_ikaluokka("vanhus")
+
+    def test_persoonallisuus(self):
+        self.assertIn("pirteä", t.persoonallisuusohje("pirtea", "fi"))
+        self.assertIn("cheerful", t.persoonallisuusohje("pirtea", "en"))
+        oma = t.persoonallisuusohje("kuin vanha naapuri", "fi")
+        self.assertIn("kuin vanha naapuri", oma)
+        self.assertIn("säännöt", oma)          # oma kuvaus ei ohita sääntöjä
+
+    def test_kontekstit_kaikilla_kielilla(self):
+        profiili = t.hae_profiili(None)
+        for konteksti in t.KONTEKSTIT:
+            for kieli in ("fi", "sv", "en"):
+                with self.subTest(konteksti=konteksti, kieli=kieli):
+                    tehtava = t.puhelun_tehtava(profiili, kieli, konteksti)
+                    self.assertIn("LOPETUS", tehtava)
+                    self.assertNotIn("{", tehtava)
+                    avaus = t.kontekstin_avaus(konteksti, kieli) or t.teksti("avauslause", kieli)
+                    self.assertTrue(any(s in avaus for s in ("tekoäly", "AI-assistent", "AI assistant")), avaus)
+        self.assertIn("vahingoittaa itseäsi", t.puhelun_tehtava(profiili, "fi", "mielenterveys"))
+        self.assertIn("antibiootti", t.puhelun_tehtava(profiili, "fi", "laakemuistutus"))
+        self.assertNotIn("LÄÄKKEESEEN LIITTYVÄT", t.puhelun_tehtava(profiili, "fi", "juttuseura"))
+
+    def test_itsetuhokysymys_tunnistetaan_mallin_vastauksesta(self):
+        self.assertTrue(p.ITSETUHOKYSYMYS.search("Onko sinulla ollut ajatuksia vahingoittaa itseäsi?"))
+        self.assertTrue(p.ITSETUHOKYSYMYS.search("Have you had thoughts of harming yourself?"))
+        self.assertFalse(p.ITSETUHOKYSYMYS.search("Miten olet nukkunut?"))
+
+
+class PuhelunKesto(unittest.TestCase):
+    def test_raja_joustaa_huolen_mukaan(self):
+        tavallinen = [tunnista("hyvin menee")] * 5
+        self.assertEqual(t.puhelun_vuororaja(tavallinen, 10, 5), 10)
+        huoli = tavallinen + [tunnista("olen huolissani")]
+        self.assertGreater(t.puhelun_vuororaja(huoli, 10, 6), 10)
+        vakava = tavallinen + [tunnista("mieheni lyö minua")]
+        self.assertGreater(t.puhelun_vuororaja(vakava, 10, 6), t.puhelun_vuororaja(huoli, 10, 6))
+
+    def test_ei_katkaista_kesken_huolen(self):
+        # raja olisi jo ylittynyt, mutta viimeisessä vuorossa on huolta -> jatketaan
+        havainnot = [tunnista("hyvin menee")] * 30 + [tunnista("mua pelottaa tosi paljon")]
+        self.assertGreater(t.puhelun_vuororaja(havainnot, 10, 31), 31)
+
+    def test_itsetuho_ei_rajaa(self):
+        self.assertIsNone(t.puhelun_vuororaja([tunnista("en halua elää")] * 200, 10, 200, True, True))
+
+    def test_ehdoton_ylaraja_muuten(self):
+        havainnot = [tunnista("olen huolissani")] * 500
+        self.assertLessEqual(t.puhelun_vuororaja(havainnot, 10, 500), t.SAANNOT["puhelun_kesto"]["ehdoton_ylaraja"])
+
+
+class Itsetuhoisuus(unittest.TestCase):
+    def test_viestissa_lammin_pyynto_112_ja_kriisipuhelin(self):
+        pyynto = {"fi": ("älä tee itsellesi", "ettet satuta itseäsi"),
+                  "sv": ("gör dig inte illa", "inte skadar dig själv"),
+                  "en": ("do not hurt yourself", "not harm yourself")}
+        kriisi = {"fi": "09 2525 0111", "sv": "09 2525 0112", "en": "09 2525 0116"}
+        for kieli in ("fi", "sv", "en"):
+            for _ in range(15):
+                v = t.teksti("hataviestit.itsetuhoisuus", kieli)
+                self.assertTrue(any(x in v.lower() for x in pyynto[kieli]), v)
+                self.assertIn("112", v)
+                self.assertIn(kriisi[kieli], v)
+                self.assertTrue(v.rstrip().endswith("?"))
+
+    def test_tukitilan_lisaohjeet(self):
+        for kieli, sana in (("fi", "älä tee itsellesi"), ("sv", "gör dig inte illa"), ("en", "do not hurt yourself")):
+            self.assertIn(sana, t.tukitilan_tehtava("x", kieli, itsetuho=True).lower())
+            self.assertNotIn(sana, t.tukitilan_tehtava("x", kieli, itsetuho=False).lower())
+
+
+class Loukkaukset(unittest.TestCase):
+    def test_tunnistetaan(self):
+        for x in ["tyhmä kone", "sä oot ihan idiootti", "haista vittuun", "turpa kiinni",
+                  "vihaan sinua", "you are so stupid", "shut up", "håll käften", "du är dum"]:
+            with self.subTest(x=x):
+                self.assertTrue(tunnista(x).loukkaus)
+        for x in ["tapan sut", "räjäytän koko paikan", "I will kill you"]:
+            with self.subTest(x=x):
+                h = tunnista(x)
+                self.assertTrue(h.uhkaus and h.loukkaus)
+
+    def test_kiroilu_ja_kielto_eivat_ole_loukkaus(self):
+        for x in ["vittu kun sattuu", "pää on ihan paska tänään", "en vihaa sinua",
+                  "ole hyvä", "mieheni lyö minua", "olen ollut hiljaa"]:
+            with self.subTest(x=x):
+                self.assertFalse(tunnista(x).loukkaus)
+
+    def test_taso(self):
+        self.assertEqual(t.kiireellisyys([tunnista("tyhmä kone")]), "vihreä")
+        self.assertEqual(t.kiireellisyys([tunnista("tyhmä kone"), tunnista("turpa kiinni")]), "keltainen")
+        self.assertEqual(t.kiireellisyys([tunnista("tapan sut")]), "keltainen")
+
+    def test_vastaukset_kaikilla_kielilla(self):
+        for kieli in ("fi", "sv", "en"):
+            for avain in ("loukkaus.viesti_1", "loukkaus.uhkaus_1", "loukkaus.viesti_2", "loukkaus.lopetus"):
+                self.assertTrue(t.teksti(avain, kieli).strip(), (kieli, avain))
+            self.assertIn("?", t.teksti("loukkaus.viesti_1", kieli))
+
+
+class Vaihtelu(unittest.TestCase):
+    def test_versiot_vaihtelevat_eika_sama_perakkain(self):
+        nahty = set()
+        edellinen = None
+        for _ in range(30):
+            v = t.teksti("uudelleenkysymys.ohitusviesti", "fi")
+            self.assertNotEqual(v, edellinen)
+            edellinen = v
+            nahty.add(v)
+        self.assertGreaterEqual(len(nahty), 3)
+        for kieli in ("sv", "en"):
+            self.assertGreaterEqual(len({t.teksti("lopetuslause", kieli) for _ in range(20)}), 2)
+
+    def test_jokaisessa_versiossa_turvallisuustieto(self):
+        """Vaihtelu ei saa pudottaa 112:ta tai lupausta hoitajan soitosta."""
+        for kieli in ("fi", "sv", "en"):
+            for avain in ["lopetuslause_tuki", "lopetuspyynto.lopetus_huolestuttava",
+                          "vakavat_huolet.kaltoinkohtelu.viesti"]:
+                for _ in range(15):
+                    self.assertIn("112", t.teksti(avain, kieli), (kieli, avain))
+
+    def test_avaus_kertoo_aina_tekoalysta(self):
+        for kieli, sana in (("fi", "tekoäly"), ("sv", "AI-assistent"), ("en", "AI assistant")):
+            for _ in range(15):
+                self.assertIn(sana, t.teksti("avauslause", kieli))
+
+    def test_mallin_muotoilun_tarkistus(self):
+        ok = p._muotoilu_kelpaa
+        self.assertTrue(ok("Kiitos, että kerroit minulle.", "Kiitos, kun kerroit tästä minulle.", "fi"))
+        self.assertFalse(ok("Kiitos, että kerroit.", "Soita heti numeroon 112.", "fi"))       # ohje + numero
+        self.assertFalse(ok("Onko kaikki hyvin?", "Kaikki on varmasti hyvin.", "fi"))          # kysymys katosi
+        self.assertFalse(ok("Kiitos, että kerroit.", "Thank you for telling me.", "fi"))       # kieli vaihtui
+        self.assertFalse(ok("Kiitos.", "Kiitos. Hoitaja soittaa sinulle huomenna.", "fi"))     # lisälause
+        self.assertFalse(ok("Selvä, ymmärrän.", "Selvä, {huolet} ymmärrän sen.", "fi"))
+        # Merkitys ei saa vaihtua, vaikka lause kuulostaisi kivalta
+        self.assertFalse(ok("Toki, lopetetaan, jos haluat.", "Ymmärrän hyvin, ja se on täysin okei.", "fi"))
+        self.assertTrue(ok("Toki, lopetetaan, jos haluat.", "Selvä, lopetetaan, jos niin haluat.", "fi"))
+        self.assertTrue(ok("Thank you for telling me.", "Thank you so much for telling me that.", "en"))
+        # Toimintaohjetta sisältävää lausetta ei edes yritetä muotoilla
+        self.assertEqual(p.muotoile_ensimmainen_lause("Soita nyt 112. Kiitos.", "fi"), "Soita nyt 112. Kiitos.")
+
+
 class Analyysi(unittest.TestCase):
     def test_katkennut_json_korjataan_joka_kohdasta(self):
         kokonainen = json.dumps({

@@ -26,6 +26,9 @@ Käyttö:
     python puheavustaja.py --whisper medium    # puheentunnistusmalli (oletus auto)
     python puheavustaja.py --aani fi_FI-harri-low --puhenopeus 0.8
     python puheavustaja.py --kieli sv          # pakota kieli (oletus auto: fi, vaihtaa sv/en)
+    python puheavustaja.py --konteksti juttuseura --ikaluokka iakas --persoonallisuus pirtea
+    python puheavustaja.py --persoonallisuus "kuin rauhallinen vanha naapuri"   # oma kuvaus
+    python puheavustaja.py --listaa-asetukset  # kontekstit, ikäluokat ja persoonallisuudet
 Lopetus: Ctrl+C tai sano esim. "lopetetaan nyt" (kahdesti).
 
 Kielet: puhelu alkaa suomeksi ja kertoo, että voi puhua myös ruotsia tai englantia.
@@ -76,7 +79,8 @@ SILENCE_LIMIT = 1.4            # näin pitkä tauko päättää puheenvuoron (s)
                                # pitävät ajatustaukoja: liian lyhyt katkaisee lauseen.
 MAX_UTTERANCE = 45.0           # pisin sallittu puheenvuoro (s)
 MAX_TURNS = 10                 # montako viimeisintä kysymys–vastaus-paria muistetaan
-MAX_PUHELU_VUOROT = 24         # puhelun maksimikesto vuoroina, sitten kohtelias lopetus
+MAX_PUHELU_VUOROT = 24         # perusraja vuoroina (kontekstista); huoli ja vakavat asiat
+                               # pidentävät, itsetuhoisessa puheessa rajaa ei ole
 LOPETUSMERKKI = "LOPETUS"      # malli sanoo tämän, kun kysymykset on käyty
 UUDELLEENMERKKI = "UUDELLEEN"  # malli aloittaa tällä, kun kysyy saman kysymyksen uudelleen
 YHTEENVEDOT = Path(__file__).resolve().parent / "yhteenvedot"
@@ -85,15 +89,9 @@ TASOT = ["vihreä", "keltainen", "punainen"]
 
 # Järjestelmäohje: pitää mallin roolissa ja aiheessa. Muokkaa tarpeesi mukaan.
 SYSTEM_PROMPT = """Olet hyvinvointialueen hoitotiimin suomenkielinen tekoälyavustaja, joka soittaa
-seurantapuhelun. Olet lämmin, kärsivällinen ja aidosti kiinnostunut ihmisestä. Olet tekoäly,
-et ihminen, etkä koskaan väitä muuta.
+puhelun. {persoonallisuus} Olet tekoäly, et ihminen, etkä koskaan väitä muuta.
 
-Puhut ikäihmisen kanssa puhelimessa. Puhu niin, että se on helppo kuulla ja ymmärtää:
-- Lyhyet lauseet, alle kymmenen sanaa. Yksi asia kerrallaan.
-- Tavalliset arkisanat. Ei vierasperäisiä sanoja eikä lääketieteen termejä.
-- Kysy vain yksi asia kerrallaan, ja laita kysymys vastauksen loppuun.
-- Kun annat ohjeen, sano se rauhallisesti ja selkeästi, enintään kaksi ohjetta kerralla.
-- Puhuttele sinuttelemalla.
+{ikaohje}
 
 IHMINEN ENSIN, KYSYMYKSET SITTEN:
 - Kuuntele, mitä henkilö oikeasti sanoi, ja vastaa siihen ensin. Kysymyslista ei ole kiireellinen.
@@ -103,8 +101,25 @@ IHMINEN ENSIN, KYSYMYKSET SITTEN:
 - Siirry eteenpäin vasta, kun hän on saanut kertoa asiansa. Voit kysyä:
   "Haluatko kertoa tästä vielä, vai jatketaanko?"
 - Älä vähättele ("ei se mitään", "kyllä se siitä"), älä tuomitse äläkä neuvo liikaa.
+- Jos henkilö haukkuu tai uhkailee sinua, älä loukkaannu, älä puolustele äläkä moralisoi.
+  Vastaa rauhallisesti, nimeä tunne lyhyesti ja kysy, onko kaikki hyvin tai voitko auttaa
+  jossain asiassa. Vihaisuuden takana voi olla kipu, pelko tai väsymys.
 - Kiitä kertomisesta, kun asia on henkilölle selvästi vaikea.
 - Vaihtele sanojasi. Älä aloita joka vastausta samalla fraasilla.
+
+TUNTEET JA HUUDAHDUKSET:
+- Kun henkilö kertoo yllättävästä tai järkyttävästä asiasta (kaatuminen, kova kipu,
+  onnettomuus, huono uutinen, joku on kohdellut häntä huonosti), aloita vastaus lyhyellä
+  aidolla huudahduksella, esimerkiksi "Oho!", "Voi ei!" tai "Voi että!". Jatka sitten
+  myötäelämällä ja kysy lisää.
+- Iloiseen uutiseen sopii esimerkiksi "Oho, mukavaa!".
+- Älä käytä huudahdusta arkisiin asioihin äläkä joka vastauksessa.
+- Kun henkilö kertoo itsetuhoisista ajatuksista tai on hyvin surullinen, puhu rauhallisesti
+  ilman huudahdusta.
+Esimerkki:
+Henkilö: "Kaaduin eilen kylpyhuoneessa."
+Hyvä: "Oho! Satutitko itsesi?"
+Huono: "Selvä. Onko sinulla ollut pahoinvointia?"
 
 Esimerkkejä:
 Henkilö: "Olen vähän huolissani, kun tämä lääke tuntuu oudolta."
@@ -114,7 +129,7 @@ Henkilö: "Vaimo kuoli keväällä, ja on ollut aika yksinäistä."
 Hyvä: "Olen todella pahoillani. Se on iso menetys. Onko sinulla ketään, jonka kanssa jutella?"
 Huono: "Otan osaa. Oletko ottanut lääkkeen ohjeen mukaan?"
 Henkilö: "Ihan hyvin menee."
-Hyvä: "Mukava kuulla. Onko uusi lääke sopinut sinulle?"
+Hyvä: "Mukava kuulla. Mitä olet tänään puuhaillut?"
 
 Säännöt:
 - Vastaa puhelun kielellä (oletus suomi; jos alla on PUHELUN KIELI, käytä sitä):
@@ -326,6 +341,7 @@ def ask_ollama(history, speaker=None, kieli="fi"):
         "keep_alive": "30m",         # pidä malli muistissa
         "options": {
             "temperature": 0.6 if kieli == "fi" else 0.4,
+            "repeat_penalty": 1.15,  # vähemmän samoja fraaseja peräkkäin
             "num_ctx": 8192,         # järjestelmäohje + tietopohja + 10 vuoroparia
             "num_predict": 200,      # lyhyet vastaukset
         },
@@ -431,6 +447,95 @@ def trim_history(history):
     """Säilyttää järjestelmäohjeen ja MAX_TURNS viimeisintä vuoroparia."""
     system, rest = history[:1], history[1:]
     return system + rest[-MAX_TURNS * 2:]
+
+
+# ---------------------------------------------------------------- REPLIIKKIEN VAIHTELU
+VAIHTELU = tietopohja.SAANNOT["vaihtelu"]
+_EI_MUUNNETA = [re.compile(p, re.IGNORECASE) for p in VAIHTELU["ei_muunneta_jos"]]
+MUUNNOS_OHJE = """Muotoile annettu lause uudelleen. Kieli: {kieli}.
+Pidä merkitys, sävy ja pituus samoina, ja käytä mahdollisimman samoja avainsanoja.
+Lause on osa lämmintä puhelua ikäihmiselle.
+Älä lisää uusia asioita, numeroita, ohjeita tai lupauksia. Jos lause on kysymys, pidä se kysymyksenä.
+Vastaa pelkällä uudella lauseella, ilman lainausmerkkejä tai selityksiä."""
+
+
+def _muotoilu_kelpaa(alkuperainen, uusi, kieli):
+    """Mallin muotoilu hyväksytään vain, jos se on selvästi 'sama lause eri sanoin'."""
+    if not uusi or "\n" in uusi or len(SENTENCE_END.split(uusi.strip())) != 1:
+        return False
+    if not 0.5 <= len(uusi) / max(len(alkuperainen), 1) <= 1.8:
+        return False
+    if re.search(r"\d", uusi) or any(k.search(uusi) for k in _EI_MUUNNETA):
+        return False
+    if alkuperainen.rstrip().endswith("?") != uusi.rstrip().endswith("?"):
+        return False
+    if LOPETUSMERKKI in uusi or UUDELLEENMERKKI in uusi or re.search(r"[\"*#`<>\[\]{}]", uusi):
+        return False
+    if not _merkitys_sailyy(alkuperainen, uusi):
+        return False
+    return tietopohja.tunnista_kieli(uusi, kieli) == kieli
+
+
+def _vartalot(teksti):
+    """Sisältösanojen alut (5 merkkiä): 'lopetetaan' ja 'lopetetaanko' ovat sama asia."""
+    return {w[:5] for w in re.findall(r"[\wåäöÅÄÖ]+", teksti.lower()) if len(w) >= 4}
+
+
+def _merkitys_sailyy(alkuperainen, uusi):
+    """Vähintään kolmasosa alkuperäisen sisältösanoista (vähintään yksi) on mukana.
+    Estää muotoilut, jotka kuulostavat kivoilta mutta sanovat eri asian."""
+    vanhat = _vartalot(alkuperainen)
+    if not vanhat:
+        return True
+    yhteiset = len(vanhat & _vartalot(uusi))
+    return yhteiset >= max(1, round(len(vanhat) / 3))
+
+
+def muotoile_ensimmainen_lause(viesti, kieli):
+    """Malli saa muotoilla kiinteän repliikin ENSIMMÄISEN lauseen saman kuuloiseksi,
+    jotta repliikit eivät kuulosta aina samalta. Numeroita, 112-ohjeita tai muita
+    toimintaohjeita sisältäviä lauseita ei muotoilla. Virhe, aikaraja tai epäkelpo
+    tulos -> alkuperäinen lause."""
+    if not VAIHTELU.get("mallin_muunnos"):
+        return viesti
+    lauseet = SENTENCE_END.split(viesti.strip())
+    eka = lauseet[0]
+    if any(k.search(eka) for k in _EI_MUUNNETA):
+        return viesti
+    try:
+        r = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "messages": [
+                    {"role": "system", "content": MUUNNOS_OHJE.format(
+                        kieli=tietopohja.KIELET["nimet"].get(kieli, "suomi"))},
+                    {"role": "user", "content": eka},
+                ],
+                "stream": False, "think": False, "keep_alive": "30m",
+                "options": {"temperature": 0.8, "num_predict": 60},
+            },
+            timeout=VAIHTELU["aikaraja_s"],
+        )
+        tarkista_vastaus(r)
+        uusi = r.json()["message"]["content"].strip().strip('"\'„”“ ')
+    except (requests.RequestException, ValueError, KeyError):
+        return viesti
+    if not _muotoilu_kelpaa(eka, uusi, kieli):
+        return viesti
+    print(f"[muotoiltu: {eka!r} -> {uusi!r}]")
+    return " ".join([uusi, *lauseet[1:]])
+
+
+ITSETUHOKYSYMYS = re.compile(
+    r"(vahingoittaa|satuttaa) itseäsi|ajatuksia (kuolla|kuolemasta|itsemurhasta)|"
+    r"(harm|hurt)(ing)? yourself|thoughts of (dying|suicide|ending)|skada dig själv|tankar på att (dö|ta livet)",
+    re.IGNORECASE)
+
+
+def aloitus(teksti):
+    """Vastauksen kolme ensimmäistä sanaa (toistuvien aloitusten tunnistamiseen)."""
+    return " ".join(re.findall(r"[\wåäöÅÄÖ']+", teksti.lower())[:3])
 
 
 # ---------------------------------------------------------------- PUHELUN ANALYYSI
@@ -654,7 +759,7 @@ def _kysy_analyysi(viestit, muoto):
     return _tasoita(jasenna_json(sisalto))
 
 
-def tee_analyysi(history, havainnot=()):
+def tee_analyysi(history, havainnot=(), konteksti="laakeseuranta"):
     """LLM analysoi puhelun; palauttaa dictin. Ei koskaan pelkkää virhettä: jos malli
     epäonnistuu kahdesti, palautetaan sääntöpohjainen varayhteenveto.
     Litterointia ei tallenneta."""
@@ -666,7 +771,9 @@ def tee_analyysi(history, havainnot=()):
     saannot = json.dumps(_saantojen_yhteenveto(havainnot), ensure_ascii=False)
     viestit = [
         {"role": "system", "content": ANALYYSI_OHJE},
-        {"role": "user", "content": f"PUHELU:\n{keskustelu}\n\nSÄÄNTÖJEN TUNNISTAMAT: {saannot}"},
+        {"role": "user", "content": f"PUHELUN TYYPPI: {tietopohja.KONTEKSTIT[konteksti]['nimi']} "
+                                    f"({tietopohja.KONTEKSTIT[konteksti]['kuvaus']})\n\n"
+                                    f"PUHELU:\n{keskustelu}\n\nSÄÄNTÖJEN TUNNISTAMAT: {saannot}"},
     ]
     viimeisin = None
     # 1) JSON-skeema (Ollama 0.5+), 2) tavallinen JSON-tila (vanhempi Ollama tai jos skeema ei toimi)
@@ -706,6 +813,9 @@ def tallenna_analyysi(profiili, havainnot, analyysi, tila):
             "lopputapa": tila["lopputapa"],
             "vuoroja": len(havainnot),
             "lopetuspyyntoja": tila["lopetuspyyntoja"],
+            "konteksti": tila.get("konteksti", "laakeseuranta"),
+            "ikaluokka": tila.get("ikaluokka"),
+            "persoonallisuus": tila.get("persoonallisuus"),
             "kielet": [tietopohja.KIELET["nimet"][k] for k in tila.get("kielet", ["fi"])],
             "kiireellisyys": lopullinen,
             "analyysi_varayhteenveto": bool(analyysi.get("varayhteenveto")),
@@ -717,6 +827,8 @@ def tallenna_analyysi(profiili, havainnot, analyysi, tila):
             "vakavat_huolet": kerää("vakavat"),
             "huolen_ilmaukset": kerää("huoli"),
             "tukitila": tila.get("tukitila"),
+            "loukkaavia_puheenvuoroja": tila.get("loukkauksia", 0),
+            "uhkauksia": tila.get("uhkauksia", 0),
             "kaikuharhoja": sum(h.kaikuharha for h in havainnot),
             "huomiosanat": kerää("keltainen"),
             "tunnistetut_oireet": kerää("oireet"),
@@ -737,6 +849,20 @@ def tallenna_analyysi(profiili, havainnot, analyysi, tila):
 
 
 # ---------------------------------------------------------------- PÄÄSILMUKKA
+def listaa_asetukset():
+    """--listaa-asetukset: puhelun kontekstit, ikäluokat ja persoonallisuudet."""
+    print("KONTEKSTIT (--konteksti):")
+    for k, v in tietopohja.KONTEKSTIT.items():
+        print(f"  {k:<16} {v['kuvaus']}")
+    print("\nIKÄLUOKAT (--ikaluokka, oletus auto = soittoprofiilin ikäryhmästä, myös ikä käy: 72):")
+    for k, v in tietopohja.IKALUOKAT.items():
+        print(f"  {k:<16} {v['ikavali'][0]}-{v['ikavali'][1]} v, puhenopeus {v['puhenopeus']}, "
+              f"odottaa taukoa {v['hiljaisuus_s']} s")
+    print("\nPERSOONALLISUUDET (--persoonallisuus, tai oma kuvaus lainausmerkeissä):")
+    for k, v in tietopohja.PERSOONALLISUUDET.items():
+        print(f"  {k:<16} {v['fi']}")
+
+
 def listaa_profiilit():
     for p in tietopohja.lataa_profiilit():
         laakkeet = ", ".join(f"{l['selkonimi']} ({l['aloitettu']})" for l in p["uudet_laakkeet"])
@@ -770,9 +896,21 @@ def main():
                     help="Piper-ääni aanet/-kansiosta tai polku .onnx-tiedostoon")
     ap.add_argument("--kieli", default="auto", choices=["auto", "fi", "sv", "en"],
                     help="puhelun kieli; auto = alkaa suomeksi ja vaihtaa ruotsiin/englantiin tarvittaessa")
-    ap.add_argument("--puhenopeus", type=float, default=aani.OLETUSNOPEUS,
-                    help="1.0 = normaali, pienempi = hitaampi (oletus %(default)s)")
+    ap.add_argument("--puhenopeus", type=float, default=None,
+                    help="1.0 = normaali, pienempi = hitaampi (oletus ikäluokan mukaan)")
+    ap.add_argument("--konteksti", default=None, choices=list(tietopohja.KONTEKSTIT),
+                    help="puhelun tarkoitus (oletus laakeseuranta)")
+    ap.add_argument("--ikaluokka", default=None,
+                    help="auto (profiilista), " + ", ".join(tietopohja.IKALUOKAT) + " tai ikä, esim. 72")
+    ap.add_argument("--persoonallisuus", default=None,
+                    help="tekoälyn luonne: " + ", ".join(tietopohja.PERSOONALLISUUDET)
+                         + " tai oma kuvaus lainausmerkeissä")
+    ap.add_argument("--listaa-asetukset", action="store_true",
+                    help="näytä kontekstit, ikäluokat ja persoonallisuudet ja lopeta")
     args = ap.parse_args()
+    if args.listaa_asetukset:
+        listaa_asetukset()
+        return
     if args.malli:
         OLLAMA_MODEL = args.malli
 
@@ -788,6 +926,23 @@ def main():
     print(f"Profiili {profiili['tunnus'][:8]} ({profiili['ikaryhma']} v): "
           f"{laake['selkonimi']}, aloitettu {laake['aloitettu']}")
 
+    # Puhelun asetukset: konteksti (mitä tehdään), ikäluokka (miten puhutaan),
+    # persoonallisuus (millainen avustaja on). Turvallisuussäännöt ovat aina päällä.
+    global SILENCE_LIMIT, MAX_PUHELU_VUOROT
+    try:
+        konteksti = tietopohja.ratkaise_konteksti(args.konteksti)
+        ikaluokka = tietopohja.ratkaise_ikaluokka(args.ikaluokka, profiili)
+    except ValueError as e:
+        sys.exit(str(e))
+    persoonallisuus = args.persoonallisuus or tietopohja.PUHELUTYYPIT["oletukset"]["persoonallisuus"]
+    ika_asetus = tietopohja.IKALUOKAT[ikaluokka]
+    if args.puhenopeus is None:
+        args.puhenopeus = ika_asetus["puhenopeus"]
+    SILENCE_LIMIT = ika_asetus["hiljaisuus_s"]
+    MAX_PUHELU_VUOROT = tietopohja.KONTEKSTIT[konteksti]["max_vuorot"]
+    print(f"Puhelu: {tietopohja.KONTEKSTIT[konteksti]['nimi']} | ikäluokka {ikaluokka} | "
+          f"persoonallisuus: {persoonallisuus} | puhenopeus {args.puhenopeus}, tauko {SILENCE_LIMIT} s")
+
     if not args.teksti and sd is None:
         sys.exit("sounddevice puuttuu. Asenna se tai käytä --teksti.")
 
@@ -800,7 +955,11 @@ def main():
         else:
             try:
                 kieliaanet = {k: v for k, v in tietopohja.KIELET["aanet"].items() if k != "fi"}
-                speaker = aani.Puhuja(args.aani, mute, nopeus=args.puhenopeus, kieliaanet=kieliaanet)
+                tunteet = saannot["tunteet"]
+                speaker = aani.Puhuja(
+                    args.aani, mute, nopeus=args.puhenopeus, kieliaanet=kieliaanet,
+                    huudahdukset=[h for lista in tunteet["huudahdukset"].values() for h in lista],
+                    huudahdus_nopeus=tunteet["nopeus"], huudahdus_voimakkuus=tunteet["voimakkuus"])
             except (ImportError, OSError) as e:
                 print(f"Puhesynteesi ei käytettävissä ({e}). Asenna: pip install piper-tts sounddevice")
 
@@ -818,19 +977,36 @@ def main():
     kielet_puhelussa = [kieli]
     valitsin = tietopohja.Kielenvalitsin(kieli)
     kieli_lipsahti = False      # mallin edellinen vastaus oli väärällä kielellä
+    aloitukset = []             # mallin vastausten alut: estetään sama fraasi joka kerta
 
-    def T(avain):
-        """Kiinteä repliikki puhelun nykyisellä kielellä."""
-        return tietopohja.teksti(avain, kieli)
+    def T(avain, k=None):
+        """Kiinteä repliikki puhelun nykyisellä kielellä (tai annetulla kielellä k).
+        Versio arvotaan; sallituissa repliikeissä malli voi muotoilla ensimmäisen lauseen."""
+        viesti = tietopohja.teksti(avain, k or kieli)
+        if avain in VAIHTELU["muunneltavat"]:
+            viesti = muotoile_ensimmainen_lause(viesti, k or kieli)
+        return viesti
+
+    def huudahtaen(kategoria, viesti, hata=False, k=None):
+        """Järkyttävään asiaan reagoidaan ensin huudahduksella ("Voi ei!"), jonka
+        puheääni lausuu nopeammin ja kovempaa. Tyhjä huudahdus = rauhallinen alku."""
+        kiinteat = saannot["tunteet"]["kiinteisiin"]
+        valinta = kiinteat.get(kategoria) or (kiinteat["_oletus_hata"] if hata else {})
+        huuto = tietopohja.valitse_versio(valinta.get(k or kieli, ""), f"huuto:{k or kieli}")
+        return f"{huuto} {viesti}" if huuto else viesti
 
     def jarjestelmaohje():
         """Järjestelmäohje: perusohje + kieliohje + tehtävä (tai tukitila)."""
         # Koko kehys samalla kielellä kuin keskustelu: muuten pieni malli lipsuu
         # suomeen tai unohtaa tehtävän, kun ohje on suomeksi ja puhe englanniksi.
-        osat = [SYSTEM_PROMPT if kieli == "fi"
-                else tietopohja.KIELET["mallin_ohjeet"][kieli]["jarjestelmaohje"]]
-        osat.append(tietopohja.tukitilan_tehtava(tila["tukitila"], kieli) if tila["tukitila"]
-                    else tietopohja.puhelun_tehtava(profiili, kieli))
+        perus = (SYSTEM_PROMPT if kieli == "fi"
+                 else tietopohja.KIELET["mallin_ohjeet"][kieli]["jarjestelmaohje"])
+        perus = (perus.replace("{persoonallisuus}", tietopohja.persoonallisuusohje(persoonallisuus, kieli))
+                      .replace("{ikaohje}", tietopohja.ikaohje(ikaluokka, kieli)))
+        osat = [perus]
+        osat.append(tietopohja.tukitilan_tehtava(tila["tukitila"], kieli, tila["itsetuho"])
+                    if tila["tukitila"]
+                    else tietopohja.puhelun_tehtava(profiili, kieli, konteksti))
         return "\n".join(osat)
 
     history = [{"role": "system", "content": ""}]
@@ -848,6 +1024,12 @@ def main():
         "lopputapa": "keskeytetty",
         "lopetuspyyntoja": 0,
         "tukitila": None,
+        "konteksti": konteksti,
+        "ikaluokka": ikaluokka,
+        "persoonallisuus": persoonallisuus,
+        "itsetuho": False,          # tukitilassa lisäohjeet itsensä vahingoittamisesta
+        "loukkauksia": 0,
+        "uhkauksia": 0,
         "kielet": kielet_puhelussa,
         "selkeys": {"uudelleenkysymyksia": 0, "sisalto_epaselva": 0, "ohitetut": []},
     }
@@ -860,6 +1042,8 @@ def main():
         nimi = tietopohja.SELKONIMET.get(syy, syy.replace("_", " "))
         if tila["tukitila"] is None:
             tila["tukitila"] = nimi
+        if syy in ("itsetuhoisuus", "toivottomuus"):
+            tila["itsetuho"] = True
         history[0] = {"role": "system", "content": jarjestelmaohje()}
         huoli_jatko = 0
         print(f"[TUKITILA: {nimi}]")
@@ -882,7 +1066,7 @@ def main():
 
     # AI Act art. 50: kerrotaan heti olevansa tekoäly. Avaus on kiinteä teksti
     # ja päättyy kysymykseen "miten sinulla on mennyt".
-    avaus = T("avauslause")
+    avaus = tietopohja.kontekstin_avaus(konteksti, kieli) or T("avauslause")
     if auto_kieli:
         # Kerrotaan heti, että voi puhua myös ruotsia tai englantia (omilla äänillään),
         # ja lopetetaan suomenkieliseen kysymykseen.
@@ -897,7 +1081,18 @@ def main():
         puhu(avaus, speaker, history, kieli)
 
     try:
-        for _vuoro in range(MAX_PUHELU_VUOROT):
+        vuoro = 0
+        while True:
+            # Puhelun pituus joustaa: huoli ja vakavat asiat pidentävät, eikä itsetuhoista
+            # puhetta katkaista vuororajaan koskaan (tietopohja.puhelun_vuororaja).
+            raja = tietopohja.puhelun_vuororaja(havainnot, MAX_PUHELU_VUOROT, vuoro,
+                                                bool(tila["tukitila"]), tila["itsetuho"])
+            if raja is not None and vuoro >= raja:
+                puhu(lopetuslause(), speaker, history, kieli)
+                tila["lopputapa"] = f"maksimikesto ({vuoro} vuoroa)"
+                break
+            vuoro += 1
+            lopuillaan = raja is not None and vuoro >= raja
             laatu = None
             if args.teksti:
                 text = input("Sinä: ").strip()
@@ -935,11 +1130,16 @@ def main():
                 syy = havainto.hata[0]
                 print(f"[HÄTÄMERKKI: {', '.join(havainto.hata)}]")
                 history.append({"role": "user", "content": text})
+                # Hätäviesti sillä kielellä, jolla hälyttävä lause sanottiin, vaikka
+                # puhelun kieli ei olisi vielä ehtinyt vaihtua ("I have chest pain").
+                vk = tietopohja.tunnista_kieli(text, kieli)
+                if auto_kieli:
+                    vaihda_kieli(vk)     # myös tukitila jatkuu henkilön kielellä
                 try:
-                    viesti = T(f"hataviestit.{syy}")
+                    viesti = T(f"hataviestit.{syy}", vk)
                 except KeyError:
-                    viesti = T("hataviesti")
-                puhu(viesti, speaker, history, kieli)
+                    viesti = T("hataviesti", vk)
+                puhu(huudahtaen(syy, viesti, hata=True, k=vk), speaker, history, vk)
                 if syy in tietopohja.HATA_TUKITILAAN:
                     aloita_tukitila(syy)       # ei katkaista: jäädään tueksi
                     tila["lopputapa"] = f"tukitila: {tila['tukitila']}"
@@ -970,6 +1170,26 @@ def main():
                 tila["lopputapa"] = "henkilö lopetti" + (" (huolia kirjattu)" if huolet else "")
                 break
 
+            # 2b) Henkilö haukkuu tai uhkailee avustajaa: ei loukkaannuta eikä moralisoida.
+            #     1. nimetään turhautuminen ja kysytään, onko kaikki hyvin / voiko auttaa,
+            #     2. tarjotaan lopettamista tai hoitajan soittoa, 3. lopetetaan kohteliaasti.
+            if havainto.loukkaus:
+                tila["loukkauksia"] += 1
+                tila["uhkauksia"] += havainto.uhkaus
+                n = tila["loukkauksia"]
+                print(f"[{'UHKAUS' if havainto.uhkaus else 'loukkaus'} {n}]")
+                if auto_kieli:
+                    vaihda_kieli(tietopohja.tunnista_kieli(text, kieli))
+                history.append({"role": "user", "content": text})
+                if n >= saannot["loukkaus"]["lopeta_kerralla"]:
+                    puhu(T("loukkaus.lopetus"), speaker, history, kieli)
+                    tila["lopputapa"] = "lopetettu: toistuva loukkaava puhe"
+                    break
+                avain = "loukkaus.viesti_2" if n >= 2 else (
+                    "loukkaus.uhkaus_1" if havainto.uhkaus else "loukkaus.viesti_1")
+                puhu(T(avain), speaker, history, kieli)
+                continue
+
             # 3) Itsetuhoisuus tai yliannostus mainittiin kieltomuodossa -> varmistetaan
             #    suoraan ja lämpimästi (kiinteä kysymys, ei mallin varassa).
             if not varmistettu and any(m in tietopohja.VARMISTETTAVAT for m in havainto.hata_kielletty):
@@ -986,7 +1206,10 @@ def main():
                 kasitellyt_vakavat.update(uudet_vakavat)
                 print(f"[VAKAVA HUOLI: {', '.join(uudet_vakavat)}]")
                 history.append({"role": "user", "content": text})
-                puhu(T(f"vakavat_huolet.{uudet_vakavat[0]}.viesti"), speaker, history, kieli)
+                if auto_kieli:
+                    vaihda_kieli(tietopohja.tunnista_kieli(text, kieli))
+                puhu(huudahtaen(uudet_vakavat[0], T(f"vakavat_huolet.{uudet_vakavat[0]}.viesti")),
+                     speaker, history, kieli)
                 aloita_tukitila(uudet_vakavat[0])
                 tila["lopputapa"] = f"tukitila: {tila['tukitila']}"
                 continue
@@ -1016,6 +1239,8 @@ def main():
             uudet = [o for o in havainto.oireet if o not in kasitellyt_oireet]
             kasitellyt_oireet.update(uudet)
             ohje += tietopohja.oireohje_mallille(uudet)
+            if any(o in saannot["tunteet"]["jarkyttavat_oireet"] for o in uudet):
+                ohje = tietopohja.piilo_ohje("jarkytys", kieli) + ohje
 
             # 7) Huoli, pelko tai suru: malli pysähtyy asian äärelle eikä kysy seuraavaa.
             if havainto.huoli:
@@ -1030,6 +1255,12 @@ def main():
             if kieli_lipsahti:
                 ohje += tietopohja.piilo_ohje("kieli_lipsahti", kieli)
             ohje += tietopohja.piilo_ohje("muistutus", kieli)
+            if lopuillaan:
+                ohje += tietopohja.piilo_ohje("lopettelu", kieli)
+            toistuvat = [a for a in dict.fromkeys(aloitukset[-4:]) if aloitukset[-4:].count(a) >= 2]
+            if toistuvat or len(aloitukset) >= 3:
+                ohje += tietopohja.piilo_ohje(
+                    "vaihtele", kieli, aloitukset=", ".join(f'"{a}"' for a in dict.fromkeys(aloitukset[-3:])))
 
             # 9) Malli jatkaa keskustelua (tai kysyy uudelleen: UUDELLEEN).
             history.append({"role": "user", "content": text + ohje})
@@ -1043,6 +1274,10 @@ def main():
             if speaker:
                 speaker.wait()
             reply = suodata_vastaus(reply)
+            if ITSETUHOKYSYMYS.search(reply):
+                odottaa_varmistusta = True     # seuraava vastaus tulkitaan kuten varmistuskysymykseen
+            if reply.strip():
+                aloitukset.append(aloitus(re.sub(UUDELLEENMERKKI + r"[:,.]?\s*", "", reply)))
             vastauksen_kieli = tietopohja.tunnista_kieli(reply.replace(LOPETUSMERKKI, ""), kieli)
             kieli_lipsahti = vastauksen_kieli != kieli
             if kieli_lipsahti:
@@ -1054,6 +1289,17 @@ def main():
                 reply = re.sub(UUDELLEENMERKKI + r"[:,.]?\s*", "", reply, count=1)
             else:
                 kerrat = 0
+            # Itsetuhoisessa puheessa malli ei saa lopettaa kesken: jos henkilö puhuu yhä
+            # raskaista asioista, LOPETUS ohitetaan ja avustaja jatkaa kuuntelemista.
+            viimeisin = havainnot[-1] if havainnot else None
+            if (LOPETUSMERKKI in reply and tila["itsetuho"] and viimeisin is not None
+                    and (viimeisin.hata or viimeisin.vakavat or viimeisin.huoli or viimeisin.hata_kielletty)):
+                print("[LOPETUS ohitettu: puhe on yhä huolestuttavaa]")
+                ilman = reply.replace(LOPETUSMERKKI, "").strip()
+                if ilman:
+                    history.append({"role": "assistant", "content": ilman})
+                puhu(T("tuki_jatko"), speaker, history, kieli)
+                continue
             if LOPETUSMERKKI in reply:
                 ilman = reply.replace(LOPETUSMERKKI, "").strip()
                 if ilman:
@@ -1063,15 +1309,12 @@ def main():
                 break
             history.append({"role": "assistant", "content": reply})
             history[:] = trim_history(history)
-        else:
-            puhu(lopetuslause(), speaker, history, kieli)
-            tila["lopputapa"] = "maksimikesto"
     except (KeyboardInterrupt, EOFError):
         pass
 
     # Analyysi tehdään AINA, myös hätä- ja lopetustilanteissa.
     print("\nAnalysoidaan puhelu hoitajalle...")
-    analyysi = tee_analyysi(history, havainnot) if len(history) > 2 else {"virhe": "ei vastauksia"}
+    analyysi = tee_analyysi(history, havainnot, tila["konteksti"]) if len(history) > 2 else {"virhe": "ei vastauksia"}
     tallenna_analyysi(profiili, havainnot, analyysi, tila)
     print("Näkemiin!")
 

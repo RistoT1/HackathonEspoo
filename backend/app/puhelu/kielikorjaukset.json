@@ -1,0 +1,40 @@
+{
+  "_kommentti": "Mallin (Gemma 4 12B) toistuvat suomen virheet korjataan ennen puhetta (kielentarkistus.korjaa_kieli). Lähde: Voikon tuntemattomat sanat 243 mallin vastauksesta (puhelulokit + testipankki, 12.10.) ja lokeista luetut epäluontevat fraasit. Voikon omat korjausehdotukset olivat usein vääriä ('huolestaa' -> 'huolesta'), siksi korjaukset on valittu käsin asiayhteydestä. Fraasit ensin (pidempi osuma), sitten sanat. Kirjainkoko: osuman ensimmäinen kirjain säilyy. Tyhjä korjaus poistaa sanan. Muutokset aina testien kanssa (tests/test_kielikorjaus.py).",
+  "fraasit": [
+    ["Onnea siitä, että", "Hyvä kuulla, että"],
+    ["Onnesta on hyvä, että", "Hyvä, että"],
+    ["Onnesti, että", "Hienoa, että"],
+    ["Onpa hyvä olla, että", "Onpa hyvä, että"],
+    ["Sopi, jatketaan", "Sopii, jatketaan"],
+    ["Kiitos paljon kertomisesi", "Kiitos, että kerroit"],
+    ["Miten sinun on tuntuutunut", "Miltä sinusta on tuntunut"],
+    ["alkanut hiljattainen", "alkanut hiljattain"],
+    ["tärkee, että", "tärkeää, että"],
+    ["kun nousemme", "kun nouset"],
+    ["olet nousin", "nouset"]
+  ],
+  "sanat": {
+    "huolestaa": "huolettaa",
+    "huolestanut": "huolettanut",
+    "huolestavan": "huolettavan",
+    "huimauden": "huimauksen",
+    "jollekohun": "jollekulle",
+    "arkisi": "arkesi",
+    "ketäiä": "ketään",
+    "jait": "juttelit",
+    "pahoillinen": "pahoillani",
+    "pelattuä": "pelata",
+    "ona": "on",
+    "tärkee": "tärkeä",
+    "päänsäiri": "päänsärky",
+    "täästä": "tästä",
+    "lepäää": "lepää",
+    "särkeytynyt": "särkynyt",
+    "talti": "todella",
+    "ennenenen": "",
+    "tuntuutunut": "tuntunut",
+    "myötäeleen": "ymmärrän",
+    "haullaako": "haittaako",
+    "vaivaannuttavaa": "ikävää"
+  }
+}

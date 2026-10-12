@@ -1,0 +1,20 @@
+# VARAMALLI (ei käytössä 11.10. alkaen, käytössä Modelfile.gemma12): gemma4:e4b, jolla Jere
+# kehitti ohjeensa. Nopeampi mutta ymmärtää heikommin kuin 12B.
+# Luonti:   ollama create hyvinvointi-gemma -f ollama/Modelfile
+# Käyttö:   LLM_MALLI=hyvinvointi-gemma (.env)
+#
+# Järjestelmäohje EI ole tässä vaan backend/app/puhelu/tietopohja.py:ssä (JARJESTELMAOHJE):
+# se on versionhallinnassa koodin kanssa, testattavissa, ja sama koodi toimii tuotannon
+# EU-mallilla, jolla Modelfileä ei ole. Tässä vain mallin ajoasetukset.
+
+FROM gemma4:e4b
+
+# Matala lämpötila: rakenteinen JSON-arvio ja vähemmän outoja sanamuotoja (mitattu 10.10.:
+# 0.4 tuotti "Olettanen on", "kuullomme"). Oletus Modelfilessä oli 1.0.
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+
+# Konteksti: pisin vuoro mitattu 11.10. ~2000 tokenia (järjestelmäohje + 10 repliikkiä)
+# + vastaus <= 350. 4096 riittää; isompi vie muistia 16 Gt koneella.
+PARAMETER num_ctx 8192
+PARAMETER num_predict 350

@@ -40,6 +40,18 @@ OLETUSNOPEUS = 0.85        # 1.0 = Piperin normaali, pienempi = hitaampi
 LAUSETAUKO_S = 0.35        # hiljaisuus lauseiden välissä
 AANENVOIMAKKUUS = 1.0      # kerroin normalisoidun äänen päälle
 
+# Huudahdukset ("Oho!", "Voi ei!", "Whoa!") lausutaan tunteella: nopeammin ja kovempaa
+# kuin muu puhe. Tunnistetaan lauseen alusta. Lista on muokattavissa:
+# knowledge/keskustelusaannot.json -> tunteet.huudahdukset (puheavustaja välittää sen tänne).
+HUUDAHDUS_NOPEUS = 1.35    # kerroin puhenopeuteen (1.0 = sama kuin muu puhe)
+HUUDAHDUS_VOIMAKKUUS = 1.7  # kerroin äänenvoimakkuuteen (rajataan säröytymättömäksi)
+HUUDAHDUS_TAUKO_S = 0.12   # lyhyt hengähdys huudahduksen jälkeen
+OLETUSHUUDAHDUKSET = [
+    "oho", "ohhoh", "voi ei", "voi että", "voi voi", "voi hyvänen aika", "huh huh", "ai kamala", "hui",
+    "oj", "oj då", "åh nej", "herregud", "usch",
+    "whoa", "wow", "oh no", "oh dear", "oh my", "goodness",
+]
+
 _LAUSEEN_LOPPU = re.compile(r"(?<=[.!?…])\s+")
 _NUMEROT = {
     "fi": ["nolla", "yksi", "kaksi", "kolme", "neljä", "viisi", "kuusi", "seitsemän", "kahdeksan", "yhdeksän"],
@@ -99,8 +111,37 @@ def puheeksi(teksti: str, kieli: str = "fi") -> str:
     return teksti.strip()
 
 
+def huudahdus_kuvio(huudahdukset: list[str] | None = None) -> re.Pattern:
+    """Lauseen alussa oleva huudahdus välimerkkeineen, esim. 'Oho!', 'Voi ei,', 'Whoa...'.
+    Pidemmät ensin, jotta 'voi ei' osuu ennen 'voi'. Venytykset (ohoo, whoaa) sallitaan."""
+    sanat = sorted({h.strip().lower() for h in (huudahdukset or OLETUSHUUDAHDUKSET) if h.strip()},
+                   key=len, reverse=True)
+    vaihtoehdot = "|".join(re.escape(h) + "+" for h in sanat)
+    return re.compile(rf"^\s*((?:{vaihtoehdot})(?:[ ,]+(?:{vaihtoehdot}))*[!.,…]*)(?=\s|$)", re.IGNORECASE)
+
+
+def jaa_huudahdus(lause: str, kuvio: re.Pattern) -> list[tuple[str, bool]]:
+    """[(teksti, korostetaanko)]. 'Oho, tuo kuulostaa pahalta.' ->
+    [('Oho!', True), ('tuo kuulostaa pahalta.', False)]"""
+    osuma = kuvio.match(lause)
+    if not osuma:
+        return [(lause, False)]
+    huuto = osuma.group(1).rstrip(" ,")
+    if not huuto.endswith(("!", ".", "…")):
+        huuto += "!"
+    loput = lause[osuma.end():].strip()
+    return [(huuto, True)] + ([(loput, False)] if loput else [])
+
+
 def lauseiksi(teksti: str) -> list[str]:
     return [l.strip() for l in _LAUSEEN_LOPPU.split(teksti) if l.strip()]
+
+
+def _vahvista(aani_: np.ndarray, kerroin: float) -> np.ndarray:
+    """Kovempi ääni ilman säröä: vahvistus, mutta huippu enintään 0.98."""
+    huippu = float(np.max(np.abs(aani_))) or 1.0
+    kerroin = min(kerroin, 0.98 / huippu)
+    return (aani_ * kerroin).astype(np.float32)
 
 
 # ---------------------------------------------------------------- PUHUJA
@@ -109,7 +150,10 @@ class Puhuja:
 
     def __init__(self, aani: str, mute_event: threading.Event,
                  nopeus: float = OLETUSNOPEUS, tauko_s: float = LAUSETAUKO_S,
-                 voimakkuus: float = AANENVOIMAKKUUS, kieliaanet: dict | None = None):
+                 voimakkuus: float = AANENVOIMAKKUUS, kieliaanet: dict | None = None,
+                 huudahdukset: list[str] | None = None,
+                 huudahdus_nopeus: float = HUUDAHDUS_NOPEUS,
+                 huudahdus_voimakkuus: float = HUUDAHDUS_VOIMAKKUUS):
         """aani = suomenkielinen pääääni. kieliaanet = {"sv": "sv_SE-nst-medium", ...}:
         muiden kielten äänet ladataan vasta, kun kieltä tarvitaan."""
         from piper import PiperVoice, SynthesisConfig   # pip install piper-tts
@@ -120,6 +164,10 @@ class Puhuja:
         polku = aanen_polku(aani)
         self.voice = PiperVoice.load(str(polku))
         self.config = SynthesisConfig(length_scale=1.0 / nopeus, volume=voimakkuus)
+        # Huudahdukset: nopeampi tempo, ja voimakkuus nostetaan jälkikäteen (rajattuna).
+        self.config_huuto = SynthesisConfig(length_scale=1.0 / (nopeus * huudahdus_nopeus), volume=voimakkuus)
+        self.huuto_vahvistus = huudahdus_voimakkuus
+        self.huuto_kuvio = huudahdus_kuvio(huudahdukset)
         self.sample_rate = self.voice.config.sample_rate
         self.tauko_s = tauko_s
         self.kieliaanet = dict(kieliaanet or {})
@@ -166,7 +214,17 @@ class Puhuja:
                 voice = self._aani(kieli)
                 sr = voice.config.sample_rate
                 tauko = np.zeros(int(sr * self.tauko_s), dtype=np.float32)
-                palat = [c.audio_float_array for c in voice.synthesize(puheeksi(lause, kieli), self.config)]
+                palat = []
+                for osa, huuto in jaa_huudahdus(lause, self.huuto_kuvio):
+                    config = self.config_huuto if huuto else self.config
+                    aanet = [c.audio_float_array for c in voice.synthesize(puheeksi(osa, kieli), config)]
+                    if not aanet:
+                        continue
+                    aani_ = np.concatenate(aanet).astype(np.float32)
+                    if huuto:
+                        aani_ = _vahvista(aani_, self.huuto_vahvistus)
+                        aani_ = np.concatenate([aani_, np.zeros(int(sr * HUUDAHDUS_TAUKO_S), dtype=np.float32)])
+                    palat.append(aani_)
                 if palat:
                     self.aanet.put((np.concatenate([*palat, tauko]).astype(np.float32), sr))
             except Exception as e:

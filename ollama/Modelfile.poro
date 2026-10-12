@@ -1,0 +1,16 @@
+# VARAMALLI (ei käytössä 11.10. alkaen, käytössä Modelfile.gemma12): LumiOpen Poro 2 8B Instruct (Llama 3.1 -pohja, suomeen koulutettu).
+# Lähde: huggingface.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF, Llama-Poro-2-8B-Instruct.Q4_K_M.gguf
+# Luonti: lataa GGUF, vaihda FROM-polku siihen ja aja
+#   ollama create hyvinvointi-poro -f ollama/Modelfile.poro
+# Käyttö: LLM_MALLI=hyvinvointi-poro ja LLM_AJATTELU_POIS=false (Llama ei ajattele).
+# Lisenssi: Llama 3.1 Community License (tarkista ehdot ennen tuotantoa).
+
+FROM ./Llama-Poro-2-8B-Instruct.Q4_K_M.gguf
+
+# Samat ajoasetukset kuin gemmalla (Modelfile), jotta vertailu on reilu.
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+# 8192 kuten Jerellä: järjestelmäohje + historia ylitti 4096, jolloin Ollama pudotti
+# alusta osan (myös kysymyslistan) ja malli "unohti tehtävän" (11.10.).
+PARAMETER num_ctx 8192
+PARAMETER num_predict 350

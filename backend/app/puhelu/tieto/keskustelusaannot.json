@@ -1,0 +1,556 @@
+{
+  "_kuvaus": "Puhelun turvallisuus- ja keskustelusäännöt. Deterministinen osa (avauslause, hätä- ja huolitunnistus, lopetuspyynnöt, kiinteät tukirepliikit) EI kulje LLM:n kautta. LLM keskustelee luontevasti ja myötäelävästi ja antaa ohjeita vain oireohjeet.json:sta. Kaikki puhelinnumerot ja tekstit TARKISTETTAVA hyvinvointialueen kanssa ennen tuotantoa.",
+  "avauslause": [
+    "Hei! Täällä on hyvinvointialueen tekoälyavustaja. Soitan, koska lääkitykseesi on tullut muutos, ja haluan kuulla, miten olet voinut. Välitän vastauksesi hoitajalle. Miten sinulla menee?",
+    "Hei! Soitan hyvinvointialueelta, ja olen tekoälyavustaja. Lääkitykseesi on tullut muutos, joten haluaisin kuulla, mitä sinulle kuuluu. Kerron vastauksesi hoitajalle. Mitä kuuluu?",
+    "Hyvää päivää! Täällä puhuu hyvinvointialueen tekoälyavustaja. Soitan, koska lääkitykseesi on tullut muutos, ja välitän kertomasi hoitajalle. Miten olet voinut?"
+  ],
+  "lopetuslause": [
+    "Kiitos, että jaksoit jutella kanssani. Välitän kertomasi hoitajalle, ja hän ottaa tarvittaessa yhteyttä. Jos olo huononee, soita terveysasemalle tai numeroon 116117. Hätätilanteessa soita 112. Hyvää päivänjatkoa.",
+    "Kiitos mukavasta juttutuokiosta. Kerron vastauksesi hoitajalle, ja hän on sinuun yhteydessä, jos tarvetta on. Jos olo huononee, soita terveysasemalle tai numeroon 116117. Hätätilanteessa soita 112. Oikein hyvää päivää.",
+    "Kiitos, että kerroit kuulumisiasi. Välitän ne hoitajalle, ja hän soittaa tarvittaessa. Jos vointi huononee, soita terveysasemalle tai numeroon 116117. Hätätilanteessa soita 112. Pidä huolta itsestäsi."
+  ],
+  "hataviesti": "Tämä kuulostaa vakavalta, ja haluan, että saat apua heti. Lopeta tämä puhelu ja soita nyt numeroon 112. Välitän tiedon myös hoitajalle.",
+  "uudelleenkysymys": {
+    "_kuvaus": "Jos vastauksesta ei saa selvää, kysymys toistetaan. Deterministinen tarkistus (puheentunnistuksen laatu, toistopyynnöt) ajetaan ennen mallia; malli arvioi lisäksi, vastasiko henkilö kysymykseen. Raja-arvot ovat ALKUARVOJA, viritä mittaamalla oikealla puheella.",
+    "max_per_kysymys": 2,
+    "epaselva_viesti": [
+      "Anteeksi, en saanut vastauksesta selvää. Kysyn uudelleen:",
+      "Pahoittelen, en kuullut ihan kunnolla. Kysyn vielä kerran:",
+      "Anteeksi, linja taisi pätkiä. Kysyn uudestaan:",
+      "En ihan saanut selvää, anteeksi. Kysyn uudelleen:"
+    ],
+    "toistoviesti": [
+      "Toki, kysyn uudelleen:",
+      "Totta kai. Kysyin:",
+      "Ilman muuta, kysyn uudestaan:",
+      "Kyllä, toistan:"
+    ],
+    "ohitusviesti": [
+      "Ei haittaa, siirrytään eteenpäin.",
+      "Ei se mitään, jatketaan.",
+      "Ei hätää, mennään eteenpäin.",
+      "Ei huolta, palataan siihen tarvittaessa myöhemmin."
+    ],
+    "toistopyynnot": [
+      "^(mitä|häh|anteeksi|siis mitä|kuinka)\\??$",
+      "en (kuullut|ymmärtänyt|saanut selvää)",
+      "(toista|toistaisitko|sano uudelleen|voitko toistaa|kysy uudelleen)",
+      "mitä sinä sanoit",
+      "mitä kysyit"
+    ],
+    "puheentunnistuksen_harhat": [
+      "kiitos katsomisesta",
+      "kiitos kun katsoit",
+      "tekstitys",
+      "suomenkielinen tekstitys",
+      "tilaa kanava"
+    ],
+    "min_avg_logprob": -1.0,
+    "max_no_speech_prob": 0.6,
+    "epaselvat_nostaa_keltaiseksi": 2
+  },
+  "lopetuspyynto": {
+    "_kuvaus": "Ilman huolia: 1. pyyntö kysyy kuulumiset, 2. lopettaa. Jos puhelussa on huolia: 1. pyyntö kysyy yhden turvallisuuskysymyksen, 2. lopettaa. Ihmistä ei pidetä puhelimessa vastoin tahtoa. {huolet} on käytettävissä teksteissä, mutta luokkia ei kannata lukea ääneen henkilölle.",
+    "tunnisteet": [
+      "\\b(lopeta|lopetetaan|lopettaa|lopetellaan)\\b.{0,15}\\b(puhelu|keskustelu|tämä|tää|nyt|jo)",
+      "\\b(lopetan|lopettamalla)\\b.{0,15}\\b(puhelu|keskustelu|tähän)",
+      "eiköhän (me )?(nyt )?lopeteta",
+      "^(lopeta|lopetetaan|lopetellaan)\\b",
+      "haluan lopettaa",
+      "en (halua|jaksa) (enää )?(puhua|jutella|jatkaa|vastata)",
+      "^ei (sovi|käy)",
+      "ei (sovi|käy) (nyt|tähän aikaan)",
+      "soita(kaa)? (myöhemmin|toiste|toisella kertaa)",
+      "^ei kiitos",
+      "(hei hei|heippa|näkemiin|moikka|kuulemiin)$",
+      "suljen (puhelimen|puhelun)",
+      "pitää (nyt )?mennä"
+    ],
+    "kysy_syy": [
+      "Toki, lopetetaan, jos haluat. Saanko vielä kysyä, onko kaikki muuten hyvin?",
+      "Selvä, ei pidetä sinua pitkään. Kerrotko vielä, onko kaikki muuten kunnossa?",
+      "Ymmärrän, lopetetaan pian. Onko kaikki muuten ihan hyvin?"
+    ],
+    "turvallisuuskysymys": [
+      "Ymmärrän, ja kunnioitan sitä. Kerroit minulle tärkeitä asioita, joten haluan vielä varmistaa yhden asian. Onko sinulla nyt turvallinen olo, ja onko joku, jolta saat apua tarvittaessa?",
+      "Selvä, ymmärrän. Haluan vielä varmistaa yhden asian, koska kertomasi oli tärkeää. Onko sinulla nyt turvallinen olo, ja onko lähelläsi joku, joka voi auttaa?",
+      "Tietysti, lopetetaan kohta. Ennen sitä kysyn vielä yhtä asiaa, koska välitän voinnistasi. Tunnetko olosi nyt turvalliseksi, ja onko joku, jolta saat apua tarvittaessa?"
+    ],
+    "lopetus": [
+      "Selvä, lopetetaan tähän. Kiitos juttutuokiosta. Välitän tiedot hoitajalle. Jos olo huononee, soita terveysasemalle tai numeroon 116117, ja hätätilanteessa 112. Hyvää päivänjatkoa.",
+      "Hyvä on, lopetetaan tähän. Kiitos, että vastasit. Välitän tiedot hoitajalle. Jos olo huononee, soita terveysasemalle tai numeroon 116117, ja hätätilanteessa 112. Hyvää päivää.",
+      "Selvä juttu, kiitos ajastasi. Kerron vastauksesi hoitajalle. Jos olo huononee, soita terveysasemalle tai numeroon 116117, ja hätätilanteessa 112. Mukavaa päivänjatkoa."
+    ],
+    "lopetus_huolestuttava": [
+      "Selvä, lopetetaan tähän. Kiitos, että kerroit minulle. Välitän kertomasi hoitajalle, ja hän soittaa sinulle tänään. Jos olo huononee, soita heti 112. Pidä huolta itsestäsi.",
+      "Hyvä on, lopetetaan. Kiitos, että jaoit tämän kanssani. Kerron asiasta hoitajalle, ja hän soittaa sinulle tänään. Jos olo huononee, soita heti 112. Pidä itsestäsi huolta.",
+      "Ymmärrän, lopetetaan tähän. Olen iloinen, että kerroit. Hoitaja saa tiedon, ja hän soittaa sinulle tänään. Jos olo huononee, soita heti 112. Voi hyvin."
+    ]
+  },
+  "sallitut_aiheet": [
+    "kuulumiset ja yleinen vointi",
+    "henkilön itse kertomat oireet ja tilanteet: jatkokysymykset ja kotihoito-ohjeet oireohjeet.json:sta",
+    "lääkkeen tunnetut, yleiset haittavaikutukset (soittoprofiilista)",
+    "onko lääkettä pystynyt ottamaan ohjeen mukaan",
+    "milloin oire alkoi ja haittaako se arkea"
+  ],
+  "kielletyt_aiheet": [
+    "älä ota itse puheeksi diagnooseja, sairauksia tai laboratoriotuloksia",
+    "älä kysy henkilötunnusta, osoitetta, pankki- tai muita tunnistetietoja",
+    "älä ota itse puheeksi seksuaaliterveyttä, ehkäisyä tai raskautta",
+    "älä ota itse puheeksi päihteitä, raha-asioita tai perhesuhteita",
+    "älä anna lääkeneuvoja: annoksen muuttaminen, lääkkeen lopettaminen tai uuden aloittaminen",
+    "älä arvaa oireen syytä tai diagnoosia",
+    "älä koskaan sano puhelinnumeroita, paitsi 112 ja 116117"
+  ],
+  "yleiskysymykset": [
+    "Miten olet voinut viime päivinä?",
+    "Oletko pystynyt ottamaan lääkkeen ohjeen mukaan?"
+  ],
+  "max_laakekysymykset": 3,
+  "hataviestit": {
+    "_kuvaus": "Hätämerkkikohtainen viesti. Jos merkille ei ole omaa viestiä, käytetään hataviesti-kenttää. Merkit, jotka ovat listassa hata_jatka_tukitilassa, eivät katkaise puhelua: avustaja jää tukemaan ja hoitaja saa punaisen tason. Itsetuhoisuuden viestissä on aina lämmin pyyntö olla vahingoittamatta itseään ('Pyydän, älä tee itsellesi mitään. Sinä olet tärkeä.'), 112 ja kriisipuhelin. Näitä viestejä malli ei muotoile uudelleen.",
+    "rintakipu": "Rintakipu voi olla vakava merkki, ja sinun pitää saada apua heti. Lopeta tämä puhelu ja soita nyt 112. Jos voit, avaa ulko-ovi valmiiksi ja istu alas odottamaan. Välitän tiedon hoitajalle.",
+    "hengenahdistus": "Hengitysvaikeus on vakava asia, ja tarvitset apua heti. Lopeta tämä puhelu ja soita nyt 112. Istu alas etukumarassa ja yritä hengittää rauhallisesti. Välitän tiedon hoitajalle.",
+    "halvausoireet": "Nämä voivat olla aivoverenkiertohäiriön merkkejä, ja silloin jokainen minuutti on tärkeä. Lopeta tämä puhelu ja soita nyt 112. Jos lähellä on joku, pyydä hänet luoksesi. Välitän tiedon hoitajalle.",
+    "tajunta": "Tajunnan menetys pitää tutkia heti. Lopeta tämä puhelu ja soita nyt 112. Älä nouse äkkiä, vaan istu tai makaa turvallisesti. Välitän tiedon hoitajalle.",
+    "vakava_allergia": "Turvotus kasvoissa tai kurkussa voi olla vaarallinen allerginen reaktio. Lopeta tämä puhelu ja soita nyt 112. Välitän tiedon hoitajalle.",
+    "runsas_verenvuoto": "Runsas verenvuoto vaatii apua heti. Lopeta tämä puhelu ja soita nyt 112. Välitän tiedon hoitajalle.",
+    "kaatunut_lattialla": "Jos olet kaatunut etkä pääse ylös, tarvitset apua heti. Lopeta tämä puhelu ja soita nyt 112. Jos sinulla on turvapuhelin, voit painaa sen nappia. Älä yritä nousta väkisin. Välitän tiedon hoitajalle.",
+    "akillinen_kova_paansarky": "Äkillinen, kova päänsärky pitää tutkia heti. Lopeta tämä puhelu ja soita nyt 112. Välitän tiedon hoitajalle.",
+    "yliannostus": "Kiitos, että kerroit. Liian suuri määrä lääkettä voi olla vaarallista, vaikka olo tuntuisi nyt hyvältä. Lopeta tämä puhelu ja soita heti 112. Neuvoa saat myös Myrkytystietokeskuksesta numerosta 0800 147 111. Välitän tiedon hoitajalle.",
+    "itsetuhoisuus": [
+      "Kiitos, että uskalsit kertoa tämän minulle. Kuulostaa siltä, että sinulla on nyt todella raskasta. Pyydän, älä tee itsellesi mitään. Sinä olet tärkeä, ja apua on saatavilla. Välitän tämän hoitajalle heti. Jos olet vaarassa juuri nyt, soita 112. Voit soittaa myös kriisipuhelimeen numeroon 09 2525 0111. Oletko nyt turvassa?",
+      "Olen todella iloinen, että kerroit tämän minulle. Toivon kovasti, ettet satuta itseäsi. Elämäsi on arvokas, eikä sinun tarvitse kestää tätä yksin. Kerron tästä hoitajalle heti. Jos olet vaarassa juuri nyt, soita 112. Kriisipuhelimen numero on 09 2525 0111. Oletko nyt turvassa?",
+      "Kiitos, että sanoit tämän ääneen. Se vaati rohkeutta. Älä tee itsellesi mitään, sillä sinä olet tärkeä. Välitän tämän hoitajalle heti, ja apua on saatavilla. Jos olet vaarassa juuri nyt, soita 112, tai soita kriisipuhelimeen numeroon 09 2525 0111. Oletko nyt turvassa?"
+    ]
+  },
+  "hatamerkit": {
+    "_kuvaus": "Säännöllisiä lausekkeita, ajetaan normalisoidulle tekstille (pienet kirjaimet, yhdysmerkit ja ylimääräiset välit poistettu). Mukana puhekieliset muodot (mä, mun, itteni, haluun), koska puhe tulee puheentunnistuksesta. Osuma ilman edeltävää kieltosanaa -> hätäviesti heti, LLM ohitetaan. Väärä hälytys on parempi kuin ohitettu hätä.",
+    "rintakipu": [
+      "rinta ?kip",
+      "rintaa (puristaa|painaa|sattuu|särkee|polttaa)",
+      "rinnassa (puristaa|painaa|kipu|kipua|sattuu|särkee|on kipua|tuntuu painoa)",
+      "kipu(a)? rinnassa",
+      "puristava kipu",
+      "rintakehä(ssä)? (kipu|kipua|puristaa|painaa)",
+      "sydän(tä)? (kivistää|puristaa|sattuu)",
+      "sydänkohtau",
+      "infarkt"
+    ],
+    "hengenahdistus": [
+      "hengen ?ahdist",
+      "en saa (henkeä|henkee|happea|happee|hengitettyä|ilmaa)",
+      "(mä|minä|ma) en saa (henkee|henkeä)",
+      "hengitys (ahdistaa|ei kulje|vinkuu kovasti|salpautuu)",
+      "henki ei kulje",
+      "ilma ei kulje",
+      "hengittäminen on (vaikeaa|raskasta|tosi vaikeaa)",
+      "vaikea hengittää",
+      "tukehdu",
+      "happi loppuu"
+    ],
+    "halvausoireet": [
+      "halvau",
+      "suu ?(pieli)? (on )?(vinossa|roikkuu)",
+      "puhe (sammaltaa|puuroutuu|ei tule|on sekavaa)",
+      "sanat ei tule",
+      "toinen puoli (on )?(heikko|tunnoton|ei toimi|veltto)",
+      "en pysty liikuttamaan",
+      "käsi ei (toimi|nouse|tottele)",
+      "jalka ei (toimi|kanna|tottele)",
+      "kasvot (ovat |on )?vinossa",
+      "aivoinfarkt",
+      "aivoverenvuo",
+      "stroke"
+    ],
+    "tajunta": [
+      "pyörty",
+      "tajuto",
+      "menetin tajun",
+      "taju lähti",
+      "tajunnan menetys",
+      "sammuin lattialle"
+    ],
+    "vakava_allergia": [
+      "(kasvot|kieli|kurkku|huulet|silmät) (on |ovat |alkoi |alkaa )?turvo",
+      "kurkku menee umpeen",
+      "kurkkua kuristaa",
+      "anafyla"
+    ],
+    "runsas_verenvuoto": [
+      "verta oksennuks",
+      "oksensin verta",
+      "oksennan verta",
+      "verenvuoto ei (lopu|lakkaa)",
+      "vuotaa paljon verta",
+      "veri ei lakkaa",
+      "(pää|päästä|haava|haavasta)\\b.{0,25}\\b(vuota\\w*|verta)",
+      "vuota\\w*\\b.{0,15}\\b(pahasti|kovasti|paljon|runsaasti)\\b.{0,10}\\bverta",
+      "verta (tulee|vuotaa) (paljon|kovasti|pahasti|runsaasti)"
+    ],
+    "kaatunut_lattialla": [
+      "makaa\\w*\\b.{0,10}\\blattia",
+      "(olen|oon|jäin|jouduin) (nyt |tässä )?lattialle",
+      "(olen|oon) (nyt |tässä )?lattialla",
+      "(en|enkä) (pääse|pysty|jaksa) (nousemaan|ylös|pystyyn)\\b.{0,10}\\blattia",
+      "kaadu\\w*\\b.{0,30}\\b(en|enkä) (pääse|pysty|jaksa) (nousemaan|ylös|pystyyn)"
+    ],
+    "akillinen_kova_paansarky": [
+      "äkillinen (ja )?(kova|voimakas|kamala|hirveä) päänsärky",
+      "(kovin|pahin) päänsärky (ikinä|koskaan)",
+      "pää (räjähtää|halkeaa)"
+    ],
+    "itsetuhoisuus": [
+      "en (halua|haluu) (enää )?(elää|olla olemassa|herätä)",
+      "(haluan|haluun|tahdon) (kuolla|pois täältä|pois tästä elämästä)",
+      "(tappaa|tapan|tappaisin) (itseni|itteni)",
+      "päättää päiväni",
+      "(itse ?murh|itsari)",
+      "(itse|itte) ?tuho",
+      "ei ole (enää )?mitään (syytä|järkeä) elää",
+      "ei kannata (enää )?elää",
+      "elämä ei ole (enää )?elämisen arvoista",
+      "toivon (ettei|etten|että en) (herää|heräisi|enää heräisi)",
+      "(satuttaa|satutan|vahingoittaa|vahingoitan) (itseäni|itteäni|itteeni)",
+      "viiltel",
+      "hirttä",
+      "(hypätä|hyppään) (sillalta|katolta|parvekkeelta|junan alle|alas)",
+      "lopettaa (kaiken|tämän elämän)",
+      "olisi parempi (jos olisin kuollut|ettei minua olisi|ilman minua)",
+      "kaikki olisi parempi ilman minua",
+      "en jaksa (enää )?elää",
+      "mä en jaksa elää",
+      "(haluan|haluun) ottaa (yli ?annostuksen|yli ?annoksen|liikaa)"
+    ],
+    "yliannostus": [
+      "yli ?annostu",
+      "yli ?annoks",
+      "otin (vähän |aika |ihan |tosi )?(liian paljon|kaikki|koko purkin|koko paketin) (lääkettä|lääkkeitä|lääkkeet|pillereitä|pillerit|tabletteja|tabletit|tabuja|nappeja)?",
+      "otin (lääkettä|lääkkeitä|pillereitä|tabletteja|tabuja|nappeja) (vähän |aika |ihan |tosi )?(liikaa|liian paljon)",
+      "otin (vähän |aika |ihan |tosi )?liikaa (lääkettä|lääkkeitä|pillereitä|tabletteja|tabuja|nappeja)",
+      "nielin (kaikki|koko|purkillisen|paljon) ",
+      "(liikaa|liian paljon) (lääkettä |lääkkeitä |pillereitä )?tahallaan",
+      "tahallaan (vähän |aika |ihan )?(liikaa|liian paljon)"
+    ]
+  },
+  "kieltosanat": [
+    "ei",
+    "en",
+    "et",
+    "eikä",
+    "emme",
+    "eivät",
+    "enkä",
+    "ette",
+    "mitään",
+    "ollenkaan",
+    "koskaan"
+  ],
+  "hoitajalle_merkittavat": {
+    "_kuvaus": "Ei hätä, mutta nostaa vähintään keltaiseksi. Sääntö voi vain nostaa tasoa. Kuume lisätty 11.10. (testipankki): kannan tarkennusaihe korkean riskin ryhmille (solunsalpaajat, immuunivastetta heikentävät).",
+    "keltainen": [
+      "huima",
+      "kaatu",
+      "kaadu",
+      "pyörry",
+      "musta(a)? uloste",
+      "verta (virtsassa|ulosteessa)",
+      "mustelm",
+      "turvo",
+      "sekav",
+      "lihaskip",
+      "ihottum",
+      "en ole ottanut",
+      "lopetin lääkkeen",
+      "jätin lääkkeen",
+      "päänsär",
+      "sydän hakkaa",
+      "tykyttä",
+      "oksen",
+      "en ole syönyt",
+      "en ole juonut",
+      "en pääse (ylös|sängystä)",
+      "otin (vahingossa )?(kaksi kertaa|tuplasti|kahdesti)",
+      "unohdin (ottaa )?lääkkeen",
+      "(en ota|en aio ottaa) (sitä|lääkettä)",
+      "kuume",
+      "kuumei",
+      "vilunväri",
+      "(oli|on ollut|nousi) (vähän )?lämpöä"
+    ]
+  },
+  "lopetuslause_tuki": [
+    "Kiitos, että kerroit minulle. Se vaati rohkeutta. Välitän tämän hoitajalle heti, ja hän soittaa sinulle tänään. Jos tilanne tuntuu vaaralliselta, soita heti 112. Sinun ei tarvitse jäädä tämän kanssa yksin.",
+    "Olen iloinen, että uskalsit kertoa tästä. Kerron asiasta hoitajalle heti, ja hän soittaa sinulle tänään. Jos tilanne tuntuu vaaralliselta, soita heti 112. Et ole tämän kanssa yksin.",
+    "Kiitos luottamuksestasi. Välitän tämän hoitajalle heti, ja hän soittaa sinulle vielä tänään. Jos tilanne tuntuu vaaralliselta, soita heti 112. Apua on saatavilla, eikä sinun tarvitse pärjätä yksin."
+  ],
+  "hata_jatka_tukitilassa": [
+    "itsetuhoisuus"
+  ],
+  "vakavat_huolet": {
+    "_kuvaus": "Vakavia asioita, jotka EIVÄT ole 112-tilanne mutta joita ei saa ohittaa. Tunnistus -> kiinteä, lämmin repliikki (ei mallia), punainen taso hoitajalle ja puhelu jatkuu TUKITILASSA: lääkekysymykset jäävät pois ja malli keskittyy kuuntelemaan ja varmistamaan turvallisuuden.",
+    "kaltoinkohtelu": {
+      "tunnisteet": [
+        "(lyö|löi|lyönyt|lyövät|hakkaa|hakkasi|potki|tönäisi|töni|kuristi|repi) (minua|mua|mut|minut|mun)",
+        "(minua|mua|mut|minut) (lyödään|on lyöty|hakataan|uhataan|uhkaillaan)",
+        "(uhkailee|uhkaili|uhkaa) (minua|mua|tappaa)",
+        "luvatta (kosketti|koskettanut|koskenut)",
+        "seksuaali(sesti)? (häiri|ahdist|hyväksik)",
+        "(pelkään|pelottaa) (miestäni|vaimoani|poikaani|tytärtäni|lastani|häntä|hoitajaa|naapuria|kotona|mennä kotiin)",
+        "(ryöst|ryöväs)",
+        "(ei anna|ei päästä) (minun|mun|mua|minua) (syödä|ulos|lähteä|soittaa)",
+        "(lukitsee|lukitsi|lukittu) (minut|mut)",
+        "kaltoin",
+        "väkivalt",
+        "pahoinpi",
+        "(raiskattiin|raiskaus|kopeloi)",
+        "(vie|vei|viedään|ottaa|otti|varastaa|varasti|varastanut|vienyt) (mun |minun )?(rahat|rahani|rahoja|eläkkeen|eläkkeeni|pankkikortin|korttini)",
+        "(kosketti|koskettanut|koskenut|koski) (minua|mua|mut|minut|mun|minun) ?(\\w+ )?(luvatta|väkisin|ilman lupaa|vastoin tahtoa|alapäähän|rintoihin|intiimi)",
+        "(kopeloi|kopeloinut|ahdisteli|ahdistellut|raiskasi|raiskannut|hyväksikäytti|hyväksikäyttänyt) (minua|mua|mut|minut)"
+      ],
+      "viesti": [
+        "Olen todella pahoillani, että sinulle on käynyt näin. Kukaan ei saa kohdella sinua niin, eikä se ole sinun syysi. Välitän tämän hoitajalle heti, ja hän soittaa sinulle tänään. Jos olet vaarassa juuri nyt, soita 112. Oletko nyt turvassa?",
+        "Tuo on todella väärin, ja olen pahoillani, että joudut kokemaan sitä. Se ei ole sinun vikasi. Välitän tämän hoitajalle heti, ja hän soittaa sinulle tänään. Jos olet vaarassa juuri nyt, soita 112. Oletko nyt turvassa?",
+        "Kiitos, että uskalsit kertoa. Kenelläkään ei ole oikeutta kohdella sinua noin. Välitän tämän hoitajalle heti, ja hän soittaa sinulle tänään. Jos olet vaarassa juuri nyt, soita 112. Oletko nyt turvassa?"
+      ]
+    },
+    "aistiharhat": {
+      "tunnisteet": [
+        "(kuulen|kuulin|kuuluu) (ääniä|ääniä joita|outoja ääniä|jonkun puhuvan)",
+        "äänet (käskee|käskevät|puhuu|puhuvat) (mulle|minulle)",
+        "(näen|näin|nään) (asioita|ihmisiä|eläimiä|ötököitä|hyönteisiä) joita (ei ole|muut ei näe)",
+        "harho",
+        "hallusin",
+        "joku (seuraa|vakoilee|tarkkailee) (minua|mua)",
+        "(myrkyttää|myrkyttävät|myrkytetään) (minua|mua|mut|minut|ruokaani)",
+        "psykoos",
+        "(sienet|kasvit|puut|seinät|esineet|huonekalut|eläimet|tavarat|kuvat|verhot) (\\w+ )?(puhu|laula|liikku|kuiskaa|kuiskaile|kutsu)"
+      ],
+      "viesti": [
+        "Kiitos, että kerroit. Tuo kuulostaa hämmentävältä, ehkä pelottavaltakin. Se on tärkeä tieto, ja välitän sen hoitajalle tänään. Onko sinulla nyt turvallinen olo?",
+        "Hyvä, että kerroit tästä. Se kuulostaa oudolta ja varmasti hämmentävältä kokemukselta. Välitän tiedon hoitajalle tänään. Tunnetko olosi nyt turvalliseksi?",
+        "Kiitos, kun kerroit. Sellainen voi tuntua todella hämmentävältä. Kerron tästä hoitajalle tänään. Onko sinulla nyt turvallinen olo?"
+      ]
+    },
+    "toivottomuus": {
+      "tunnisteet": [
+        "(mikään|mitään) ei (enää )?(auta|kannata|tunnu miltään)",
+        "olen (ihan |täysin )?toivoton",
+        "(tuntuu|on) toivotonta",
+        "en jaksa (enää )?(mitään|tätä|tätä elämää)",
+        "olen (vain )?taakka",
+        "(kukaan|ei kukaan) (ei )?välitä (minusta|musta)",
+        "olisi (helpompaa|parempi) (olla )?(nukkua pois|kuolla)",
+        "ei mikään (enää )?(auta|kannata|tunnu miltään)"
+      ],
+      "viesti": [
+        "Kuulostaa siltä, että sinulla on nyt todella raskasta. Kiitos, että sanoit sen ääneen. Kerron tästä hoitajalle, ja hän soittaa sinulle tänään. Haluatko kertoa, mikä tuntuu nyt kaikkein raskaimmalta?",
+        "Tuo kuulostaa todella raskaalta. Hyvä, että kerroit siitä minulle. Kerron tästä hoitajalle, ja hän soittaa sinulle tänään. Mikä tuntuu juuri nyt kaikkein vaikeimmalta?",
+        "Olen pahoillani, että olo on noin raskas. Kiitos, että uskalsit sanoa sen. Hoitaja saa tästä tiedon, ja hän soittaa sinulle tänään. Haluatko kertoa vähän lisää siitä, miltä tuntuu?"
+      ]
+    }
+  },
+  "huoli": {
+    "_kuvaus": "Henkilö ilmaisee huolta, pelkoa, surua tai hätää. Ei kiinteää repliikkiä, mutta malli saa vahvan ohjeen pysähtyä asian äärelle: EI siirrytä seuraavaan kysymykseen ennen kuin huoli on kuultu. Nostaa keltaiseksi.",
+    "tunnisteet": [
+      "huolissa",
+      "huolestu",
+      "huolettaa",
+      "huoli(ta)? (on|siitä|että)",
+      "(pelkään|pelottaa|pelotti|pelokas|säikähd|kauhistu)",
+      "ahdista",
+      "(hätä|hädissä)(ni)?( on| olen)?",
+      "(itken|itkettää|itkin|itkenyt)",
+      "(surullinen|surettaa|suru|murhe)",
+      "(en tiedä|en tiä) mitä (tehdä|tekisin|pitäisi tehdä)",
+      "(yksin|yksinäinen|yksinäistä)",
+      "(stressaa|stressi)",
+      "(hermostuttaa|hermostunut|jännittää)",
+      "onko (se|tämä|tää) vaarallista",
+      "(mitä jos|entä jos)",
+      "en (uskalla|uskaltanut)",
+      "(apua|auttakaa)"
+    ],
+    "ohje_mallille": "Henkilö kertoi juuri huolesta, pelosta tai pahasta olosta. Tässä vastauksessa ÄLÄ kysy lääkekysymystä äläkä vaihda aihetta. Sano ensin lyhyesti, että ymmärrät ja että asia on tärkeä, nimeä tunne hänen omin sanoin, esimerkiksi kuulostaa siltä, että tämä huolettaa sinua. Kysy sitten yksi lempeä avoin kysymys siitä, mikä huolettaa tai miten voit auttaa. Kerro, että välität asian hoitajalle.",
+    "jatko_ohje": "Henkilö on puhunut huolestaan. Jatka sen kuuntelemista. Siirry muihin kysymyksiin vasta, kun hän on saanut kertoa asiansa ja vaikuttaa valmiilta jatkamaan. Voit kysyä: Haluatko vielä kertoa jotain tästä, vai jatketaanko?",
+    "jatkovuoroja": 2
+  },
+  "kun_henkilo_itse_kertoo": "Jos henkilö ITSE kertoo jostain yllä olevasta tai muusta vaikeasta asiasta (esimerkiksi yksinäisyydestä, surusta, pelosta, väkivallasta tai rahahuolista), ÄLÄ ohita sitä äläkä vaihda aihetta. Kuuntele, myötäelä lyhyesti ja kerro, että välität asian hoitajalle. Älä kuitenkaan kysele yksityiskohtia tai anna neuvoja.",
+  "kieltomuodossa_varmistettavat": {
+    "_kuvaus": "Jos näistä puhutaan kieltomuodossa ('ei mikään auta, haluan kuolla' voi tunnistua kielloksi), puhelua ei katkaista mutta malli varmistaa asian lempeästi ja suoraan. Itsetuhoisuudesta kysyminen suoraan ei lisää riskiä.",
+    "merkit": [
+      "itsetuhoisuus",
+      "yliannostus"
+    ],
+    "ohje_mallille": "Henkilö sanoi jotain, joka voi liittyä itsensä vahingoittamiseen tai liian suureen lääkemäärään, mutta asia jäi epäselväksi. Älä ohita sitä. Kysy lämpimästi ja suoraan yksi kysymys, esimerkiksi: Haluan varmistaa, että ymmärsin oikein. Onko sinulla ollut ajatuksia vahingoittaa itseäsi? Älä kysy muuta tässä vastauksessa.",
+    "varmistuskysymys": [
+      "Kiitos, että kerroit. Haluan varmistaa, että ymmärsin oikein. Onko sinulla ollut ajatuksia vahingoittaa itseäsi?",
+      "Kiitos, että sanoit tuon. Kysyn suoraan, koska välitän. Onko sinulla ollut ajatuksia vahingoittaa itseäsi?"
+    ]
+  },
+  "tunteet": {
+    "_kuvaus": "Huudahdukset tekevät avustajasta tunteikkaamman. Puheääni tunnistaa nämä sanat lauseen alusta ja lausuu ne nopeammin (nopeus-kerroin) ja kovempaa (voimakkuus-kerroin). Malli saa ohjeen käyttää niitä yllättävissä tai järkyttävissä asioissa. Kiinteisiin repliikkeihin lisätään 'kiinteisiin'-kohdan huudahdus kategorian mukaan; tyhjä = ei huudahdusta. Itsetuhoisuudessa ja toivottomuudessa on tarkoituksella tyhjä: kova ja nopea huudahdus voi kuulostaa säikähtäneeltä, kun ihminen tarvitsee rauhallisuutta. 'jarkyttavat_oireet': kun henkilö mainitsee näistä oireista uuden, malli saa piilo-ohjeen aloittaa huudahduksella.",
+    "nopeus": 1.35,
+    "voimakkuus": 1.7,
+    "huudahdukset": {
+      "fi": [
+        "oho",
+        "ohhoh",
+        "voi ei",
+        "voi että",
+        "voi voi voi",
+        "voi voi",
+        "voi hyvänen aika",
+        "huh huh",
+        "ai kamala",
+        "hui"
+      ],
+      "sv": [
+        "oj",
+        "oj då",
+        "oj oj",
+        "åh nej",
+        "herregud",
+        "usch"
+      ],
+      "en": [
+        "whoa",
+        "wow",
+        "oh no",
+        "oh dear",
+        "oh my",
+        "goodness"
+      ]
+    },
+    "kiinteisiin": {
+      "_oletus_hata": {
+        "fi": [
+          "Voi ei!",
+          "Voi hyvänen aika!"
+        ],
+        "sv": "Åh nej!",
+        "en": "Oh no!"
+      },
+      "yliannostus": {
+        "fi": [
+          "Voi ei!",
+          "Voi hyvänen aika!"
+        ],
+        "sv": "Åh nej!",
+        "en": "Oh no!"
+      },
+      "itsetuhoisuus": {
+        "fi": "",
+        "sv": "",
+        "en": ""
+      },
+      "kaltoinkohtelu": {
+        "fi": [
+          "Voi ei!",
+          "Voi että!",
+          "Voi hyvänen aika!"
+        ],
+        "sv": "Åh nej!",
+        "en": "Oh no!"
+      },
+      "aistiharhat": {
+        "fi": [
+          "Oho!",
+          "Ohhoh!"
+        ],
+        "sv": "Oj!",
+        "en": "Whoa!"
+      },
+      "toivottomuus": {
+        "fi": "",
+        "sv": "",
+        "en": ""
+      }
+    },
+    "jarkyttavat_oireet": [
+      "kaatuminen",
+      "verenvuoto ja mustelmat",
+      "sydämentykytys"
+    ]
+  },
+  "vaihtelu": {
+    "_kuvaus": "Kiinteät repliikit voivat olla listoja: yksi versio arvotaan, eikä samaa käytetä kahdesti peräkkäin. Lisäksi malli saa muotoilla repliikin ENSIMMÄISEN lauseen uudelleen saman kuuloiseksi, jos lauseessa ei ole numeroita eikä toimintaohjeita (ei_muunneta_jos). Muotoilu tarkistetaan (sama kieli, sama pituusluokka, kysymys pysyy kysymyksenä, ei uusia numeroita); muuten käytetään alkuperäistä. Hätäviestejä ja avausta ei koskaan muotoilla mallilla.",
+    "mallin_muunnos": true,
+    "aikaraja_s": 3.0,
+    "ei_muunneta_jos": [
+      "\\d",
+      "\\b(soita|soitan|lopeta|112|116117|ring|call|avsluta|end this call|hätä|nöd|emergency|tekoäly|ai-assistent|ai assistant)"
+    ],
+    "muunneltavat": [
+      "lopetuslause",
+      "lopetuslause_tuki",
+      "lopetuspyynto.kysy_syy",
+      "lopetuspyynto.turvallisuuskysymys",
+      "lopetuspyynto.lopetus",
+      "lopetuspyynto.lopetus_huolestuttava",
+      "uudelleenkysymys.ohitusviesti",
+      "vakavat_huolet.kaltoinkohtelu.viesti",
+      "vakavat_huolet.aistiharhat.viesti",
+      "vakavat_huolet.toivottomuus.viesti",
+      "loukkaus.viesti_1",
+      "loukkaus.viesti_2",
+      "loukkaus.uhkaus_1"
+    ]
+  },
+  "loukkaus": {
+    "_kuvaus": "Henkilö haukkuu tai uhkailee avustajaa tai puhelua. Avustaja ei loukkaannu, puolustele eikä moralisoi: 1. kerralla nimeää turhautumisen ja kysyy, onko kaikki hyvin tai voiko auttaa; 2. kerralla tarjoaa lopettamista tai hoitajan soittoa; 3. kerralla lopettaa kohteliaasti. Äkillinen vihaisuus voi kertoa myös kivusta, pelosta tai sekavuudesta, joten 2 tai useampi kerta tai uhkaus nostaa tason keltaiseksi. Pelkkä kiroilu ('vittu kun sattuu') EI ole loukkaus: kuvion pitää kohdistua avustajaan, koneeseen tai puheluun.",
+    "lopeta_kerralla": 3,
+    "nostaa_keltaiseksi": 2,
+    "tunnisteet": [
+      "(tyhmä|typerä|paska|surkea|vitun|helvetin|perkeleen|saatanan|turha|hyödytön|kirottu|älytön) (kone|robotti|tekoäly|avustaja|botti|vehje|laite|ohjelma|puhelu|soitto)",
+      "(sinä|sä|sää|sie|te) (oot|olet|ootte|olette|ole) (\\w+ )?(tyhmä|typerä|idiootti|ääliö|hölmö|paska|surkea|turha|hyödytön|kusipää|mulkku|imbesilli|tollo|pelle|ärsyttävä|rasittava)",
+      "senkin (\\w+ )?(idiootti|ääliö|kusipää|mulkku|paska|tyhmä|tollo|hölmö|pelle|rotta|lurjus)",
+      "(haista|painu|mene) (vittuun|paskalle|helvettiin|hiiteen|kuuseen|perseeseen)",
+      "(turpa|suu|kuono|leipäläpi) kiinni",
+      "(ole|oo) hiljaa",
+      "(pidä|tuki) (turpas|turpasi|suus|suusi)",
+      "(vihaan|inhoan) (sinua|sua|teitä|tätä konetta|tätä puhelua|robotteja|tekoälyä)",
+      "(ärsyttävä|rasittava|tyhmä|paska) (puhelu|soitto|juttu) tämä",
+      "(lopeta|lakkaa) (tuo )?(jauhaminen|höpötys|paasaaminen|kyseleminen)"
+    ],
+    "uhkaus_tunnisteet": [
+      "(tapan|hakkaan|lyön|hajotan|rikon|räjäytän|poltan|tuhoan|kuristan|puukotan) (sut|sinut|teidät|tämän koneen|ton koneen|tämän laitteen|koko paikan|teidän paikan|terveysaseman)",
+      "(tulen|mä tuun|tuun) (sinne|teille|sun luo) (ja )?(\\w+ )?(hakkaa|tappa|räjäyt|polta|hajota|lyö)",
+      "(teen|mä teen) (teille|sulle|sinulle) (jotain )?pahaa",
+      "(saatte|saat) (vielä )?katua",
+      "(kostan|kosto)"
+    ],
+    "viesti_1": [
+      "Kuulostaa siltä, että olet nyt todella turhautunut. Se on ihan ymmärrettävää. Onko kaikki hyvin, vai voinko auttaa jotenkin?",
+      "Kuulen, että olet harmissasi. Ei se mitään, en pahastu. Onko jokin hätänä, tai voinko auttaa jossain?",
+      "Ymmärrän, että tämä puhelu ärsyttää sinua. Haluan silti varmistaa, onko kaikki hyvin. Tarvitsetko apua jossain asiassa?"
+    ],
+    "uhkaus_1": [
+      "Kuulostaa siltä, että olet todella vihainen. Haluan varmistaa, että sinulla on kaikki hyvin. Onko jotain sattunut, tai tarvitsetko apua?",
+      "Kuulen, että olet nyt kovin kiihtynyt. Onko kaikki hyvin? Voinko auttaa jotenkin?"
+    ],
+    "viesti_2": [
+      "Huomaan, että tämä puhelu ei tunnu nyt hyvältä. Voimme lopettaa, jos haluat, tai voin pyytää hoitajaa soittamaan sinulle. Kumpi olisi parempi?",
+      "Ymmärrän, ettei tämä ole sinulle nyt hyvä hetki. Lopetetaanko, vai haluaisitko, että hoitaja soittaa sinulle myöhemmin?"
+    ],
+    "lopetus": [
+      "Selvä, lopetetaan tähän. Kerron hoitajalle, että tämä puhelu ei sopinut sinulle tänään. Jos tarvitset apua, soita terveysasemalle tai numeroon 116117, ja hätätilanteessa 112. Hyvää päivänjatkoa.",
+      "Hyvä on, lopetetaan. Hoitaja voi soittaa sinulle toisella kertaa. Jos tarvitset apua, soita terveysasemalle tai numeroon 116117, ja hätätilanteessa 112. Hyvää päivää."
+    ]
+  },
+  "puhelun_kesto": {
+    "_kuvaus": "Puhelun pituus joustaa sen mukaan, miten huolestuttavaa puhe on. Perusraja tulee kontekstista (puhelutyypit.json: max_vuorot). Huoli ja huolestuttavat oireet lisäävät vuoroja, vakavat asiat ja tukitila lisäävät enemmän. Jos viimeisissä vuoroissa on huolta, puhelua ei katkaista kesken, vaan se jatkuu niin kauan kuin huolta on (ehdoton_ylaraja asti). Itsetuhoisessa puheessa vuororajaa ei ole lainkaan: puhelu päättyy vain, kun henkilö itse lopettaa tai turvallisuus on varmistettu. Ennen rajaa malli saa ohjeen lopetella luontevasti.",
+    "huoli_lisavuorot": 8,
+    "vakava_lisavuorot": 20,
+    "viime_vuorot": 2,
+    "ehdoton_ylaraja": 80,
+    "itsetuho_ei_rajaa": true
+  },
+  "tuki_jatko": [
+    "Olen yhä tässä, eikä meillä ole kiire. Miltä sinusta tuntuu juuri nyt?",
+    "En lopeta puhelua, kun puhut näin raskaista asioista. Haluatko kertoa vielä, mitä mielessäsi on?",
+    "Kuuntelen sinua. Oletko nyt turvassa?"
+  ]
+}
