@@ -484,13 +484,15 @@ def test_usein_kysyttyyn_vastataan_saannolla():
     assert malli.viestit == []
 
 
-def test_toistopyynto_toistaa_kysymyksen():
+# 12.10. puhelu: "Mikä oli kysymys?" ei toistanut, malli kysyi kokonaan muuta.
+@pytest.mark.parametrize("pyynto", ["Mitä kysyit?", "Mikä oli kysymys?", "mitä sä kysyit"])
+def test_toistopyynto_toistaa_kysymyksen(pyynto):
     tila = istunto()
     malli = Malli("Kiitos. Miten uusi lääke on sopinut?")
     vuoro(tila, None, malli)
     vuoro(tila, "Ihan hyvin.", malli)
 
-    toisto = vuoro(tila, "Mitä kysyit?", malli)
+    toisto = vuoro(tila, pyynto, malli)
 
     assert toisto.sanottavat[0] in tietopohja()["uudelleenkysymys"]["toistoviesti"]
     assert toisto.sanottavat[1] == "Miten uusi lääke on sopinut?"

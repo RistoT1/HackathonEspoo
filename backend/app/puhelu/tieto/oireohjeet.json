@@ -47,7 +47,7 @@
     },
     {
       "oire": "päänsärky",
-      "tunnisteet": ["päänsär", "pää on kipeä", "päätä särkee", "pää on ollut kipeä", "päätä on särkenyt"],
+      "tunnisteet": ["päänsär", "pääkip", "päänkip", "pää on kipeä", "päätä särkee", "pää on ollut kipeä", "päätä on särkenyt"],
       "lisakysymykset": ["Onko päänsärky alkanut lääkkeen aloittamisen jälkeen?", "Kuinka usein päänsärkyä on?"],
       "kotihoito": ["Juo riittävästi vettä.", "Lepää rauhallisessa ja hämärässä paikassa.", "Raitis ilma ja lyhyt kävely voivat helpottaa."],
       "ota_yhteytta": "jos päänsärky on uudenlaista, pahenee tai ei mene ohi",

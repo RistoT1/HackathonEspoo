@@ -37,7 +37,7 @@
       "en (kuullut|ymmärtänyt|saanut selvää)",
       "(toista|toistaisitko|sano uudelleen|voitko toistaa|kysy uudelleen)",
       "mitä sinä sanoit",
-      "mitä kysyit"
+      "mitä (sä |sinä |nyt )?kysyit", "mikä (se )?(oli|on) (se )?kysymys", "mikä se kysymys (oli|on)", "mitä sä sanoit"
     ],
     "puheentunnistuksen_harhat": [
       "kiitos katsomisesta",

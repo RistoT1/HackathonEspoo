@@ -129,6 +129,8 @@ def test_sanan_keskelta_ei_tunnisteta_oiretta(teksti):
         ("jalat on ollut paksut", "turvotus"),
         ("vatsa on ollu vähä sekaisin", "ripuli"),
         ("joo vähän vapisee", "vapina"),
+        # 12.10. puhelu: "pääkipuja" ei ollut päänsärky.
+        ("hirveä darra iski, pääkipuja silleen tosi vaikeet", "päänsärky"),
         ("ihan ok muuten, mutta en ole jaksanut juoda", "ruokahaluttomuus ja juominen"),
         ("ruoka ei oikein maistu", "ruokahaluttomuus ja juominen"),
     ],
