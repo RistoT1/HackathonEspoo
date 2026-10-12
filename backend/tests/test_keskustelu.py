@@ -244,6 +244,8 @@ def test_uuteen_oireeseen_viimeisessa_vastauksessa_ei_lopeteta():
         "no ei tässä mitään ihmeempiä",
         "ei nyt kummempia",
         "en oikein tiedä, ihan hyvin kai",
+        "en tiedä",
+        "No joo, kaikki on ihan hyvin, eikö tämä jo riitä.",
     ],
 )
 def test_kieltomuotoinen_kuulumisvastaus_ei_lopeta_puhelua(vastaus):
