@@ -82,6 +82,8 @@ LAAKENEUVO_VASTAUS = (
 # Ensimmäinen vuoro odottaa soiton aikana alkanutta lämmitystä enintään näin kauan.
 LAMMITYKSEN_ODOTUS_S = 12
 OIREEN_VUOROT = 2
+# Huolen kuuntelu (piilo-ohje + jatkovuorot) enintään näin monta kertaa puhelussa.
+HUOLEN_KUUNTELUT = 3
 OIRE_JATKO_OHJE = (
     "\n(Ohje: Henkilö kertoi oireista: {oireet}. Jatka niiden selvittämistä tietopohjan "
     "jatkokysymyksellä, yksi kerrallaan, älä ohita yhtäkään. Älä vielä kysy listan kysymystä.)"
@@ -161,6 +163,7 @@ class Puheluistunto:
     kasitellyt_oireet: set[str] = field(default_factory=set)
     kasitellyt_vakavat: set[str] = field(default_factory=set)
     huoli_jatko: int = 0
+    huolia_kuunneltu: int = 0  # huolen piilo-ohje annettu (HUOLEN_KUUNTELUT)
     aloitukset: list[str] = field(default_factory=list)
     tukitila: str | None = None
     itsetuho: bool = False
@@ -585,10 +588,16 @@ def _piilo_ohjeet(istunto: Puheluistunto, tieto: Tietopohjahavainto, lopuillaan:
             istunto.kotihoito_oireet = istunto.avoimet_oireet
             istunto.avoimet_oireet = []
 
-    if tieto.huoli:
+    toistuva_huoli = tieto.huoli and istunto.huolia_kuunneltu >= HUOLEN_KUUNTELUT
+    if toistuva_huoli:
+        # Sama pelko joka vastauksessa piti huolen auki loputtomiin (12.10. testipankki:
+        # puhelu ei päättynyt 17 vuorossa). Huoli on jo kirjattu triageen.
+        _syy(istunto, f"huoli:toistuu:{','.join(tieto.huoli)}")
+    elif tieto.huoli:
         _syy(istunto, f"huoli:{','.join(tieto.huoli)}")
         ohje = piilo_ohje("huoli") + ohje
         istunto.huoli_jatko = tietopohjan_saannot()["huoli"]["jatkovuoroja"]
+        istunto.huolia_kuunneltu += 1
     elif istunto.huoli_jatko > 0:
         istunto.huoli_jatko -= 1
         ohje += piilo_ohje("huoli_jatko")

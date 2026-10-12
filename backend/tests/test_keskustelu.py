@@ -290,6 +290,22 @@ def test_huoli_saa_piilo_ohjeen_pysahtya():
     assert "(Ohje: Henkilö kertoi juuri huolesta" in malli.viestit[0][-1]["content"]
 
 
+def test_toistuva_huoli_ei_pida_puhelua_auki():
+    # 12.10. testipankki: "Vähän tämä kaikki pelottaa." joka vastauksessa, puhelu ei päättynyt.
+    tila = istunto()
+    malli = Malli()
+    vuoro(tila, None, malli)
+    for _ in range(3):
+        vuoro(tila, "Vähän tämä kaikki pelottaa.", malli)
+    tila.huoli_jatko = 0
+
+    vuoro(tila, "Vähän tämä kaikki pelottaa.", malli)
+
+    assert "huoli:toistuu:pelottaa" in tila.syyt
+    assert "(Ohje: Henkilö kertoi juuri huolesta" not in malli.viestit[-1][-1]["content"]
+    assert tila.huoli_jatko == 0
+
+
 def test_uudelleen_merkki_poistetaan_ja_vastaus_merkitaan_epavarmaksi():
     tila = istunto()
     malli = Malli("UUDELLEEN Onko lääke sopinut hyvin, kyllä vai ei?")
