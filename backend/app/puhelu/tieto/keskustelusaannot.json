@@ -142,6 +142,7 @@
     "hengenahdistus": [
       "hengen ?ahdist",
       "en saa (henkeä|henkee|happea|happee|hengitettyä|ilmaa)",
+      "en (meinaa|meinannut|tahdo|oikein|kunnolla|pysty)( oikein| kunnolla)? (saa|saada) (kunnolla )?(henkeä|henkee|happea|happee|hengitettyä|ilmaa)",
       "(mä|minä|ma) en saa (henkee|henkeä)",
       "hengitys (ahdistaa|ei kulje|vinkuu kovasti|salpautuu)",
       "henki ei kulje",

@@ -15,7 +15,7 @@
     },
     {
       "oire": "ripuli",
-      "tunnisteet": ["ripul", "vatsa sekaisin", "vatsa on ollut sekaisin", "löysä"],
+      "tunnisteet": ["ripul", "vatsa (on )?(ollut |ollu )?(vähä |vähän |vähäsen |ihan |aika )?sekaisin", "löysä"],
       "lisakysymykset": ["Kuinka monta päivää ripulia on ollut?", "Pystytkö juomaan riittävästi?"],
       "kotihoito": ["Juo tavallista enemmän, esimerkiksi vettä tai mehua laimennettuna.", "Syö kevyttä ruokaa, kuten keittoa, puuroa tai banaania."],
       "ota_yhteytta": "jos ripuli jatkuu useamman päivän, olet hyvin heikko tai ulosteessa on verta",
@@ -55,7 +55,7 @@
     },
     {
       "oire": "väsymys",
-      "tunnisteet": ["väsy", "uupu", "voimaton", "ei jaksa", "en jaksa"],
+      "tunnisteet": ["väsy", "uupu", "voimaton", "ei jaksa", "en jaksa", "päivälläkin (pitää |täytyy )?nukku"],
       "lisakysymykset": ["Onko väsymys alkanut lääkkeen aloittamisen jälkeen?", "Haittaako väsymys arjen askareita?"],
       "kotihoito": ["Pidä päivään säännöllinen rytmi ja lyhyitä lepohetkiä.", "Syö säännöllisesti ja juo riittävästi."],
       "ota_yhteytta": "jos väsymys on niin kovaa, ettet pysty hoitamaan arkea",
@@ -71,7 +71,7 @@
     },
     {
       "oire": "turvotus",
-      "tunnisteet": ["turvo", "nilkat paksu", "jalat paksu"],
+      "tunnisteet": ["turvo", "(nilkat|jalat|sääret) (on |ovat )?(ollut |olleet )?(vähän |tosi |aika )?paksu"],
       "lisakysymykset": ["Onko turvotusta molemmissa jaloissa vai vain toisessa?", "Onko turvotus pahempaa illalla?"],
       "kotihoito": ["Pidä jalkoja levätessä koholla.", "Liikuttele nilkkoja istuessa."],
       "ota_yhteytta": "jos turvotus on vain toisessa jalassa, jalka on kipeä tai turvotus lisääntyy nopeasti",
@@ -79,7 +79,7 @@
     },
     {
       "oire": "lihaskipu",
-      "tunnisteet": ["lihaskip", "lihakset kipe", "lihaksia särkee", "lihasheik", "kolottaa", "kolotus"],
+      "tunnisteet": ["lihaskip", "lihaks\\w*( on| ovat| on ollut)? (särk|kipe|kolot|sattu|kivist)", "lihasheik", "kolot"],
       "lisakysymykset": ["Missä lihaksissa kipua on?", "Onko kipu alkanut lääkkeen aloittamisen jälkeen?"],
       "kotihoito": ["Kevyt liikkuminen ja venyttely voivat helpottaa.", "Lämpö, esimerkiksi lämmin suihku, voi rentouttaa lihaksia."],
       "ota_yhteytta": "jos lihaskipu on voimakasta tai virtsa on tummaa",
@@ -151,10 +151,18 @@
     },
     {
       "oire": "vapina",
-      "tunnisteet": ["vapin", "täris", "tärinä"],
+      "tunnisteet": ["vapin", "vapis", "vapise", "täris", "tärinä"],
       "lisakysymykset": ["Alkoiko vapina lääkemuutoksen jälkeen?", "Haittaako vapina esimerkiksi syömistä tai juomista?"],
       "kotihoito": ["Tue kyynärpäät pöytään, kun syöt tai juot.", "Täytä muki vain puoliksi, niin juominen on helpompaa.", "Runsas kahvi voi lisätä vapinaa, joten sitä kannattaa välttää."],
       "ota_yhteytta": "jos vapina alkoi lääkemuutoksen jälkeen tai pahenee",
+      "huolestuttava": true
+    },
+    {
+      "oire": "ruokahaluttomuus ja juominen",
+      "tunnisteet": ["ruokahaluttom", "ruokahalu on (huono|heikko|mennyt|kadonnut)", "ruoka ei (oikein |ole )?(maistu|maistunut)", "ei ole tehnyt mieli syödä", "(en|ei) (ole )?(jaksa|jaksanut|pysty|pystynyt|jaksanu) (syödä|juoda|syömään|juomaan)", "syön (vain |enää )?(puolet|vähän|vähemmän)"],
+      "lisakysymykset": ["Kuinka kauan ruoka ei ole maistunut?", "Saatko juotua tavalliseen tapaan päivän mittaan?"],
+      "kotihoito": ["Syö pieniä annoksia useita kertoja päivässä, vaikka ei tekisi mieli.", "Pidä juomalasi lähellä ja juo pienin kulauksin pitkin päivää."],
+      "ota_yhteytta": "jos et pysty syömään tai juomaan tai paino on pudonnut",
       "huolestuttava": true
     }
   ]
