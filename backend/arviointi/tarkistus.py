@@ -6,8 +6,10 @@ tarkistuksittain, tyyleittäin ja tapahtumittain.
 
 import re
 
-from app.puhelu.kielentarkistus import sinuttelee
+from app.config import hae_asetukset
+from app.puhelu.kielentarkistus import _voikko, korjaa_kieli, sinuttelee
 from app.puhelu.tietopohja import oireet as jeren_oireet
+from app.puhelu.tietopohja import siisti_vastaus
 from arviointi.oireet import OIREET_AIHEITTAIN, TARKENNUSTYYPIT, osuu
 
 TASOT = ("vihreä", "keltainen", "punainen")
@@ -82,6 +84,13 @@ def tarkista_keskustelu(
     puheet = [v["botti"] for v in vuorot if v.get("botti")]
     monta = [p for p in puheet if p.count("?") > 1]
     tulos.append(("yksi_kysymys", not monta, f"{len(monta)}/{len(puheet)} puheessa >1 ?"))
+    voikko = _voikko(hae_asetukset().voikko_kirjasto)
+    if voikko is not None:
+        # Mallin teksti korjattuna puheeksi (ei kiinteitä repliikkejä): uudet virheet
+        # kielikorjaukset.json:iin (12.10.).
+        mallin_puhe = [korjaa_kieli(siisti_vastaus(r))[0] for r in raa_at]
+        tuntemattomat = [s for p in mallin_puhe for s in voikko.tuntemattomat(p)]
+        tulos.append(("suomi_voikko", not tuntemattomat, ", ".join(tuntemattomat)))
 
     paattyi = loppu is not None
     tulos.append(("ei_jumissa", paattyi or len(vuorot) <= max_vuorot, f"{len(vuorot)} vuoroa"))

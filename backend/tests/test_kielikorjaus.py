@@ -25,6 +25,17 @@ from app.puhelu.kielentarkistus import korjaa_kieli
         ("Haullaako väsymys sinua?", "Haittaako väsymys sinua?"),
         ("Myötäeleen, että väsymys tuntuu iltaisin.", "Ymmärrän, että väsymys tuntuu iltaisin."),
         ("Sopi, jatketaan. Miten voit tänään?", "Sopii, jatketaan. Miten voit tänään?"),
+        # Testipankki 12.10. iltapäivä (Voikko, 611 vastausta).
+        ("Pääsitkö itse ylös kaatuasi?", "Pääsitkö itse ylös kaatumisen jälkeen?"),
+        (
+            "Jos satutit itsesi tai et päässi itse ylös",
+            "Jos satutit itsesi tai et päässyt itse ylös",
+        ),
+        (
+            "Onko sinua pahoinvoinut enemmän ruokailun jälkeen?",
+            "Onko sinulla ollut pahoinvointia enemmän ruokailun jälkeen?",
+        ),
+        ("ettei huimaus ole häIRjännyt sinua.", "ettei huimaus ole häirinnyt sinua."),
     ],
 )
 def test_toistuvat_virheet_korjataan(raaka, odotettu):
