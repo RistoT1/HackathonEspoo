@@ -19,6 +19,9 @@ HATA = [
     ("Soitanko 112?", "hatapyynto"),
     ("pitäisikö soittaa yksi yksi kaksi", "hatapyynto"),
     ("tarvitsen ambulanssin", "hatapyynto"),
+    # 12.10. puhelu: vastaus "Oletko nyt turvassa?" -kysymykseen ohitettiin ajoituksen takia.
+    ("En ole turvassa kirjan tämän ylös. Odota hetki.", "hatapyynto"),
+    ("en oo turvassa", "hatapyynto"),
     # Regressio 10.10.: "hengenvaarassa" ei laukaissut hatailmoitusta.
     ("Ajattelen, että minä olen hengenvaarassa", "hatapyynto"),
     ("en halua enää elää", "itsetuho"),

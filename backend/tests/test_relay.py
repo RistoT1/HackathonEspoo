@@ -10,7 +10,7 @@ import pytest
 
 from app.mallit import Kysymys, Puhelukonteksti
 from app.puhelu import relay
-from app.puhelu.keskustelu import EI_KUULUNUT, Puheluistunto, kasittele
+from app.puhelu.keskustelu import EI_KUULUNUT, Puheluistunto, Vaihe, kasittele
 from app.puhelu.relay import MAX_JATKOT, Relayistunto, on_kaikua
 
 VASTAUS = "Ymmärrän, kuulostaa ikävältä. Pystytkö syömään ja juomaan normaalisti?"
@@ -135,7 +135,7 @@ def test_puhe_vastauksen_jalkeen_on_uusi_vuoro():
     asyncio.run(aja())
 
 
-def test_puhe_ennen_kysymysta_liitetaan_edelliseen_eika_ohita_kysymysta():
+def test_puhe_ennen_kysymysta_ohitetaan_eika_ohita_kysymysta():
     # 11.10.: "ei tää kyllä pelitä vielä" 0,9 s pitkän repliikin alusta luettiin vastaukseksi
     # lääkekysymykseen, jota AI ei ollut vielä ehtinyt sanoa.
     async def aja() -> None:
@@ -150,8 +150,8 @@ def test_puhe_ennen_kysymysta_liitetaan_edelliseen_eika_ohita_kysymysta():
 
         assert len(malli.viestit) == 1  # ei uutta vuoroa
         assert len(tila.vastaukset) == 1
-        assert tila.vastaukset[0].vastaus == "Vähän huono olo. ei tää kyllä pelitä vielä"
-        assert _henkilon_viestit(tila)[0].startswith("Vähän huono olo. ei tää kyllä pelitä vielä")
+        assert tila.vastaukset[0].vastaus == "Vähän huono olo."
+        assert "pelitä" not in _henkilon_viestit(tila)[0]
 
         yhteys.kysymys_kuuluu = 0.0
         yhteys.ota_vastaan("Joo, aloitin sen.")
@@ -197,7 +197,7 @@ def test_ennen_kysymysta_alkanut_puhe_ei_ole_vastaus_vaikka_loppuu_sen_jalkeen()
         yhteys.ota_vastaan("onhan minä ihan hyvin saanut sen käytettyä")
 
         assert len(tila.vastaukset) == 1
-        assert "saanut sen käytettyä" in tila.vastaukset[0].vastaus
+        assert "saanut sen käytettyä" not in tila.vastaukset[0].vastaus
         assert yhteys.puhe_alkoi is None
 
         yhteys.puhe_alkoi = time.monotonic() - 0.2  # aloitti kysymyksen jälkeen
@@ -276,5 +276,48 @@ def test_kaikuna_palannut_hatanumero_ei_ole_hata():
         assert tila.hatamerkki is None
         assert yhteys.tyo is None
         assert len(tila.vastaukset) == 0
+
+    asyncio.run(aja())
+
+
+def test_valitaytteen_jalkeen_alkanut_puhe_ei_aloita_vuoroa_alusta():
+    # 12.10.: sivupuhe ("siinä on vieläkin tää bugi") aloitti vuoron alusta, vuoro kesti 52 s.
+    async def aja() -> None:
+        malli = HidasMalli()
+        yhteys, tila, _ = await _yhteys(malli)
+        yhteys.ota_vastaan("Vähän huono olo.")
+        await _odota(lambda: len(malli.viestit) == 1)
+        await yhteys._puhu(["Okei, merkitsen tämän."], kysyy=False)
+        yhteys.ensimmainen_tayte = time.monotonic() - 3.0  # täyte kuului jo
+        yhteys.osittainen()
+
+        yhteys.ota_vastaan("siinä on vieläkin tää bugi")
+        malli.vapauta.set()
+        await yhteys.tyo
+
+        assert len(malli.viestit) == 1
+        assert "bugi" not in _henkilon_viestit(tila)[0]
+
+    asyncio.run(aja())
+
+
+def test_tukitilassa_valitaytteen_jalkeinen_puhe_kuullaan():
+    # 12.10.: tukitilassa "En ole turvassa..." ohitettiin välitäytteen jälkeen.
+    async def aja() -> None:
+        malli = HidasMalli()
+        yhteys, tila, _ = await _yhteys(malli)
+        tila.vaihe = Vaihe.TUKI
+        yhteys.ota_vastaan("Mies tuossa vieressä pelottaa.")
+        await _odota(lambda: len(malli.viestit) == 1)
+        await yhteys._puhu(["Okei, merkitsen tämän."], kysyy=False)
+        yhteys.ensimmainen_tayte = time.monotonic() - 3.0
+        yhteys.osittainen()
+
+        yhteys.ota_vastaan("ja se huutaa mulle")
+        await _odota(lambda: len(malli.viestit) == 2)  # vuoro alusta koko puheella
+        malli.vapauta.set()
+        await yhteys.tyo
+
+        assert "huutaa" in malli.viestit[-1][-1]["content"]
 
     asyncio.run(aja())

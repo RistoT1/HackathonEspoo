@@ -207,6 +207,19 @@ def test_selva_kieltaytyminen_avauksen_jalkeen_on_lopetuspyynto(vastaus):
     assert any(syy.startswith("lopetuspyynto") for syy in tila.syyt)
 
 
+def test_kaatumisen_jalkeen_ei_paase_ylos_on_hata():
+    tila = istunto()
+    vuoro(tila, None)
+    vuoro(tila, "Kaaduin äsken keittiössä.")
+
+    hata = vuoro(tila, "En pääse ylös.")
+
+    assert tila.hatamerkki == "kaatunut_lattialla"
+    assert not hata.kuuntele
+    assert "112" in " ".join(hata.sanottavat)
+    assert tila.tulos().yhteenveto.taso == "punainen"
+
+
 def test_huoli_saa_piilo_ohjeen_pysahtya():
     tila = istunto()
     malli = Malli("Ymmärrän, että se huolettaa.")
@@ -289,16 +302,40 @@ def test_tukitilassa_lopetus_ohitetaan_kun_puhe_yha_raskasta():
     assert vastaus.sanottavat[0] in tietopohja()["tuki_jatko"]
 
 
-def test_lopetuspyynto_kysyy_kuulumiset_ja_sitten_lopettaa():
+def test_lopetuspyynto_lopettaa_heti():
+    # 12.10.: yksi pyyntö riittää (aiemmin ensin kuulumiskysymys).
     tila = istunto()
     vuoro(tila, None)
 
-    eka = vuoro(tila, "Pitää nyt mennä.")
-    toka = vuoro(tila, "Joo kaikki hyvin.")
+    loppu = vuoro(tila, "Pitää nyt mennä.")
 
-    assert eka.sanottavat[0] in tietopohja()["lopetuspyynto"]["kysy_syy"]
-    assert toka.sanottavat[0] in tietopohja()["lopetuspyynto"]["lopetus"]
+    assert not loppu.kuuntele
+    assert loppu.sanottavat[0] in tietopohja()["lopetuspyynto"]["lopetus"]
     assert tila.loppu == PuhelunLoppu.LOPETTI
+
+
+def test_lopetuspyynto_huolen_jalkeen_lopettaa_heti_hoitajan_soitolla():
+    tila = istunto()
+    vuoro(tila, None)
+    vuoro(tila, "Vähän on huimannut aamuisin.")
+
+    loppu = vuoro(tila, "No lopetetaan nyt tämä puhelu.")
+
+    assert not loppu.kuuntele
+    assert loppu.sanottavat[0] in tietopohja()["lopetuspyynto"]["lopetus_huolestuttava"]
+
+
+def test_itsetuhoisen_puheen_jalkeen_kysytaan_turvallisuudesta_ennen_lopetusta():
+    tila = istunto()
+    vuoro(tila, None)
+    vuoro(tila, "en halua enää elää")
+
+    eka = vuoro(tila, "lopetetaan tämä puhelu")
+    toka = vuoro(tila, "joo olen turvassa")
+
+    assert eka.kuuntele
+    assert eka.sanottavat[0] in tietopohja()["lopetuspyynto"]["turvallisuuskysymys"]
+    assert not toka.kuuntele
 
 
 def test_loukkaus_kolmannella_kerralla_lopettaa():

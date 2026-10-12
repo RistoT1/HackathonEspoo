@@ -53,8 +53,7 @@ def _tulosta_rivi(rivi: dict, alku: datetime, erillinen_kuultu: bool) -> None:
     elif tapahtuma == "jatkettu_puhe":
         print(f"{t:7.1f}  ++ jatkoi puhetta (malli mietti): {rivi.get('kuultu')!r}")
     elif tapahtuma == "puhe_ai_puhuessa":
-        minne = "liitetty edelliseen vastaukseen" if rivi.get("liitetty") else "ohitettu"
-        print(f"{t:7.1f}  .. puhui AI:n lukiessa ({minne}): {rivi.get('kuultu')!r}")
+        print(f"{t:7.1f}  xx puhui AI:n lukiessa (ohitettu): {rivi.get('kuultu')!r}")
     elif tapahtuma == "kaiku":
         print(f"{t:7.1f}  xx kaiku (AI:n oma puhe, hylätty): {rivi.get('kuultu')!r}")
     elif tapahtuma == "puhe_alkoi":

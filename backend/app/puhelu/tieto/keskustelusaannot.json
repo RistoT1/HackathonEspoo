@@ -54,6 +54,8 @@
     "_kuvaus": "Ilman huolia: 1. pyyntö kysyy kuulumiset, 2. lopettaa. Jos puhelussa on huolia: 1. pyyntö kysyy yhden turvallisuuskysymyksen, 2. lopettaa. Ihmistä ei pidetä puhelimessa vastoin tahtoa. {huolet} on käytettävissä teksteissä, mutta luokkia ei kannata lukea ääneen henkilölle.",
     "tunnisteet": [
       "\\b(lopeta|lopetetaan|lopettaa|lopetellaan)\\b.{0,15}\\b(puhelu|keskustelu|tämä|tää|nyt|jo)",
+      "\\b(lopetan|lopettamalla)\\b.{0,15}\\b(puhelu|keskustelu|tähän)",
+      "eiköhän (me )?(nyt )?lopeteta",
       "^(lopeta|lopetetaan|lopetellaan)\\b",
       "haluan lopettaa",
       "en (halua|jaksa) (enää )?(puhua|jutella|jatkaa|vastata)",
@@ -115,6 +117,7 @@
     "tajunta": "Tajunnan menetys pitää tutkia heti. Lopeta tämä puhelu ja soita nyt 112. Älä nouse äkkiä, vaan istu tai makaa turvallisesti. Välitän tiedon hoitajalle.",
     "vakava_allergia": "Turvotus kasvoissa tai kurkussa voi olla vaarallinen allerginen reaktio. Lopeta tämä puhelu ja soita nyt 112. Välitän tiedon hoitajalle.",
     "runsas_verenvuoto": "Runsas verenvuoto vaatii apua heti. Lopeta tämä puhelu ja soita nyt 112. Välitän tiedon hoitajalle.",
+    "kaatunut_lattialla": "Jos olet kaatunut etkä pääse ylös, tarvitset apua heti. Lopeta tämä puhelu ja soita nyt 112. Jos sinulla on turvapuhelin, voit painaa sen nappia. Älä yritä nousta väkisin. Välitän tiedon hoitajalle.",
     "akillinen_kova_paansarky": "Äkillinen, kova päänsärky pitää tutkia heti. Lopeta tämä puhelu ja soita nyt 112. Välitän tiedon hoitajalle.",
     "yliannostus": "Kiitos, että kerroit. Liian suuri määrä lääkettä voi olla vaarallista, vaikka olo tuntuisi nyt hyvältä. Lopeta tämä puhelu ja soita heti 112. Neuvoa saat myös Myrkytystietokeskuksesta numerosta 0800 147 111. Välitän tiedon hoitajalle.",
     "itsetuhoisuus": [
@@ -182,7 +185,17 @@
       "oksennan verta",
       "verenvuoto ei (lopu|lakkaa)",
       "vuotaa paljon verta",
-      "veri ei lakkaa"
+      "veri ei lakkaa",
+      "(pää|päästä|haava|haavasta)\\b.{0,25}\\b(vuota\\w*|verta)",
+      "vuota\\w*\\b.{0,15}\\b(pahasti|kovasti|paljon|runsaasti)\\b.{0,10}\\bverta",
+      "verta (tulee|vuotaa) (paljon|kovasti|pahasti|runsaasti)"
+    ],
+    "kaatunut_lattialla": [
+      "makaa\\w*\\b.{0,10}\\blattia",
+      "(olen|oon|jäin|jouduin) (nyt |tässä )?lattialle",
+      "(olen|oon) (nyt |tässä )?lattialla",
+      "(en|enkä) (pääse|pysty|jaksa) (nousemaan|ylös|pystyyn)\\b.{0,10}\\blattia",
+      "kaadu\\w*\\b.{0,30}\\b(en|enkä) (pääse|pysty|jaksa) (nousemaan|ylös|pystyyn)"
     ],
     "akillinen_kova_paansarky": [
       "äkillinen (ja )?(kova|voimakas|kamala|hirveä) päänsärky",

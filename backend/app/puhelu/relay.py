@@ -25,10 +25,10 @@ from app.puhelu.agentti import Keskusteluagentti, hae_agentti
 from app.puhelu.istunnot import Istuntovarasto, hae_istuntovarasto
 from app.puhelu.keskustelu import (
     Puheluistunto,
+    Vaihe,
     Vuoro,
     ilman_lyhytta_kuittausta,
     kasittele,
-    liita_edelliseen,
     palauta,
     tilannekuva,
 )
@@ -67,6 +67,9 @@ PUHENOPEUS_MERKKIA_S = 12.0
 HIDAS_PUHE_MERKKIA_S = 6.0
 # Näin kauan AI:n kysymyksen jälkeen ilman puhetta -> kysymys toistetaan (_hiljainen_vuoro).
 HILJAISUUS_S = 15.0
+# Välitäyte alkaa kuulua noin näin kauan lähetyksen jälkeen (arvio): sitä ennen alkanut puhe on
+# vielä saman lauseen jatkoa.
+TAYTTEEN_VIIVE_S = 1.0
 # Kaiku: AI:n oma puhe kuuluu puhelimen kaiuttimesta takaisin tunnistukseen (11.10.: välitäyte
 # "Selvä, kirjaan tämän ylös." -> "Selvä kirja." -> malli neuvoi siirtämään "kirjan"). Kaiku
 # alkaa AI:n puheen aikana tai pian sen jälkeen (Twilion viive, arvio).
@@ -154,6 +157,7 @@ class Relayistunto:
         self.viimeksi_kuultu = 0.0
         self.vastauksia = 0
         self.vahti: asyncio.Task | None = None
+        self.ensimmainen_tayte: float | None = None  # tämän vuoron ensimmäinen välitäyte
         # AI:n viimeisimmät puheet kaikutarkistukseen: (alkaa, loppuu, teksti), monotonic.
         self.sanotut: list[tuple[float, float, str]] = []
         self.paattynyt = False
@@ -183,9 +187,13 @@ class Relayistunto:
         mietin... anteeksi"), siksi sitä ei puskuroida seuraavalle vuorolle. Hätämerkki ja
         vakava huoli keskeyttävät vuoron ja käsitellään heti omana vuoronaan.
 
+        Jatkoksi kelpaa vain ennen ensimmäistä välitäytettä alkanut puhe (tauko kesken
+        lauseen). Välitäytteen jälkeen tullut on sivupuhetta: se ohitetaan (12.10.: "siinä on
+        vieläkin tää bugi" aloitti vuoron alusta, vuoro kesti 52 s).
+
         Puhe, joka ALKOI ennen kuin AI ehti kysymykseen, ei ole vastaus siihen, vaikka se
         loppuisi kysymyksen jälkeen (11.10.: myöhästynyt vastaus edelliseen kysymykseen
-        luettiin vastaukseksi seuraavaan). Se liitetään edelliseen vastaukseen.
+        luettiin vastaukseksi seuraavaan). Se ohitetaan.
 
         AI:n oman puheen kaiku hylätään ensimmäisenä, myös ennen hätätarkistusta: kaikuna
         palannut "soita 112" ei ole henkilön hätä."""
@@ -199,8 +207,9 @@ class Relayistunto:
         vuoro_kesken = self.tyo is not None and not self.tyo.done()
         ennen_kysymysta = alkoi < self.kysymys_kuuluu
         if not vuoro_kesken and ennen_kysymysta and not ei_ohitettava(teksti):
-            liitetty = liita_edelliseen(self.istunto, teksti)
-            self._kirjaa("puhe_ai_puhuessa", kuultu=teksti, liitetty=liitetty)
+            # Henkilö ei ole kuullut kysymystä: ohitetaan (12.10.: sivupuhe "Mihinkäs aina jäi
+            # nukkumaan?" liitettiin vastaukseen ja sotki keskustelun).
+            self._kirjaa("puhe_ai_puhuessa", kuultu=teksti)
             return
         self.vastauksia += 1
         if not vuoro_kesken:
@@ -212,12 +221,18 @@ class Relayistunto:
             self._kirjaa("kiireellinen_puhe", kuultu=teksti)
             self.kiire.set()
             return
-        if self.odottaa_mallia:
+        tayte = self.ensimmainen_tayte
+        # Tukitilassa (vakava asia) ei ohiteta: hädässä olevan puheen menetys on pahempi kuin
+        # sivupuheen kuuleminen (12.10.: "En ole turvassa" ohitettiin välitäytteen jälkeen).
+        tukitila = self.istunto.vaihe == Vaihe.TUKI
+        jatkaa_lausetta = tukitila or tayte is None or alkoi < tayte + TAYTTEEN_VIIVE_S
+        if self.odottaa_mallia and jatkaa_lausetta:
             self.jatko.append(teksti)
             self._kirjaa("jatkettu_puhe", kuultu=teksti)
             self.jatkettu.set()
             return
-        self._kirjaa("ohitettu_puhe", kuultu=teksti, syy="vuoro kesken")
+        syy = "välitäytteen jälkeen" if self.odottaa_mallia else "vuoro kesken"
+        self._kirjaa("ohitettu_puhe", kuultu=teksti, syy=syy)
 
     async def aloita(self) -> None:
         await self._vuoro(None)
@@ -233,6 +248,7 @@ class Relayistunto:
         alku = time.perf_counter()
         vaihe_ennen = istunto.vaihe.value
         self._kirjaa("kuultu", vaihe=vaihe_ennen, kuultu=teksti)
+        self.ensimmainen_tayte = None
         self.kiire.clear()
         self.jatkettu.clear()
         self.jatko.clear()
@@ -338,6 +354,8 @@ class Relayistunto:
         self.sanotut = [*self.sanotut, (alku, self.puhe_loppuu, " ".join(sanottavat))][
             -SANOTTUJA_MUISTISSA:
         ]
+        if not kysyy and self.ensimmainen_tayte is None:
+            self.ensimmainen_tayte = alku
         if kysyy:
             kysymykseen_s = kysymyksen_alku_arvio_ms(sanottavat) / 1000
             self.kysymys_kuuluu = alku + KYSYMYKSEN_ALUN_OSUUS * kysymykseen_s

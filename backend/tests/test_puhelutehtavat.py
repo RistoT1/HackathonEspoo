@@ -125,10 +125,10 @@ def test_tunnistus_luo_tehtavan_vain_muutoksille(sessio):
     assert tulos.uusia_muutoksia == 2
     assert sorted(t.vanhus_id for t in tehtavat) == ["v-1", "v-2"]
     assert all(t.tila == T.ODOTTAA for t in tehtavat)
-    # Kannan alkusisalto: uusi laake + verenpaineryhman 2 tarkennusta + vointi.
+    # Kannan sisalto: uusi laake + verenpaineryhman 2 tarkennusta (vointi kysytaan avauksessa).
     assert all(
         [k.tunniste for k in t.kysymykset]
-        == ["UUSI_LAAKE", "tarkennus.huimaus", "tarkennus.kaatuminen", "vointi"]
+        == ["UUSI_LAAKE", "tarkennus.huimaus", "tarkennus.kaatuminen"]
         for t in tehtavat
     )
 

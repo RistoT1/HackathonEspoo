@@ -169,7 +169,8 @@ def test_alkusisalto_kattaa_kaikki_muutostyypit(sessio):
     sisalto = lataa_sisalto(sessio)
 
     assert set(sisalto.muutoskysymykset) == set(MuutosTyyppi)
-    assert sisalto.yleiskysymykset
+    # Vointi kysytään avauksessa, ei listalla (migraatio a3c7e1d9f204, 12.10.).
+    assert not sisalto.yleiskysymykset
     assert all(teksti.rstrip().endswith("?") for teksti in sisalto.muutoskysymykset.values())
     for ryhma in sisalto.laakeryhmat:
         assert ryhma.atc_etuliitteet, ryhma.nimi  # ATC ensisijainen; avainsanat varakeino

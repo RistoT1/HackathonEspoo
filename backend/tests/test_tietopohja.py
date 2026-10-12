@@ -35,6 +35,11 @@ def tunnista(teksti: str) -> t.Tietopohjahavainto:
         ("rintakipua ei ole helpottanut", "rintakipu"),
         ("kurkku menee umpeen", "vakava_allergia"),
         ("oksensin verta", "runsas_verenvuoto"),
+        # 12.10. puhelu: kaatunut, verta päässä ja lattialla -> jäi keltaiseksi ilman 112:ta.
+        ("Pää vuotaan aika pahasti verta, että mitäs me nyt tehdään?", "runsas_verenvuoto"),
+        ("haava vuotaa kovasti", "runsas_verenvuoto"),
+        ("Täällä Mä makaan lattialla.", "kaatunut_lattialla"),
+        ("kaaduin enkä pääse ylös", "kaatunut_lattialla"),
     ],
 )
 def test_hatamerkki(teksti, odotettu):
@@ -238,3 +243,33 @@ def test_vapina_tunnistetaan(teksti):
 
 def test_kielletty_vapina_ei_ole_oire():
     assert "vapina" not in tunnista("ei ole ollut vapinaa").oireet
+
+
+@pytest.mark.parametrize(
+    ("teksti", "odotettu"),
+    [
+        # 12.10. puhelu: kolme lopetuspyyntöä jäi tunnistamatta.
+        ("Alright mä lopetan tää puhelu.", True),
+        ("Voit lopettamalla tämän puhelun kiitos.", True),
+        ("No niin, eiköhän me nyt lopeteta.", True),
+        # Lääkkeen lopettaminen ei ole lopetuspyyntö (11.10. opittu).
+        ("lopetin sen lääkkeen", False),
+        ("mä lopetan nyt sen lääkkeen", False),
+        ("lääkäri sanoi että lopetetaan se lääke", False),
+    ],
+)
+def test_lopetuspyynto(teksti, odotettu):
+    assert tunnista(teksti).lopetuspyynto is odotettu
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        "nenästä vuotaa vähän verta",
+        "en pääse ylös sängystä aamuisin",
+        "kaaduin viime viikolla mutta pääsin ylös",
+        "pyyhin lattiaa eilen",
+    ],
+)
+def test_lievat_eivat_ole_hatamerkkeja(teksti):
+    assert tunnista(teksti).hata == []

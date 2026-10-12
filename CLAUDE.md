@@ -275,19 +275,17 @@ puhelulla). Aiemmat mallit ja opit:
 - Lämmitys soiton alkaessa (lammita_ja_merkitse) lähettää järjestelmäohjeen + valitun avauksen,
   eli täsmälleen ensimmäisen vuoron alun: ensimmäinen vuoro 3,1 s (ohje + "Hei" -lämmityksellä
   21,3 s). Ensimmäinen vuoro odottaa lämmitystä välitäytteiden kanssa.
-- Relay: mallin miettiessä tullut puhe on saman vastauksen jatkoa (vanhus pitää taukoja):
-  vuoro perutaan (keskustelu.tilannekuva/palauta) ja aloitetaan alusta koko puheella, enintään
-  MAX_JATKOT kertaa (lokissa `jatkettu_puhe`, `vuoro_alusta`). Ennen 11.10. iltaa jatko ohitettiin,
-  ja "...vatsa ei toimi ja" + "olo on kun kännissä" hukkui; sitä ennen jatko luettiin vastaukseksi
-  SEURAAVAAN kysymykseen. Ollama keskeyttää generoinnin, kun pyyntö perutaan (mitattu). Hätämerkki
-  tai vakava huoli (saannot.ei_ohitettava) keskeyttää vuoron ja käsitellään heti omana vuoronaan.
-- Relay: puhe, joka ALKOI ennen kuin AI ehti repliikin kysymykseen (arvio 14 merkkiä/s,
-  puhe.kysymyksen_alku_arvio_ms, kerroin 0,9), ei ole vastaus siihen, vaikka loppuisi sen
-  jälkeen: se liitetään edelliseen vastaukseen (keskustelu.liita_edelliseen, lokissa
-  `puhe_ai_puhuessa`). Alkuhetki osittaisista tunnistuksista (partialPrompts, RELAY_OSITTAISET;
-  ei vielä testattu oikealla puhelulla), muuten arvio tekstin pituudesta. 11.10.: myöhästynyt
-  vastaus edelliseen kysymykseen luettiin vastaukseksi seuraavaan. Väärä luokitus ei jumita:
-  hiljaisuusvahti toistaa kysymyksen 15 s AI:n puheen jälkeen (`hiljaisuus`, toisella lopetus).
+- Relay, henkilön puheen luokittelu (relay.Relayistunto.ota_vastaan), järjestyksessä:
+  1) AI:n oman puheen kaiku hylätään (vähintään 2 sanaa peräkkäin AI:n tekstistä, `kaiku`).
+  2) Puhe, joka ALKOI ennen kuin AI ehti repliikin kysymykseen, ohitetaan (`puhe_ai_puhuessa`).
+  3) Mallin miettiessä: jatkoksi kelpaa vain ennen ensimmäistä välitäytettä alkanut puhe (tauko
+     kesken lauseen) -> vuoro alusta koko puheella (`vuoro_alusta`, MAX_JATKOT). Välitäytteen
+     jälkeen tullut on sivupuhetta ja ohitetaan (12.10.: "siinä on vieläkin tää bugi" aloitti
+     vuoron alusta, vuoro 52 s). Hätämerkki ja vakava huoli käsitellään aina heti.
+  Alkuhetki osittaisista tunnistuksista (partialPrompts, RELAY_OSITTAISET), muuten arvio. Kesto-
+  arviot 14 merkkiä/s (ei mitattu Twiliosta). Väärä luokitus ei jumita: hiljaisuusvahti toistaa
+  kysymyksen 15 s AI:n puheen jälkeen (`hiljaisuus`, toisella lopetus). Ollama keskeyttää
+  generoinnin, kun pyyntö perutaan (mitattu).
 - Säännöt (11.10. ilta): kiroilu oireen yhteydessä ei ohita oiretta (malli saa tietopohjan),
   ja mallin LOPETUS ohitetaan, jos henkilön viimeinen vastaus on huono vointi ("No huonosti").
 - Muisti 16 Gt Macilla (mitattu 11.10. ilta): Dockerin VM 8,2 Gt + Ollama 15 Gt + VS Code ~3 Gt
@@ -339,8 +337,8 @@ kysymykset) ja Ehdottomat säännöt yllä. Puhelulle maksimikesto.
 **Puhuttelu: sinuttelu** (päätetty 11.10., kun Jeren tietopohja yhdistettiin): kiinteät
 repliikit ja mallin ohje sinuttelevat; kielentarkistus kirjaa mallin teitittelyn lokiin. Jeren polut tilakoneessa (keskustelu.py): itsetuhoisuus ja vakavat huolet ->
 tukitila (kuuntelu, turvallisuus, ei kysymyksiä; malli vapaalla tekstillä, varalla kiinteä),
-kieltomuotoinen itsetuho -> varmistuskysymys, lopetuspyyntö (1. kuulumiset tai
-turvallisuuskysymys, 2. lopetus), loukkaukset (3. kerralla lopetus), toistopyyntö,
+kieltomuotoinen itsetuho -> varmistuskysymys, lopetuspyyntö (lopetus heti, 12.10.; itsetuhoisen
+puheen jälkeen ensin yksi turvallisuuskysymys), loukkaukset (3. kerralla lopetus), toistopyyntö,
 kotihoito-ohjeet oireeseen (malli saa ne tietopohjasta piilo-ohjeena, ei keksi omia;
 yleisiä omahoito-ohjeita, ei lääkeneuvoja). Puhelinnumerot luetaan numero
 kerrallaan (puhe.puheeksi). puheavustaja/ jää Jeren erilliseksi mikrofonidemoksi

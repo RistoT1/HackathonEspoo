@@ -89,6 +89,9 @@ OIRE_KOTIHOITO_OHJE = (
     "ja milloin hoitajaan kannattaa olla yhteydessä. Kysy sitten listan seuraava kysymys.)"
 )
 
+# Kaatumisen jälkeen: ei pääse ylös (hätä, ks. _turvallisuusvuoro).
+EI_PAASE_YLOS = re.compile(r"\b(en|enkä) (pääse|pysty|jaksa) (nousemaan|ylös|pystyyn)")
+
 # Huono vointi henkilön viimeisessä vastauksessa: malli ei saa lopettaa siihen (11.10.).
 HUONO_VOINTI = re.compile(
     r"\b(huonosti|heikosti|kurjasti|surkeasti|paskasti|huono olo|paha olo"
@@ -257,21 +260,6 @@ def palauta(istunto: Puheluistunto, kuva: Puheluistunto) -> None:
             setattr(istunto, kentta.name, copy.deepcopy(getattr(kuva, kentta.name)))
 
 
-def liita_edelliseen(istunto: Puheluistunto, puhe: str) -> bool:
-    """Henkilö puhui, kun AI luki vielä repliikkiään eikä ollut ehtinyt kysymykseen asti:
-    puhe ei ole vastaus siihen (11.10.: "ei tää kyllä pelitä vielä" luettiin vastaukseksi
-    lääkekysymykseen, joka jäi kysymättä). Se liitetään edelliseen vastaukseen, jotta malli
-    ja triage näkevät sen, mutta kysymys odottaa vastaustaan. False = ei edellistä vastausta."""
-    edellinen = next((v for v in reversed(istunto.historia) if v["role"] == "user"), None)
-    if edellinen is None or not istunto.vastaukset:
-        return False
-    alku, erotin, piilo = edellinen["content"].partition("\n(")
-    edellinen["content"] = f"{alku} {puhe}{erotin}{piilo}"
-    istunto.vastaukset[-1].vastaus = f"{istunto.vastaukset[-1].vastaus} {puhe}"
-    istunto.tietohavainnot.append(tunnista(puhe).tieto)
-    return True
-
-
 def lopeta(istunto: Puheluistunto, loppu: PuhelunLoppu) -> None:
     """Merkitsee puhelun paattyneeksi. Ensimmainen syy jaa voimaan."""
     if istunto.loppu is not None:
@@ -417,6 +405,13 @@ def _turvallisuusvuoro(
             tieto.hata.append(hatamerkki)
             _syy(istunto, "varmistus:myonteinen")
 
+    # "En pääse ylös" eri vuorossa kuin kaatuminen (12.10.: kaatunut, verta päässä ja
+    # lattialla -> vain keltainen). Sama lause ilman kaatumista ("sängystä aamuisin") ei hälytä.
+    kaatui_aiemmin = any("kaatuminen" in havainto.oireet for havainto in istunto.tietohavainnot)
+    if hatamerkki is None and kaatui_aiemmin and EI_PAASE_YLOS.search(teksti_.lower()):
+        hatamerkki = "kaatunut_lattialla"
+        tieto.hata.append(hatamerkki)
+
     # Tukitilassa jo käsitelty itsetuhoisuus ei toista pitkää viestiä joka vuorolla.
     jo_tuettu = istunto.tukitila is not None and hatamerkki in HATA_TUKITILAAN
     if hatamerkki is not None and not jo_tuettu:
@@ -481,18 +476,16 @@ def _aloita_tukitila(istunto: Puheluistunto, syy: str) -> None:
 
 
 def _lopetuspyynto(istunto: Puheluistunto) -> Vuoro:
-    """Ihmistä ei pidetä puhelimessa vastoin tahtoa. Ilman huolia: 1. kysytään
-    kuulumiset, 2. lopetetaan. Huolien kanssa: 1. turvallisuuskysymys, 2. lopetetaan."""
+    """Ihmistä ei pidetä puhelimessa vastoin tahtoa: lopetetaan heti ensimmäiseen pyyntöön
+    (päätetty 12.10.; aiemmin ensin kuulumis- tai turvallisuuskysymys). Huolien jälkeen
+    lopetusviestissä on hoitajan soitto ja 112. Poikkeus: itsetuhoisen puheen jälkeen
+    kysytään kerran turvallisuudesta ennen lopetusta (Jere)."""
     istunto.lopetuspyyntoja += 1
-    loydetyt = huolet(istunto.tietohavainnot, istunto.epaselvia)
     _syy(istunto, f"lopetuspyynto:{istunto.lopetuspyyntoja}")
-    if loydetyt and not istunto.turvallisuus_kysytty and istunto.lopetuspyyntoja <= 2:
+    if istunto.itsetuho and not istunto.turvallisuus_kysytty:
         istunto.turvallisuus_kysytty = True
         istunto.lopettamassa = True
         return _sano(istunto, [_kiintea(istunto, "lopetuspyynto.turvallisuuskysymys")])
-    if istunto.lopetuspyyntoja == 1 and not loydetyt:
-        istunto.lopettamassa = True
-        return _sano(istunto, [_kiintea(istunto, "lopetuspyynto.kysy_syy")])
     return _lopeta_pyynnosta(istunto)
 
 
