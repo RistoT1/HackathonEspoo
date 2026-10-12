@@ -151,10 +151,18 @@
     },
     {
       "oire": "vapina",
-      "tunnisteet": ["vapin", "täris", "tärinä"],
+      "tunnisteet": ["vapin", "vapis", "vapise", "täris", "tärinä"],
       "lisakysymykset": ["Alkoiko vapina lääkemuutoksen jälkeen?", "Haittaako vapina esimerkiksi syömistä tai juomista?"],
       "kotihoito": ["Tue kyynärpäät pöytään, kun syöt tai juot.", "Täytä muki vain puoliksi, niin juominen on helpompaa.", "Runsas kahvi voi lisätä vapinaa, joten sitä kannattaa välttää."],
       "ota_yhteytta": "jos vapina alkoi lääkemuutoksen jälkeen tai pahenee",
+      "huolestuttava": true
+    },
+    {
+      "oire": "ruokahaluttomuus ja juominen",
+      "tunnisteet": ["ruokahaluttom", "ruokahalu on (huono|heikko|mennyt|kadonnut)", "ruoka ei (oikein |ole )?(maistu|maistunut)", "ei ole tehnyt mieli syödä", "(en|ei) (ole )?(jaksa|jaksanut|pysty|pystynyt|jaksanu) (syödä|juoda|syömään|juomaan)", "syön (vain |enää )?(puolet|vähän|vähemmän)"],
+      "lisakysymykset": ["Kuinka kauan ruoka ei ole maistunut?", "Saatko juotua tavalliseen tapaan päivän mittaan?"],
+      "kotihoito": ["Syö pieniä annoksia useita kertoja päivässä, vaikka ei tekisi mieli.", "Pidä juomalasi lähellä ja juo pienin kulauksin pitkin päivää."],
+      "ota_yhteytta": "jos et pysty syömään tai juomaan tai paino on pudonnut",
       "huolestuttava": true
     }
   ]

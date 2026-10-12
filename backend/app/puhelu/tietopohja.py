@@ -4,7 +4,7 @@ kiinteät repliikit, oireiden jatkokysymykset ja kotihoito-ohjeet sekä kiireell
 Sisältö on versionhallituissa JSON-tiedostoissa (tieto/), ei koodissa eikä kannassa:
   keskustelusaannot.json  hätämerkit ja -viestit, vakavat huolet, huoli, lopetuspyyntö,
                           loukkaus, uudelleenkysymys, kiinteät repliikit (versiot arvotaan)
-  oireohjeet.json         18 oiretta: tunnisteet, jatkokysymykset, kotihoito-ohjeet,
+  oireohjeet.json         20 oiretta: tunnisteet, jatkokysymykset, kotihoito-ohjeet,
                           milloin hoitajaan yhteys, nostaako kiireellisyyttä
 
 Kaikki on deterministista ja ajetaan jokaiselle puheenvuorolle ennen LLM:ää. Kielto
