@@ -6,8 +6,10 @@ tarkistuksittain, tyyleittäin ja tapahtumittain.
 
 import re
 
-from app.puhelu.kielentarkistus import sinuttelee
+from app.config import hae_asetukset
+from app.puhelu.kielentarkistus import _voikko, korjaa_kieli, sinuttelee
 from app.puhelu.tietopohja import oireet as jeren_oireet
+from app.puhelu.tietopohja import siisti_vastaus
 from arviointi.oireet import OIREET_AIHEITTAIN, TARKENNUSTYYPIT, osuu
 
 TASOT = ("vihreä", "keltainen", "punainen")
@@ -77,8 +79,18 @@ def tarkista_keskustelu(
     raa_at = [v["raaka"] for v in vuorot if v.get("raaka")]
     teitittely = [r for r in raa_at if not sinuttelee(r)]
     tulos.append(("sinuttelu", not teitittely, f"{len(teitittely)}/{len(raa_at)} teitittelyä"))
-    monta = [r for r in raa_at if r.count("?") > 1]
-    tulos.append(("yksi_kysymys_malli", not monta, f"{len(monta)}/{len(raa_at)} vastauksessa >1 ?"))
+    # Kuultu puhe, ei mallin raakateksti: keskustelu.py leikkaa ylimääräiset kysymykset
+    # ennen puhetta (12.10.: raakatekstissä 20/718 vuorossa >1 ?, puheessa 0).
+    puheet = [v["botti"] for v in vuorot if v.get("botti")]
+    monta = [p for p in puheet if p.count("?") > 1]
+    tulos.append(("yksi_kysymys", not monta, f"{len(monta)}/{len(puheet)} puheessa >1 ?"))
+    voikko = _voikko(hae_asetukset().voikko_kirjasto)
+    if voikko is not None:
+        # Mallin teksti korjattuna puheeksi (ei kiinteitä repliikkejä): uudet virheet
+        # kielikorjaukset.json:iin (12.10.).
+        mallin_puhe = [korjaa_kieli(siisti_vastaus(r))[0] for r in raa_at]
+        tuntemattomat = [s for p in mallin_puhe for s in voikko.tuntemattomat(p)]
+        tulos.append(("suomi_voikko", not tuntemattomat, ", ".join(tuntemattomat)))
 
     paattyi = loppu is not None
     tulos.append(("ei_jumissa", paattyi or len(vuorot) <= max_vuorot, f"{len(vuorot)} vuoroa"))
@@ -196,10 +208,9 @@ def tarkista_yksittainen(
     odotus = kohde["odotus"]
     syyteksti = " ".join(syyt)
     pienena = botti.lower()
-    tulos: list[tuple[str, bool, str]] = []
+    tulos: list[tuple[str, bool, str]] = [("yksi_kysymys", botti.count("?") <= 1, botti)]
     if raaka:
         tulos.append(("sinuttelu", sinuttelee(raaka), raaka))
-        tulos.append(("yksi_kysymys_malli", raaka.count("?") <= 1, raaka))
     if odotus.startswith("tarkenna:"):
         aihe = odotus.split(":", 1)[1]
         tulos.append(("tarkentaa_oiretta", tarkentaa(botti, aihe), botti))

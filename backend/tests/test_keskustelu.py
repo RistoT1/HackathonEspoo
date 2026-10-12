@@ -147,6 +147,89 @@ def test_kiroilu_oireen_yhteydessa_ei_ohita_oiretta():
     assert "(Tietopohja: henkilö mainitsi oire 'ripuli'" in malli.viestit[0][-1]["content"]
 
 
+def test_vain_ensimmainen_kysymys_ja_hoitajalupaus_ennen_sita():
+    # 12.10. testipankki: leikkaus pudotti kysymyksen perässä olleen "Välitän ... hoitajalle".
+    tila = istunto()
+    malli = Malli(
+        "Kuulostaa siltä, että tämä pelottaa sinua. Voitko kertoa lisää? Välitän tämän "
+        "asian hoitajalle.\n\nTietojemme mukaan sinulle on merkitty uusi lääke. "
+        "Oletko aloittanut sen käytön?"
+    )
+    vuoro(tila, None, malli)
+
+    seuraava = vuoro(tila, "Ihan hyvin.", malli)
+
+    assert seuraava.sanottavat == [
+        "Kuulostaa siltä, että tämä pelottaa sinua. Välitän tämän asian hoitajalle. "
+        "Voitko kertoa lisää?"
+    ]
+    assert "malli:yksi_kysymys" in tila.syyt
+
+
+def _oire_kotihoitovuoroon(malli: Malli):
+    tila = istunto()
+    vuoro(tila, None, malli)
+    vuoro(tila, "Vähän on huimannut aamuisin.", malli)
+    vuoro(tila, "Pari päivää sitten alkoi.", malli)
+    return tila, vuoro(tila, "Aamuisin lähinnä.", malli)
+
+
+def test_kotihoito_lisataan_kun_malli_ohittaa_sen():
+    # 12.10. testipankki: malli ohitti kotihoito-ohjeen 14 kertaa 16:sta.
+    malli = Malli(
+        "Ikävä kuulla. Milloin huimaus alkoi?",
+        "Selvä. Milloin sitä on eniten?",
+        "Ymmärrän. Miten uusi lääke on sopinut?",
+    )
+
+    tila, kotihoito = _oire_kotihoitovuoroon(malli)
+
+    sanottu = " ".join(kotihoito.sanottavat)
+    assert "kotihoito:lisatty:huimaus" in tila.syyt
+    assert "Nouse ylös rauhallisesti" in sanottu
+    assert "Ota yhteyttä hoitajaan, jos olet kaatunut" in sanottu
+    assert sanottu.endswith("Miten uusi lääke on sopinut?")
+
+
+def test_kotihoito_lisataan_oireelle_jonka_ohje_puuttuu():
+    # Varmistusajo 12.10.: pahoinvointi ja huimaus, malli kertoi vain pahoinvoinnin ohjeen.
+    malli = Malli(
+        "Ikävä kuulla. Milloin oireet alkoivat?",
+        "Selvä. Onko pahoinvointia enemmän ruokailun jälkeen?",
+        "Ymmärrän. Pystytkö syömään ja juomaan normaalisti?",
+        "Syö pieniä annoksia kerrallaan ja useammin. Miten uusi lääke on sopinut?",
+    )
+    tila = istunto()
+    vuoro(tila, None, malli)
+    vuoro(tila, "Kuvottaa aamuisin ja on vähän huimannut.", malli)
+    vuoro(tila, "Pari päivää sitten alkoi.", malli)
+    vuoro(tila, "Aamuisin lähinnä.", malli)
+
+    kotihoito = vuoro(tila, "Kyllä pystyn.", malli)
+
+    sanottu = " ".join(kotihoito.sanottavat)
+    assert "kotihoito:lisatty:huimaus" in tila.syyt
+    assert sanottu.count("Syö pieniä annoksia") == 1
+    assert "Nouse ylös rauhallisesti" in sanottu
+    assert sanottu.endswith("Miten uusi lääke on sopinut?")
+
+
+def test_kotihoitoa_ei_lisata_kun_malli_antoi_sen():
+    malli = Malli(
+        "Ikävä kuulla. Milloin huimaus alkoi?",
+        "Selvä. Milloin sitä on eniten?",
+        "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. "
+        "Miten uusi lääke on sopinut?",
+    )
+
+    tila, kotihoito = _oire_kotihoitovuoroon(malli)
+
+    assert not any(syy.startswith("kotihoito:") for syy in tila.syyt)
+    assert kotihoito.sanottavat == [
+        "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. Miten uusi lääke on sopinut?"
+    ]
+
+
 def test_huonoon_vointiin_ei_lopeteta():
     # 11.10.: "No huonosti" -> malli kiitti ja sanoi LOPETUS.
     tila = istunto()
@@ -184,6 +267,8 @@ def test_uuteen_oireeseen_viimeisessa_vastauksessa_ei_lopeteta():
         "no ei tässä mitään ihmeempiä",
         "ei nyt kummempia",
         "en oikein tiedä, ihan hyvin kai",
+        "en tiedä",
+        "No joo, kaikki on ihan hyvin, eikö tämä jo riitä.",
     ],
 )
 def test_kieltomuotoinen_kuulumisvastaus_ei_lopeta_puhelua(vastaus):
@@ -228,6 +313,22 @@ def test_huoli_saa_piilo_ohjeen_pysahtya():
     vuoro(tila, "Olen vähän huolissani tästä lääkkeestä.", malli)
 
     assert "(Ohje: Henkilö kertoi juuri huolesta" in malli.viestit[0][-1]["content"]
+
+
+def test_toistuva_huoli_ei_pida_puhelua_auki():
+    # 12.10. testipankki: "Vähän tämä kaikki pelottaa." joka vastauksessa, puhelu ei päättynyt.
+    tila = istunto()
+    malli = Malli()
+    vuoro(tila, None, malli)
+    for _ in range(3):
+        vuoro(tila, "Vähän tämä kaikki pelottaa.", malli)
+    tila.huoli_jatko = 0
+
+    vuoro(tila, "Vähän tämä kaikki pelottaa.", malli)
+
+    assert "huoli:toistuu:pelottaa" in tila.syyt
+    assert "(Ohje: Henkilö kertoi juuri huolesta" not in malli.viestit[-1][-1]["content"]
+    assert tila.huoli_jatko == 0
 
 
 def test_uudelleen_merkki_poistetaan_ja_vastaus_merkitaan_epavarmaksi():

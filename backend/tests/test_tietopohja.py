@@ -19,6 +19,10 @@ def tunnista(teksti: str) -> t.Tietopohjahavainto:
         ("rinta-kipua on ollut aamusta", "rintakipu"),
         ("rintaa puristaa", "rintakipu"),
         ("mä en saa henkee", "hengenahdistus"),
+        # 12.10. testipankki: "meinaa saada" jäi tunnistamatta, puhelu vihreäksi.
+        ("en meinaa saada henkeä", "hengenahdistus"),
+        ("en oikein saa henkeä", "hengenahdistus"),
+        ("en tahdo saada happea", "hengenahdistus"),
         ("suupieli roikkuu", "halvausoireet"),
         ("otin lääkettä vähän liikaa tahallaan", "yliannostus"),
         ("haluun ottaa vähän yliannostuksen", "yliannostus"),
@@ -114,6 +118,31 @@ def test_sanan_keskelta_ei_tunnisteta_oiretta(teksti):
     havainto = tunnista(teksti)
 
     assert (havainto.oireet, havainto.keltainen) == ([], [])
+
+
+@pytest.mark.parametrize(
+    ("teksti", "odotettu"),
+    [
+        # 12.10. testipankki: taivutusmuodot jäivät tunnistamatta, lihaskipu jäi vihreäksi.
+        ("hyvin kiitos, mutta lihaksia on kolottanut eilen illalla", "lihaskipu"),
+        ("lihakset on kipeät siitä asti kun aloitin sen lääkkeen", "lihaskipu"),
+        ("jalat on ollut paksut", "turvotus"),
+        ("vatsa on ollu vähä sekaisin", "ripuli"),
+        ("joo vähän vapisee", "vapina"),
+        ("ihan ok muuten, mutta en ole jaksanut juoda", "ruokahaluttomuus ja juominen"),
+        ("ruoka ei oikein maistu", "ruokahaluttomuus ja juominen"),
+    ],
+)
+def test_oireen_taivutusmuodot(teksti, odotettu):
+    assert odotettu in tunnista(teksti).oireet
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    ["ei, lihakset on kunnossa", "ei ole kolottanut", "kyllä on maistunut", "ruokahalu on hyvä"],
+)
+def test_kielletty_oire_ei_tunnistu(teksti):
+    assert tunnista(teksti).oireet == []
 
 
 @pytest.mark.parametrize("teksti", ["kyllä, eilen oli kuumetta", "on ollut vilunväristyksiä"])

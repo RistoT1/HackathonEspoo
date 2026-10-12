@@ -190,7 +190,7 @@ puhelu/          Twilio-puhelu (relay tai <Gather>-webhookit; vaatii JULKINEN_UR
                  1) säännöt ennen mallia, 2) selkeys, 3) piilo-ohjeet, 4) malli vapaalla tekstillä
   tietopohja.py + tieto/*.json  Jeren tietopohja: järjestelmäohje (persoonallisuus, ikäluokka,
                  tehtävä + kannan kysymykset), hätämerkit kiellon tulkinnalla, vakavat huolet,
-                 huoli, lopetuspyyntö, loukkaus, 18 oiretta jatkokysymyksineen ja kotihoito-
+                 huoli, lopetuspyyntö, loukkaus, 20 oiretta jatkokysymyksineen ja kotihoito-
                  ohjeineen, kiinteät repliikit (versiot), numerosuodatin, puhelun pituus
   saannot.py     hatasanat.json (ei tulkitse kieltoa) + tietopohja, hoitajapyyntö,
                  lääkeneuvo, usein kysytyt (fraasit.json: kuka soittaa, mikä lääke)
