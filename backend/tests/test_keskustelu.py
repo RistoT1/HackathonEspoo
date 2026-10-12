@@ -147,6 +147,67 @@ def test_kiroilu_oireen_yhteydessa_ei_ohita_oiretta():
     assert "(Tietopohja: henkilö mainitsi oire 'ripuli'" in malli.viestit[0][-1]["content"]
 
 
+def test_vain_ensimmainen_kysymys_ja_hoitajalupaus_ennen_sita():
+    # 12.10. testipankki: leikkaus pudotti kysymyksen perässä olleen "Välitän ... hoitajalle".
+    tila = istunto()
+    malli = Malli(
+        "Kuulostaa siltä, että tämä pelottaa sinua. Voitko kertoa lisää? Välitän tämän "
+        "asian hoitajalle.\n\nTietojemme mukaan sinulle on merkitty uusi lääke. "
+        "Oletko aloittanut sen käytön?"
+    )
+    vuoro(tila, None, malli)
+
+    seuraava = vuoro(tila, "Ihan hyvin.", malli)
+
+    assert seuraava.sanottavat == [
+        "Kuulostaa siltä, että tämä pelottaa sinua. Välitän tämän asian hoitajalle. "
+        "Voitko kertoa lisää?"
+    ]
+    assert "malli:yksi_kysymys" in tila.syyt
+
+
+def _oire_kotihoitovuoroon(malli: Malli):
+    tila = istunto()
+    vuoro(tila, None, malli)
+    vuoro(tila, "Vähän on huimannut aamuisin.", malli)
+    vuoro(tila, "Pari päivää sitten alkoi.", malli)
+    return tila, vuoro(tila, "Aamuisin lähinnä.", malli)
+
+
+def test_kotihoito_lisataan_kun_malli_ohittaa_sen():
+    # 12.10. testipankki: malli ohitti kotihoito-ohjeen 14 kertaa 16:sta.
+    malli = Malli(
+        "Ikävä kuulla. Milloin huimaus alkoi?",
+        "Selvä. Milloin sitä on eniten?",
+        "Ymmärrän. Miten uusi lääke on sopinut?",
+    )
+
+    tila, kotihoito = _oire_kotihoitovuoroon(malli)
+
+    sanottu = " ".join(kotihoito.sanottavat)
+    assert "kotihoito:lisatty:huimaus" in tila.syyt
+    assert "Nouse ylös rauhallisesti" in sanottu
+    assert "Ota yhteyttä hoitajaan, jos olet kaatunut" in sanottu
+    assert sanottu.endswith("Miten uusi lääke on sopinut?")
+
+
+def test_kotihoitoa_ei_lisata_kun_malli_antoi_sen():
+    malli = Malli(
+        "Ikävä kuulla. Milloin huimaus alkoi?",
+        "Selvä. Milloin sitä on eniten?",
+        "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. "
+        "Miten uusi lääke on sopinut?",
+    )
+
+    tila, kotihoito = _oire_kotihoitovuoroon(malli)
+
+    assert not any(syy.startswith("kotihoito:") for syy in tila.syyt)
+    assert kotihoito.sanottavat == [
+        "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. "
+        "Miten uusi lääke on sopinut?"
+    ]
+
+
 def test_huonoon_vointiin_ei_lopeteta():
     # 11.10.: "No huonosti" -> malli kiitti ja sanoi LOPETUS.
     tila = istunto()

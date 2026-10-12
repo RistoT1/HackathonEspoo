@@ -590,6 +590,34 @@ def oireohje_kotihoidolla(oire_lista: list[str]) -> str:
     return "\n(Tietopohja: henkilö mainitsi " + " | ".join(osat) + ")" if osat else ""
 
 
+def _vartalot(teksti: str) -> set[str]:
+    return {sana[:5] for sana in re.findall(r"[a-zåäö]+", teksti.lower()) if len(sana) >= 5}
+
+
+def sisaltaa_kotihoidon(teksti: str, oire_lista: list[str]) -> bool:
+    """Tekstissä on jonkin oireen kotihoito-ohje omin sanoin: vähintään kolme ohjeen
+    sisältösanaa (lyhyessä ohjeessa kaikki)."""
+    sanat = _vartalot(teksti)
+    for nimi in oire_lista:
+        for ohje in oireet().get(nimi, {}).get("kotihoito", []):
+            ohjeen_sanat = _vartalot(ohje)
+            tarve = min(3, len(ohjeen_sanat))
+            if ohjeen_sanat and len(ohjeen_sanat & sanat) >= tarve:
+                return True
+    return False
+
+
+def kotihoito_puheeksi(oire_lista: list[str]) -> str:
+    """Jeren kotihoito-ohjeet sellaisinaan: kaksi ensimmäistä ohjetta enintään kahdesta
+    oireesta ja milloin hoitajaan kannattaa olla yhteydessä."""
+    tiedot = [oireet()[nimi] for nimi in oire_lista if nimi in oireet()][:2]
+    if not tiedot:
+        return ""
+    lauseet = [ohje for tieto in tiedot for ohje in tieto["kotihoito"][:2]]
+    lauseet.append(f"Ota yhteyttä hoitajaan, {tiedot[0]['ota_yhteytta']}.")
+    return " ".join(lauseet)
+
+
 def puhelun_vuororaja(
     havainnot: list[Tietopohjahavainto],
     perusraja: int,

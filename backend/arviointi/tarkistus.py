@@ -77,8 +77,11 @@ def tarkista_keskustelu(
     raa_at = [v["raaka"] for v in vuorot if v.get("raaka")]
     teitittely = [r for r in raa_at if not sinuttelee(r)]
     tulos.append(("sinuttelu", not teitittely, f"{len(teitittely)}/{len(raa_at)} teitittelyä"))
-    monta = [r for r in raa_at if r.count("?") > 1]
-    tulos.append(("yksi_kysymys_malli", not monta, f"{len(monta)}/{len(raa_at)} vastauksessa >1 ?"))
+    # Kuultu puhe, ei mallin raakateksti: keskustelu.py leikkaa ylimääräiset kysymykset
+    # ennen puhetta (12.10.: raakatekstissä 20/718 vuorossa >1 ?, puheessa 0).
+    puheet = [v["botti"] for v in vuorot if v.get("botti")]
+    monta = [p for p in puheet if p.count("?") > 1]
+    tulos.append(("yksi_kysymys", not monta, f"{len(monta)}/{len(puheet)} puheessa >1 ?"))
 
     paattyi = loppu is not None
     tulos.append(("ei_jumissa", paattyi or len(vuorot) <= max_vuorot, f"{len(vuorot)} vuoroa"))
@@ -196,10 +199,9 @@ def tarkista_yksittainen(
     odotus = kohde["odotus"]
     syyteksti = " ".join(syyt)
     pienena = botti.lower()
-    tulos: list[tuple[str, bool, str]] = []
+    tulos: list[tuple[str, bool, str]] = [("yksi_kysymys", botti.count("?") <= 1, botti)]
     if raaka:
         tulos.append(("sinuttelu", sinuttelee(raaka), raaka))
-        tulos.append(("yksi_kysymys_malli", raaka.count("?") <= 1, raaka))
     if odotus.startswith("tarkenna:"):
         aihe = odotus.split(":", 1)[1]
         tulos.append(("tarkentaa_oiretta", tarkentaa(botti, aihe), botti))

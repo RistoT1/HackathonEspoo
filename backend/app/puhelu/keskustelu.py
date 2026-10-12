@@ -53,12 +53,14 @@ from app.puhelu.tietopohja import (
     huudahdus,
     jarjestelmaohje,
     jarkyttava_oire,
+    kotihoito_puheeksi,
     oireohje_kotihoidolla,
     on_myontava,
     piilo_ohje,
     puhelun_vuororaja,
     puhelutyypit,
     siisti_vastaus,
+    sisaltaa_kotihoidon,
     teksti,
     tukitilan_ohje,
     viimeisin_kysymys,
@@ -177,6 +179,7 @@ class Puheluistunto:
     avausteksti: str = ""  # valittu avauksen versio (sama lämmityksessä ja puhelussa)
     oire_jatko: int = 0  # vuorot, joina oiretta käsitellään ennen listan jatkamista
     avoimet_oireet: list[str] = field(default_factory=list)  # käsiteltävänä olevat oireet
+    kotihoito_oireet: list[str] = field(default_factory=list)  # tämän vuoron kotihoito-ohjeet
     henkilo_kysyi: bool = False  # tämän vuoron puheessa oli kysymys
     malli_lammin: bool = False  # lämmitys valmis (siihen asti varatoiminta, ei odotusta)
     # Lokia varten: tämän vuoron mittaukset ja päätösten syyt.
@@ -579,6 +582,7 @@ def _piilo_ohjeet(istunto: Puheluistunto, tieto: Tietopohjahavainto, lopuillaan:
         istunto.oire_jatko -= 1
         if istunto.oire_jatko == 0:
             ohje += OIRE_KOTIHOITO_OHJE.format(oireet=", ".join(istunto.avoimet_oireet))
+            istunto.kotihoito_oireet = istunto.avoimet_oireet
             istunto.avoimet_oireet = []
 
     if tieto.huoli:
@@ -622,6 +626,7 @@ async def _mallin_vuoro(
     # Historiaan jää vain tietopohjan oiretieto (malli antaa kotihoito-ohjeet myöhemmällä
     # vuorolla, Jere). Hetkelliset "(Ohje: ...)" näkyvät vain tässä vuorossa: vanhat
     # "kysy seuraavaksi X" kertyivät historiaan ja olivat ristiriidassa uusien kanssa.
+    kotihoito_oireet, istunto.kotihoito_oireet = istunto.kotihoito_oireet, []
     tietopohja = "".join(re.findall(r"\n\(Tietopohja: [^\n]*", ohje))
     hetkelliset = ohje.replace(tietopohja, "") if tietopohja else ohje
     istunto.historia[-1]["content"] += tietopohja
@@ -700,10 +705,12 @@ async def _mallin_vuoro(
         istunto.aloitukset.append(aloitus(puhuttava))
     if lopettaa:
         _syy(istunto, "malli:lopetus")
+        puhuttava = _varmista_kotihoito(istunto, kotihoito_oireet, puhuttava)
         return _lopetusvuoro(istunto, PuhelunLoppu.VALMIS, [puhuttava, _lopetuslause(istunto)])
     if not puhuttava:
         return _varakysymys(istunto)
-    return _eteneminen(istunto, _yksi_kysymys(istunto, puhuttava))
+    yksi = _yksi_kysymys(istunto, puhuttava)
+    return _eteneminen(istunto, _varmista_kotihoito(istunto, kotihoito_oireet, yksi))
 
 
 def _puhuttavaksi(istunto: Puheluistunto, raaka: str) -> str:
@@ -714,19 +721,41 @@ def _puhuttavaksi(istunto: Puheluistunto, raaka: str) -> str:
     return puhuttava
 
 
+def _lauseet(teksti: str) -> list[str]:
+    return [lause.strip() for lause in re.findall(r"[^.!?]+[.!?]*", teksti) if lause.strip()]
+
+
 def _yksi_kysymys(istunto: Puheluistunto, puhuttava: str) -> str:
     """Vain ensimmäinen kysymys sanotaan (Jeren ohje: yksi kysymys kerrallaan). Pieni malli
-    kysyi kolme asiaa kerralla, ja henkilö kysyi "kumpaan vastaan?" (11.10.)."""
-    lauseet = re.findall(r"[^.!?]+[.!?]*", puhuttava)
-    pidetyt: list[str] = []
-    for lause in lauseet:
-        pidetyt.append(lause.strip())
-        if lause.strip().endswith("?"):
-            break
-    lyhennetty = " ".join(osa for osa in pidetyt if osa)
-    if lyhennetty != puhuttava.strip():
-        _syy(istunto, "malli:yksi_kysymys")
-    return lyhennetty or puhuttava
+    kysyi kolme asiaa kerralla, ja henkilö kysyi "kumpaan vastaan?" (11.10.). Kysymyksen
+    jälkeinen "Välitän tämän hoitajalle" siirretään ennen kysymystä: leikkaus pudotti sen
+    (12.10. testipankki), muut kysymyksen jälkeiset lauseet ovat seuraavan kysymyksen alkua."""
+    lauseet = _lauseet(puhuttava)
+    eka = next((i for i, lause in enumerate(lauseet) if lause.endswith("?")), None)
+    if eka is None or eka == len(lauseet) - 1:
+        return puhuttava
+    lupaukset = [
+        lause
+        for lause in lauseet[eka + 1 :]
+        if not lause.endswith("?") and "hoitaja" in lause.lower()
+    ]
+    _syy(istunto, "malli:yksi_kysymys")
+    return " ".join([*lauseet[:eka], *lupaukset, lauseet[eka]])
+
+
+def _varmista_kotihoito(istunto: Puheluistunto, oireet: list[str], puhuttava: str) -> str:
+    """Kotihoito-ohjeen vuoro: malli ohitti ohjeen 14 kertaa 16:sta (12.10. testipankki),
+    joten tietopohjan ohje lisätään ennen kysymystä, jos se puuttuu mallin vastauksesta."""
+    if not oireet or sisaltaa_kotihoidon(puhuttava, oireet):
+        return puhuttava
+    ohje = kotihoito_puheeksi(oireet)
+    if not ohje:
+        return puhuttava
+    _syy(istunto, f"kotihoito:lisatty:{','.join(oireet)}")
+    lauseet = _lauseet(puhuttava)
+    if lauseet and lauseet[-1].endswith("?"):
+        return " ".join([*lauseet[:-1], ohje, lauseet[-1]])
+    return f"{puhuttava} {ohje}".strip()
 
 
 def _varakysymys(istunto: Puheluistunto) -> Vuoro:
