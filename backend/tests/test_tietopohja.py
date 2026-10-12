@@ -19,6 +19,10 @@ def tunnista(teksti: str) -> t.Tietopohjahavainto:
         ("rinta-kipua on ollut aamusta", "rintakipu"),
         ("rintaa puristaa", "rintakipu"),
         ("mä en saa henkee", "hengenahdistus"),
+        # 12.10. testipankki: "meinaa saada" jäi tunnistamatta, puhelu vihreäksi.
+        ("en meinaa saada henkeä", "hengenahdistus"),
+        ("en oikein saa henkeä", "hengenahdistus"),
+        ("en tahdo saada happea", "hengenahdistus"),
         ("suupieli roikkuu", "halvausoireet"),
         ("otin lääkettä vähän liikaa tahallaan", "yliannostus"),
         ("haluun ottaa vähän yliannostuksen", "yliannostus"),
