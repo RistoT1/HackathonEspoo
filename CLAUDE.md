@@ -67,6 +67,10 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 # Nollaa + lataa demo:    ... down -v  (poistaa volyymit), sitten up uudelleen
 
 # Backend (backend/)
+# Asennus:  uv sync   (tai pip install -r requirements.txt)
+# Aja:      uvicorn app.main:sovellus --reload --port 8000
+# Testit:   pytest
+# Lint:     ruff check . && ruff format .
 # Asennus:  uv sync
 # Aja:      uv run uvicorn app.main:app --reload --port 8000   (ajaa migraatiot kaynnistyksessa)
 # Testit:   uv run pytest

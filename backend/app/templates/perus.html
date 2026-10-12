@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>{% block title %}Hoitajan näkymä{% endblock %} · Hyvinvointikumppani</title>
+    <link rel="stylesheet" href="/static/hoitaja.css">
+    <script src="/static/hoitaja.js" defer></script>
+  </head>
+  <body>
+    <div class="sovellus">
+      <aside class="sivupalkki">
+        <a class="brandi" href="/hoitaja/" aria-label="Hyvinvointikumppani">
+          <img class="brandi-logo" src="/static/logo.png" alt="Hyvinvointikumppani – Hoitajan Kumppani">
+        </a>
+
+        <div class="navigaatio-otsikko">TYÖTILA</div>
+        <nav class="paavalikko" aria-label="Päänavigaatio">
+          <a class="valikko-linkki valikko-linkki-aktiivinen" href="/hoitaja/" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="7" cy="5.5" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="18.5" r="1"/></svg>
+            <span>Takaisinsoittojono</span>
+          </a>
+        </nav>
+
+        <div class="sivupalkin-alatunniste">
+          <span class="demo-kuvake" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.2c0 4.5 3.1 8.2 7.5 9.8 4.4-1.6 7.5-5.3 7.5-9.8V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
+          <div>
+            <strong>Turvallinen demo</strong>
+            <span>Vain synteettistä dataa</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="paaalue">
+        <header class="ylapalkki">
+          <div class="sijainti">
+            <span class="sijainti-ylateksti">HYVINVOINTIKUMPPANI</span>
+            <span class="sijainti-erotin" aria-hidden="true">/</span>
+            <span>Hoitajan työpöytä</span>
+          </div>
+          <div class="ylapalkin-oikea">
+            <span class="ymparisto"><span class="ymparisto-piste"></span> DEMOYMÄRISTÖ</span>
+            <span class="roolimerkinta">Hoitajan näkymä</span>
+          </div>
+        </header>
+
+        <main class="sisalto">
+          {% block content %}{% endblock %}
+        </main>
+        <footer class="alatunniste">
+          <span>Demotiedot ovat synteettisiä</span>
+          <span>Hoitaja arvioi tilanteen ja tekee päätökset</span>
+        </footer>
+      </div>
+    </div>
+    <div class="ilmoitus" role="status" aria-live="polite" data-ilmoitus></div>
+  </body>
+</html>

@@ -1,13 +1,16 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.config import hae_asetukset
 from app.data.adapteri import DataEiSaatavilla
 from app.dev.reitit import router as dev_router
+from app.hoitaja.reitit import reititin as hoitaja_reititin
 from app.muutokset.reitit import router as muutokset_router
 from app.puhelutehtavat.ajastus import kaynnista_ajastin
 from app.puhelutehtavat.reitit import router as puhelutehtavat_router
@@ -15,7 +18,7 @@ from app.tietokanta import aja_migraatiot, hae_engine
 
 
 @asynccontextmanager
-async def elinkaari(_: FastAPI) -> AsyncIterator[None]:
+async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
     aja_migraatiot()
     vali = hae_asetukset().tunnistus_vali_minuutit
     ajastin = kaynnista_ajastin(vali) if vali > 0 else None
@@ -35,6 +38,14 @@ async def data_ei_saatavilla(_: Request, virhe: DataEiSaatavilla) -> JSONRespons
 app.include_router(muutokset_router)
 app.include_router(puhelutehtavat_router)
 app.include_router(dev_router)
+app.include_router(hoitaja_reititin)
+
+_app_hakemisto = Path(__file__).resolve().parent
+app.mount(
+    "/static",
+    StaticFiles(directory=_app_hakemisto / "static"),
+    name="static",
+)
 
 
 @app.get("/terveys")

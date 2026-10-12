@@ -287,6 +287,57 @@ def test_reitit_virheet(client):
     assert vastaus.status_code == 409
 
 
+def test_hoitajan_nakyma_nayttaa_tietokannan_soittotehtavat(client):
+    tunnistus = client.post("/puhelutehtavat/tunnista", json={})
+    assert tunnistus.status_code == 200
+
+    jono = client.get("/hoitaja/")
+
+    assert jono.status_code == 200
+    assert "Soittotehtävät" in jono.text
+    assert "Pseudonyymi v-1" in jono.text
+    assert "Soittoprioriteetti" in jono.text
+    assert "triage- tai kiireellisyysluokitus" in jono.text
+    assert "+358" not in jono.text
+    assert client.get("/static/hoitaja.css").status_code == 200
+    logo = client.get("/static/logo.png")
+    assert logo.status_code == 200
+    assert logo.headers["content-type"].startswith("image/png")
+
+    tehtava = client.get("/puhelutehtavat").json()[0]
+    yksittainen = client.get(f"/hoitaja/tapaukset/{tehtava['id']}")
+
+    assert yksittainen.status_code == 200
+    assert "TUNNISTETUT TERVEYSTIETOJEN MUUTOKSET" in yksittainen.text
+    assert "PUHELUN KYSYMYSRUNKO" in yksittainen.text
+    assert "Puheluvastauksia tai litterointia tämä näkymä ei näytä." in yksittainen.text
+
+
+def test_hoitajan_nakymasta_paivitetaan_tila_backendin_saannoilla(client):
+    client.post("/puhelutehtavat/tunnista", json={})
+    tehtava_id = client.post("/puhelutehtavat/seuraava").json()["id"]
+
+    valmis = client.patch(
+        f"/hoitaja/tapaukset/{tehtava_id}/tila",
+        json={"tila": "VALMIS"},
+    )
+
+    assert valmis.status_code == 200
+    assert valmis.json()["tila"] == "VALMIS"
+
+    virheellinen = client.patch(
+        f"/hoitaja/tapaukset/{tehtava_id}/tila",
+        json={"tila": "ODOTTAA"},
+    )
+    puuttuva = client.patch(
+        "/hoitaja/tapaukset/ei-ole/tila",
+        json={"tila": "VALMIS"},
+    )
+
+    assert virheellinen.status_code == 409
+    assert puuttuva.status_code == 404
+
+
 # --- Soittotiedot: numero vain soiton ajaksi ---
 
 
