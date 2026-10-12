@@ -203,8 +203,7 @@ def test_kotihoitoa_ei_lisata_kun_malli_antoi_sen():
 
     assert not any(syy.startswith("kotihoito:") for syy in tila.syyt)
     assert kotihoito.sanottavat == [
-        "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. "
-        "Miten uusi lääke on sopinut?"
+        "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. Miten uusi lääke on sopinut?"
     ]
 
 

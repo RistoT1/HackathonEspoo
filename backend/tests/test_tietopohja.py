@@ -120,6 +120,25 @@ def test_sanan_keskelta_ei_tunnisteta_oiretta(teksti):
     assert (havainto.oireet, havainto.keltainen) == ([], [])
 
 
+@pytest.mark.parametrize(
+    ("teksti", "odotettu"),
+    [
+        # 12.10. testipankki: taivutusmuodot jäivät tunnistamatta, lihaskipu jäi vihreäksi.
+        ("hyvin kiitos, mutta lihaksia on kolottanut eilen illalla", "lihaskipu"),
+        ("lihakset on kipeät siitä asti kun aloitin sen lääkkeen", "lihaskipu"),
+        ("jalat on ollut paksut", "turvotus"),
+        ("vatsa on ollu vähä sekaisin", "ripuli"),
+    ],
+)
+def test_oireen_taivutusmuodot(teksti, odotettu):
+    assert odotettu in tunnista(teksti).oireet
+
+
+@pytest.mark.parametrize("teksti", ["ei, lihakset on kunnossa", "ei ole kolottanut"])
+def test_kielletty_oire_ei_tunnistu(teksti):
+    assert tunnista(teksti).oireet == []
+
+
 @pytest.mark.parametrize("teksti", ["kyllä, eilen oli kuumetta", "on ollut vilunväristyksiä"])
 def test_kuume_nostaa_keltaiseksi(teksti):
     """11.10. testipankki: kuume jäi vihreäksi (solunsalpaajilla kiireellinen)."""
