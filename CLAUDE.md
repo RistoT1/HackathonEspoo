@@ -290,6 +290,11 @@ puhelulla). Aiemmat mallit ja opit:
   generoinnin, kun pyyntö perutaan (mitattu).
 - Säännöt (11.10. ilta): kiroilu oireen yhteydessä ei ohita oiretta (malli saa tietopohjan),
   ja mallin LOPETUS ohitetaan, jos henkilön viimeinen vastaus on huono vointi ("No huonosti").
+- Lääkemuutoksen noudattaminen (12.10.): juuri kysytyn muutoskysymyksen vastaus kuvioilla
+  (keskustelusaannot.json `laakemuutoksen_poikkeama`, kysymyksen tunnisteen mukaan, esim.
+  lopetettu lääke "jatkanut") -> keltainen. Agentti ei neuvo eikä kysele syytä (moite,
+  hoitaja selvittää). Keltaisen löydöksen jälkeen lopetuslause lupaa hoitajan soiton tänään
+  (`lopetuslause_huolestuttava`), ei "tarvittaessa". Puhelussa vain jälkikäteinen analyysi huomasi.
 - Muisti 16 Gt Macilla (mitattu 11.10. ilta): Dockerin VM 8,2 Gt + Ollama 15 Gt + VS Code ~3 Gt
   -> swap 15 Gt, lämmin vuoro 6-8 s (vs 3-5 s), yksi vuoro 51 s. Docker Desktopin muisti 2 Gt:hen
   (Postgres riittää) ja raskaat ohjelmat kiinni soittojen ajaksi. Mallin sivut jäivät pakattuina

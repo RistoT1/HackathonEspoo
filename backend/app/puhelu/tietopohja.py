@@ -138,15 +138,24 @@ _JALKIKIELTO = re.compile(
 )
 
 
-def _on_kielletty(teksti_: str, alku: int) -> bool:
-    """Kieltosana osuman edellä samassa lauseessa (enintään 3 sanaa): 'ei ole ollut
-    rintakipua'. 'En tiedä, mutta rintaa puristaa' EI ole kielto."""
+# Oireille ja huomiosanoille leveämpi kieltoikkuna: "en oo ollut sen väsyneempi" tunnistui
+# väsymykseksi (12.10. läpikäynti). Hätämerkeillä 3 sanaa: leveämpi voisi peittää hädän.
+OIREEN_KIELTOIKKUNA = 4
+
+
+def _on_kielletty(teksti_: str, alku: int, ikkuna: int = 3) -> bool:
+    """Kieltosana osuman edellä samassa lauseessa (enintään `ikkuna` sanaa): 'ei ole ollut
+    rintakipua'. 'En tiedä, mutta rintaa puristaa' EI ole kielto, eikä 'ei ollut kuin
+    vähän huimausta' (= vähän huimausta)."""
     ennen = teksti_[:alku]
     rajat = list(_LAUSERAJA.finditer(ennen))
     if rajat:
         ennen = ennen[rajat[-1].end() :]
-    edelliset = re.findall(r"\w+", ennen)[-3:]
-    return any(sana in _kuviot()["kielto"] for sana in edelliset)
+    edelliset = re.findall(r"\w+", ennen)[-ikkuna:]
+    kiellot = [i for i, sana in enumerate(edelliset) if sana in _kuviot()["kielto"]]
+    if not kiellot:
+        return False
+    return "kuin" not in edelliset[kiellot[-1] :]
 
 
 def _kielletty_jalkeen(teksti_: str, loppu: int) -> bool:
@@ -154,10 +163,12 @@ def _kielletty_jalkeen(teksti_: str, loppu: int) -> bool:
     return bool(_JALKIKIELTO.search(teksti_[loppu:]))
 
 
-def _osuma_ilman_kieltoa(teksti_: str, kuviot: list[re.Pattern]) -> re.Match | None:
+def _osuma_ilman_kieltoa(
+    teksti_: str, kuviot: list[re.Pattern], ikkuna: int = 3
+) -> re.Match | None:
     for kuvio in kuviot:
         for osuma in kuvio.finditer(teksti_):
-            kielletty = _on_kielletty(teksti_, osuma.start()) or _kielletty_jalkeen(
+            kielletty = _on_kielletty(teksti_, osuma.start(), ikkuna) or _kielletty_jalkeen(
                 teksti_, osuma.end()
             )
             if not kielletty:
@@ -214,10 +225,10 @@ def tarkista(teksti_: str) -> Tietopohjahavainto:
             havainto.huoli.append(osuma.group(0))
     for kuvio in kuviot["keltainen"]:
         osuma = kuvio.search(normalisoitu)
-        if osuma and not _on_kielletty(normalisoitu, osuma.start()):
+        if osuma and not _on_kielletty(normalisoitu, osuma.start(), OIREEN_KIELTOIKKUNA):
             havainto.keltainen.append(osuma.group(0))
     for nimi, oirekuviot in kuviot["oireet"].items():
-        if _osuma_ilman_kieltoa(normalisoitu, oirekuviot):
+        if _osuma_ilman_kieltoa(normalisoitu, oirekuviot, OIREEN_KIELTOIKKUNA):
             havainto.oireet.append(nimi)
             if oireet()[nimi]["huolestuttava"]:
                 havainto.huolestuttavat.append(nimi)
@@ -642,6 +653,21 @@ def puhelun_vuororaja(
     if huolta_nyt:
         raja = max(raja, vuoro + 1)
     return min(raja, max(kesto["ehdoton_ylaraja"], perusraja))
+
+
+@lru_cache
+def _poikkeamakuviot() -> dict[str, list[re.Pattern]]:
+    kuviot = saannot()["laakemuutoksen_poikkeama"]["kuviot"]
+    return {tunniste: _kaanna(lista) for tunniste, lista in kuviot.items()}
+
+
+def laakemuutoksen_poikkeama(tunniste: str, teksti_: str) -> str | None:
+    """Peruste, jos vastaus juuri kysyttyyn muutoskysymykseen kertoo, ettei muutosta
+    noudateta ("jatkanut" lopetettua lääkettä). Muut vastaukset eivät kelpaa."""
+    pienena = teksti_.lower()
+    if any(kuvio.search(pienena) for kuvio in _poikkeamakuviot().get(tunniste, [])):
+        return saannot()["laakemuutoksen_poikkeama"]["peruste"]
+    return None
 
 
 def arvioi_vastaus(teksti_: str, varmuus: float | None, varmuusraja: float) -> str:

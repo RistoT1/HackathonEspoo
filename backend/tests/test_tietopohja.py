@@ -131,6 +131,8 @@ def test_sanan_keskelta_ei_tunnisteta_oiretta(teksti):
         ("joo vähän vapisee", "vapina"),
         # 12.10. puhelu: "pääkipuja" ei ollut päänsärky.
         ("hirveä darra iski, pääkipuja silleen tosi vaikeet", "päänsärky"),
+        ("Lopetin, mutta vähän on päätä särkenyt sen jälkeen.", "päänsärky"),
+        ("Huonosti, herään monta kertaa yössä enkä saa unta.", "unettomuus"),
         ("ihan ok muuten, mutta en ole jaksanut juoda", "ruokahaluttomuus ja juominen"),
         ("ruoka ei oikein maistu", "ruokahaluttomuus ja juominen"),
     ],
@@ -141,7 +143,14 @@ def test_oireen_taivutusmuodot(teksti, odotettu):
 
 @pytest.mark.parametrize(
     "teksti",
-    ["ei, lihakset on kunnossa", "ei ole kolottanut", "kyllä on maistunut", "ruokahalu on hyvä"],
+    [
+        "ei, lihakset on kunnossa",
+        "ei ole kolottanut",
+        "kyllä on maistunut",
+        "ruokahalu on hyvä",
+        # 12.10. läpikäynti: kielto neljän sanan päässä tunnistui väsymykseksi.
+        "en oo ollut sen väsyneempi kuin ennen",
+    ],
 )
 def test_kielletty_oire_ei_tunnistu(teksti):
     assert tunnista(teksti).oireet == []
@@ -246,6 +255,7 @@ def test_versiot_vaihtelevat_eika_sama_perakkain():
     "avain",
     [
         "lopetuslause_tuki",
+        "lopetuslause_huolestuttava",
         "lopetuspyynto.lopetus_huolestuttava",
         "vakavat_huolet.kaltoinkohtelu.viesti",
     ],
@@ -304,3 +314,40 @@ def test_lopetuspyynto(teksti, odotettu):
 )
 def test_lievat_eivat_ole_hatamerkkeja(teksti):
     assert tunnista(teksti).hata == []
+
+
+@pytest.mark.parametrize(
+    ("tunniste", "teksti", "poikkeama"),
+    [
+        ("LOPETETTU_LAAKE", "No mulla on niitä ylimääräisenä, niin mä jatkanut vähän.", True),
+        ("LOPETETTU_LAAKE", "olen ottanut sitä vielä", True),
+        ("LOPETETTU_LAAKE", "En ole jatkanut, lopetin sen kokonaan.", False),
+        ("LOPETETTU_LAAKE", "lopetin sen, ei ole oireita palannut", False),
+        ("UUSI_LAAKE", "en ole aloittanut sitä vielä", True),
+        ("UUSI_LAAKE", "olen aloittanut, hyvin menee", False),
+        ("ANNOSMUUTOS", "otan vanhaa annosta", True),
+        ("ANNOSMUUTOS", "otan uutta annosta", False),
+        ("LYHYT_KUURI", "se jäi kesken", True),
+        ("LYHYT_KUURI", "kuuri on syöty loppuun", False),
+        # Vain muutoskysymyksen vastaus: "jatkanut" muualla ei ole poikkeama.
+        ("tarkennus.vatsa", "olen jatkanut", False),
+    ],
+)
+def test_laakemuutoksen_poikkeama(tunniste, teksti, poikkeama):
+    assert (t.laakemuutoksen_poikkeama(tunniste, teksti) is not None) is poikkeama
+
+
+@pytest.mark.parametrize(
+    ("teksti", "oire", "hata"),
+    [
+        # "ei ... kuin vähän" = vähän: ei kielto, myöskään hätämerkissä.
+        ("ei ollut kuin vähän huimausta", "huimaus", None),
+        ("ei ole ollut kuin vähän rintakipua", None, "rintakipu"),
+    ],
+)
+def test_kuin_kumoaa_kiellon(teksti, oire, hata):
+    havainto = tunnista(teksti)
+    if oire:
+        assert oire in havainto.oireet
+    if hata:
+        assert hata in havainto.hata

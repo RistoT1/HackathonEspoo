@@ -89,6 +89,55 @@ def test_malli_keskustelee_ja_lopettaa_lopetus_merkilla():
     assert tila.loppu == PuhelunLoppu.VALMIS
 
 
+def test_pienella_kirjoitettu_lopetus_ei_kuulu_puheeseen():
+    # 12.10. läpikäynti: malli kirjoitti "Lopetus." ja agentti luki sen ääneen.
+    tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
+    malli = Malli("Selvä. Miten uusi lääke on sopinut?", "Hyvä kuulla. Lopetus.")
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin.", malli)
+
+    loppu = vuoro(tila, "Hyvin on sopinut.", malli)
+
+    assert tila.loppu == PuhelunLoppu.VALMIS
+    assert not any("lopetus" in osa.lower() for osa in loppu.sanottavat)
+
+
+def test_lopetuksessa_mallin_kiitokset_jaavat_pois():
+    # 12.10. läpikäynti: "Kiitos, että kerroit. ... Kiitos kuulumisista. Välitän ne hoitajalle"
+    tila = istunto()
+    malli = Malli(
+        "Selvä. Miten uusi lääke on sopinut?",
+        "Hyvä kuulla, että lääke on sopinut. Kiitos, että kerroit. Välitän tämän hoitajalle. "
+        "LOPETUS",
+    )
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin.", malli)
+
+    loppu = vuoro(tila, "Hyvin on sopinut.", malli)
+
+    assert loppu.sanottavat[0] == "Hyvä kuulla, että lääke on sopinut."
+    assert loppu.sanottavat[-1] in LOPETUSLAUSEET
+    assert len(loppu.sanottavat) == 2
+
+
+def test_lopetuksessa_ei_jaa_vastaamatonta_kysymysta():
+    # 12.10. läpikäynti: lista käyty, malli kysyi yleiskysymyksen ja puhelu loppui samassa
+    # vuorossa ("Oletko pystynyt ottamaan lääkkeen ohjeen mukaan? Kiitos, että kerroit...").
+    tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
+    tila.seuraava = 1
+    tila.ilman_edistysta = 2
+    malli = Malli("Hyvä kuulla. Oletko pystynyt ottamaan lääkkeen ohjeen mukaan?")
+    vuoro(tila, None, malli)
+
+    loppu = vuoro(tila, "Aamuisin lähinnä.", malli)
+
+    assert tila.loppu == PuhelunLoppu.VALMIS
+    assert not any("?" in osa for osa in loppu.sanottavat)
+    assert loppu.sanottavat[0] == "Hyvä kuulla."
+
+
 def test_mallille_jarjestelmaohje_kysymykset_ja_keskustelu():
     tila = istunto()
     malli = Malli("Selvä.")
@@ -228,6 +277,51 @@ def test_kotihoitoa_ei_lisata_kun_malli_antoi_sen():
     assert kotihoito.sanottavat == [
         "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. Miten uusi lääke on sopinut?"
     ]
+
+
+LOPETETTU = Kysymys(
+    tunniste="LOPETETTU_LAAKE",
+    teksti="Oletko lopettanut sen käytön, ja onko vanhoja oireita palannut?",
+)
+
+
+def _lopetettu_kysytty(malli: Malli) -> Puheluistunto:
+    tila = istunto()
+    tila.kysymykset = [LOPETETTU]
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin.", malli)
+    return tila
+
+
+def test_lopetetun_laakkeen_jatkaminen_nostaa_keltaiseksi_ja_lupaa_soiton():
+    # 12.10. puhelu: "mulla on niitä ylimääräisenä, niin mä jatkanut vähän" -> sääntö ei
+    # tunnistanut, lopetus lupasi soiton vain "tarvittaessa". Ei lääkeneuvoa, ei syyn kyselyä.
+    malli = Malli(
+        f"Selvä. {LOPETETTU.teksti}", "Kiitos, että kerroit. Välitän tämän hoitajalle. LOPETUS"
+    )
+    tila = _lopetettu_kysytty(malli)
+
+    loppu = vuoro(tila, "No mulla on niitä ylimääräisenä, niin mä jatkanut vähän.", malli)
+
+    assert "laake:poikkeama:LOPETETTU_LAAKE" in tila.syyt
+    ohje = malli.viestit[-1][-1]["content"]
+    assert "ettei lääkemuutosta noudateta" in ohje
+    assert "kysele syytä" in ohje
+    assert tila.loppu == PuhelunLoppu.VALMIS
+    assert loppu.sanottavat[-1] in tietopohja()["lopetuslause_huolestuttava"]
+    yhteenveto = tila.tulos().yhteenveto
+    assert yhteenveto.taso.value == "keltainen"
+    assert "huomiosana: lääkemuutosta ei noudateta" in yhteenveto.saanto.perusteet
+
+
+def test_lopetetun_laakkeen_lopettaminen_ei_ole_poikkeama():
+    malli = Malli(f"Selvä. {LOPETETTU.teksti}", "Hyvä kuulla. LOPETUS")
+    tila = _lopetettu_kysytty(malli)
+
+    vuoro(tila, "En ole jatkanut, lopetin sen kokonaan.", malli)
+
+    assert not any(syy.startswith("laake:") for syy in tila.syyt)
+    assert tila.loppu == PuhelunLoppu.VALMIS
 
 
 def test_huonoon_vointiin_ei_lopeteta():
