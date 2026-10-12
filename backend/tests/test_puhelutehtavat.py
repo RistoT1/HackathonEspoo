@@ -9,10 +9,13 @@ from app.config import Settings, hae_asetukset
 from app.data.adapteri import hae_datalahde
 from app.main import app
 from app.mallit import (
+    Kiireellisyys,
     Laakejakso,
     MuutosTyyppi,
     PuhelutehtavanTila,
+    Saantoloydokset,
     Vanhus,
+    Yhteenveto,
 )
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.palvelu import (
@@ -28,7 +31,7 @@ from app.puhelutehtavat.palvelu import (
     tunnista_ja_jonouta,
     vaihda_tila,
 )
-from app.tietokanta import hae_sessio
+from app.tietokanta import KatseluLokiRivi, PuhelunTulosRivi, hae_sessio
 
 VIITE = datetime(2020, 4, 1, tzinfo=UTC)
 T = PuhelutehtavanTila
@@ -310,7 +313,49 @@ def test_hoitajan_nakyma_nayttaa_tietokannan_soittotehtavat(client):
     assert yksittainen.status_code == 200
     assert "TUNNISTETUT TERVEYSTIETOJEN MUUTOKSET" in yksittainen.text
     assert "PUHELUN KYSYMYSRUNKO" in yksittainen.text
-    assert "Puheluvastauksia tai litterointia tämä näkymä ei näytä." in yksittainen.text
+    assert "Puhelun tulosta ei ole vielä tallennettu." in yksittainen.text
+    assert "Sanatarkkoja puheluvastauksia tai litterointia ei tallenneta" in yksittainen.text
+
+
+def test_hoitajan_tehtavassa_naytetaan_tallennettu_puheluyhteenveto_ja_kirjataan_katselu(
+    client, sessiotehdas
+):
+    client.post("/puhelutehtavat/tunnista", json={})
+    tehtava_id = client.get("/puhelutehtavat").json()[0]["id"]
+    yhteenveto = Yhteenveto(
+        taso=Kiireellisyys.KELTAINEN,
+        saanto=Saantoloydokset(
+            taso=Kiireellisyys.KELTAINEN,
+            perusteet=["Hoitajan on hyvä soittaa tänään."],
+        ),
+        analyysi_valmis=True,
+        yleisvointi="Vointi on hieman huono.",
+        perustelu="Hoitajan kannattaa soittaa tänään.",
+    )
+    with sessiotehdas() as sessio:
+        sessio.add(
+            PuhelunTulosRivi(
+                istunto_id="istunto-ui-testi",
+                tehtava_id=tehtava_id,
+                loppu="VALMIS",
+                paattyi=datetime.now(UTC),
+                yhteenveto=yhteenveto.model_dump(mode="json"),
+            )
+        )
+        sessio.commit()
+
+    sivu = client.get(f"/hoitaja/tapaukset/{tehtava_id}")
+
+    assert sivu.status_code == 200
+    assert "PUHELUN YHTEENVETO" in sivu.text
+    assert "Keltainen" in sivu.text
+    assert "Vointi on hieman huono." in sivu.text
+    assert "Hoitajan kannattaa soittaa tänään." in sivu.text
+    with sessiotehdas() as sessio:
+        lokimerkinta = sessio.query(KatseluLokiRivi).one()
+        assert lokimerkinta.tehtava_id == tehtava_id
+        assert lokimerkinta.toiminto == "katselu"
+        assert lokimerkinta.katsoja == "hackathon-demo (kirjautumaton)"
 
 
 def test_hoitajan_nakymasta_paivitetaan_tila_backendin_saannoilla(client):

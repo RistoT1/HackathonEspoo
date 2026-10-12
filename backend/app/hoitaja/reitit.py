@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.mallit import Puhelutehtava, PuhelutehtavanTila, TilanMuutos
@@ -15,7 +16,7 @@ from app.puhelutehtavat.palvelu import (
     hae_tehtava,
     vaihda_tila,
 )
-from app.tietokanta import hae_sessio
+from app.tietokanta import KatseluLokiRivi, PuhelunTulosRivi, hae_sessio
 
 reititin = APIRouter()
 _app_hakemisto = Path(__file__).resolve().parent.parent
@@ -55,7 +56,9 @@ def _tilan_css_luokka(tila: PuhelutehtavanTila) -> str:
     }[tila]
 
 
-def _tehtavan_nakyma(tapaus: Puhelutehtava) -> dict[str, object]:
+def _tehtavan_nakyma(
+    tapaus: Puhelutehtava, puhelutulos: PuhelunTulosRivi | None
+) -> dict[str, object]:
     sallittuja = list(SALLITUT_TOIMINNOT[tapaus.tila])
     if tapaus.tila == PuhelutehtavanTila.EI_VASTANNUT and tapaus.yritykset >= MAX_YRITYKSET:
         sallittuja.remove(PuhelutehtavanTila.ODOTTAA)
@@ -66,6 +69,7 @@ def _tehtavan_nakyma(tapaus: Puhelutehtava) -> dict[str, object]:
         "tilan_css": _tilan_css_luokka(tapaus.tila),
         "sallitut_toiminnot": sallittuja,
         "toimintojen_nimet": TILAN_NIMET,
+        "puhelutulos": puhelutulos,
     }
 
 
@@ -120,10 +124,25 @@ def nayta_tapaus(
     except TehtavaaEiLoydy as virhe:
         raise HTTPException(status_code=404, detail="Soittotehtävää ei löydy") from virhe
 
+    sessio.add(
+        KatseluLokiRivi(
+            tehtava_id=tapaus.id,
+            katsoja="hackathon-demo (kirjautumaton)",
+            toiminto="katselu",
+        )
+    )
+    sessio.commit()
+    puhelutulos = sessio.scalar(
+        select(PuhelunTulosRivi)
+        .where(PuhelunTulosRivi.tehtava_id == tapaus.id)
+        .order_by(PuhelunTulosRivi.paattyi.desc())
+        .limit(1)
+    )
+
     return mallipohjat.TemplateResponse(
         request=pyynto,
         name="tapauksen_tiedot.html",
-        context=_tehtavan_nakyma(tapaus),
+        context=_tehtavan_nakyma(tapaus, puhelutulos),
     )
 
 

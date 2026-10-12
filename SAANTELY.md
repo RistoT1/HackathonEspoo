@@ -91,9 +91,9 @@ Keskustelua käyvä LLM käsittelee terveyssisältöä.
 
 - TLS kaikessa; Twilion websocket PAKKO olla `wss`, ei `ws`.
 - Pseudonymisoi: erota henkilöllisyys (nimi, puhelinnumero) terveystiedosta, linkitä tunnuksella.
-- Hoitajan näkymä: jokainen katselu audit-lokiin (puhelun jälkeinen osuus, ei vielä tehty). Pääsy tuotannossa
-  Entra ID:n kautta (MFA + roolipohjainen pääsy), ei omaa kirjautumista; hackathonissa ei
-  toteuteta. Kerrotaan pitchissä rehellisesti.
+- Hoitajan näkymä: tehtävän katselu kirjataan audit-lokiin. Hackathonissa katsojaa ei
+  tunnisteta eikä kirjautumista ole; tämä rajoitus on näkyvä lokissa. Tuotannossa pääsy
+  Entra ID:n kautta (MFA + roolipohjainen pääsy), ei omaa kirjautumista.
 - Salaisuudet tuotannossa Azure Key Vaultiin; devissä `.env` (gitignore). Ei repoon.
 - Minimoi PII LLM-prompteissa: älä lähetä nimeä/henkilötunnusta mallille, vain mitä kysymys vaatii.
 - Ei äänitallenteiden säilytystä.

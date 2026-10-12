@@ -11,6 +11,7 @@ from app.config import hae_asetukset
 from app.data.adapteri import DataEiSaatavilla
 from app.dev.reitit import router as dev_router
 from app.hoitaja.reitit import reititin as hoitaja_reititin
+from app.mallit import PuhelunTulos
 from app.muutokset.reitit import router as muutokset_router
 from app.puhelu.istunnot import hae_istuntovarasto
 from app.puhelu.puhe import TwimlLiianPitka
@@ -19,9 +20,14 @@ from app.puhelu.relay import router as relay_router
 from app.puhelu.soittaja import SoittoEiKaytossa, SoittoEpaonnistui
 from app.puhelutehtavat.ajastus import kaynnista_ajastin
 from app.puhelutehtavat.reitit import router as puhelutehtavat_router
-from app.tietokanta import aja_migraatiot, hae_engine
+from app.tietokanta import aja_migraatiot, hae_engine, hae_sessiotehdas, tallenna_puhelun_tulos
 from app.triage.analyysi import LlmAnalysoija
 from app.triage.tyontekija import Triagetyontekija
+
+
+def _tallenna_tulos_kantaan(tulos: PuhelunTulos) -> None:
+    with hae_sessiotehdas()() as sessio:
+        tallenna_puhelun_tulos(sessio, tulos)
 
 
 @asynccontextmanager
@@ -38,7 +44,9 @@ async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
             pida_muistissa=asetukset.llm_pida_muistissa,
         )
         varasto = hae_istuntovarasto()
-        varasto.aseta_triage(Triagetyontekija(analysoija, varasto.puheluita_kaynnissa))
+        varasto.aseta_triage(
+            Triagetyontekija(analysoija, varasto.puheluita_kaynnissa, _tallenna_tulos_kantaan)
+        )
     vali = asetukset.tunnistus_vali_minuutit
     ajastin = kaynnista_ajastin(vali) if vali > 0 else None
     yield

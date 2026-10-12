@@ -28,6 +28,7 @@ from sqlalchemy.orm import (
 )
 
 from app.config import hae_asetukset
+from app.mallit import PuhelunTulos
 
 
 @lru_cache
@@ -118,6 +119,36 @@ class PuhelutehtavanMuutosRivi(Base):
     tiedot: Mapped[dict] = mapped_column(JSON)  # Laakemuutos JSON-muodossa
 
     tehtava: Mapped[PuhelutehtavaRivi] = relationship(back_populates="muutokset")
+
+
+class PuhelunTulosRivi(Base):
+    """Puhelun pysyvä hoitajayhteenveto. Raakavastauksia tai litterointia ei tallenneta."""
+
+    __tablename__ = "puhelun_tulos"
+
+    istunto_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    tehtava_id: Mapped[str] = mapped_column(
+        ForeignKey("puhelutehtava.id", ondelete="CASCADE"), index=True
+    )
+    loppu: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    paattyi: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    yhteenveto: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
+class KatseluLokiRivi(Base):
+    """Tehtävänäkymän katselutapahtuma; hackathonissa katsojan tunnistautumista ei ole."""
+
+    __tablename__ = "katseluloki"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tehtava_id: Mapped[str] = mapped_column(
+        ForeignKey("puhelutehtava.id", ondelete="CASCADE"), index=True
+    )
+    katsoja: Mapped[str] = mapped_column(String(100))
+    aika: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_nyt)
+    toiminto: Mapped[str] = mapped_column(
+        String(30), server_default=text("'katselu'"), default="katselu"
+    )
 
 
 class VanhuksenYhteystietoRivi(Base):
@@ -214,3 +245,23 @@ class LaakeryhmanTarkennusRivi(Base):
         primary_key=True,
     )
     jarjestys: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+
+
+def tallenna_puhelun_tulos(sessio: Session, tulos: PuhelunTulos) -> None:
+    """Tallentaa tai päivittää vain triage-yhteenvedon, ei puhelun raakavastauksia."""
+    rivi = sessio.get(PuhelunTulosRivi, tulos.istunto_id)
+    yhteenveto = tulos.yhteenveto.model_dump(mode="json") if tulos.yhteenveto is not None else None
+    if rivi is None:
+        rivi = PuhelunTulosRivi(
+            istunto_id=tulos.istunto_id,
+            tehtava_id=tulos.tehtava_id,
+            loppu=tulos.loppu.value if tulos.loppu is not None else None,
+            paattyi=tulos.paattyi,
+            yhteenveto=yhteenveto,
+        )
+        sessio.add(rivi)
+    else:
+        rivi.loppu = tulos.loppu.value if tulos.loppu is not None else None
+        rivi.paattyi = tulos.paattyi
+        rivi.yhteenveto = yhteenveto
+    sessio.commit()

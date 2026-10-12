@@ -275,7 +275,7 @@ class Saantoloydokset(BaseModel):
 
 class Yhteenveto(BaseModel):
     """Hoitajalle: puhelun triage (Jeren analyysi). Taso = korkeampi säännön ja mallin
-    tasosta (sääntö voi vain nostaa). Litterointia ei tallenneta (datan minimointi)."""
+    tasosta (sääntö voi vain nostaa). Tämä yhteenveto tallennetaan; litterointia ei."""
 
     taso: Kiireellisyys
     saanto: Saantoloydokset
@@ -296,8 +296,7 @@ class Yhteenveto(BaseModel):
 
 
 class PuhelunTulos(BaseModel):
-    """Puhelun lopputulos triagelle. VAIN MUISTISSA: raakavastauksia ei tallenneta kantaan
-    (datan minimointi); triage tallentaa niista vain yhteenvedon."""
+    """Puhelun tulos; vastaukset ovat muistissa, mutta kantaan tallentuu vain yhteenveto."""
 
     istunto_id: str
     tehtava_id: str

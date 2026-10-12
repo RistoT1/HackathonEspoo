@@ -157,7 +157,7 @@ def testikeskustelu(
 
 @router.get("/puhelu/tulokset", response_model=list[PuhelunTulos])
 def puhelujen_tulokset(istunnot: IstunnotDep) -> list[PuhelunTulos]:
-    """Paattyneiden puhelujen vastaukset (muistissa, uusin ensin). Triagen tuleva syote."""
+    """Päättyneiden puhelujen tilapäiset dev-tulokset vastauksineen (uusin ensin)."""
     return istunnot.tulokset()
 
 

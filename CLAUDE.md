@@ -203,7 +203,8 @@ puhelu/          Twilio-puhelu (relay tai <Gather>-webhookit; vaatii JULKINEN_UR
                  ehdotukset usein vääriä). 12.10.: Voikon virhe 15 % -> 0 % samassa aineistossa,
                  uusissa vastauksissa tulee uusia: täydennä testipankin ajojen jälkeen.
   hatasanat.json hätämerkit säännöllä (testipankki tests/test_hatasanat.py)
-  istunnot.py    puhelut + tulokset MUISTISSA; loki.py = dev-vuoroloki (PUHELU_LOKI)
+  istunnot.py    käynnissä olevat puhelut ja dev-tulokset muistissa; puhelun triage-yhteenveto
+                 tallennetaan puhelun_tulos-tauluun, raakavastauksia ei tallenneta
   reitit.py      /vuoro: hidas LLM -> "Hetkinen..." + <Redirect> /odota (aikaa ~19 s, ei aikakatkaisua)
   relay.py       PUHELU_TAPA=relay: Twilio ConversationRelay (wss): AI puhuu loppuun JA kuuntelee;
                  sama tilakone, välitäyte suoraan, lopetus <Connect action> -> /relay-loppu
@@ -211,8 +212,9 @@ puhelu/          Twilio-puhelu (relay tai <Gather>-webhookit; vaatii JULKINEN_UR
 dev/             VAIN DEV (DEV_TILA=true): testimuutokset, jonon nollaus, demonumero
 triage/          puhelun jälkeen: saannot.py sääntötaso heti (punainen/keltainen/vihreä +
                  perusteet), analyysi.py Jeren LLM-analyysi taustasäikeessä (tyontekija.py),
-                 taso = korkeampi säännön ja mallin tasosta. Tulos muistissa (PuhelunTulos.yhteenveto)
-(ei vielä)       hoitajan tapaukset/jono kantaan ja näkymä, audit-loki
+                 taso = korkeampi säännön ja mallin tasosta. Yhteenveto tallentuu
+                 puhelun_tulos-tauluun ja päivittyy mallianalyysin valmistuttua
+hoitaja/         soittotehtävänäkymä + tallennettu yhteenveto, katseluloki demo-katsojana
 ```
 Sisältö (kysymystekstit, lääkeryhmät): kannassa, muokkaus `backend/sql/kysymyssisalto.sql`.
 Skeema: Alembic (`backend/alembic/`), uusi migraatio mallimuutoksen jälkeen.
@@ -350,14 +352,16 @@ Kolme tasoa: vihreä (kirjataan), keltainen (hoitaja soittaa tänään), punaine
 tason; **sääntöpohjaiset punaiset liput voivat vain nostaa sitä.** Tallenna vain yhteenveto.
 Toteutettu (11.10., app/triage/): sääntötaso heti puhelun päätyttyä, Jeren LLM-analyysi
 (JSON-skeema, varalla sääntöjen yhteenveto) taustalla; mitattu Poro M2:lla 30,5 s.
-Tulos GET /dev/puhelu/tulokset (muistissa). Hälytyssanat versionhallituissa datatiedostoissa
+Tulos GET /dev/puhelu/tulokset näyttää kehityksessä myös muistissa olevat vastaukset;
+kantaan tallennetaan vain hoitajalle tarkoitettu yhteenveto. Hälytyssanat versionhallituissa datatiedostoissa
 testipankin kanssa (hatasanat.json + tests/test_hatasanat.py, tieto/ + tests/test_tietopohja.py).
 
 ### Hoitajan näkymä
 Jono kiireellisyysjärjestyksessä, yhteenveto + perustelu ("miksi keltainen"), Soita-painike,
-kuittaus ja palautekenttä (luokitus oli oikea/väärä). Litterointia ei tallenneta eikä näytetä
-(datan minimointi). Jokainen katselu audit-lokiin. EI VIELÄ BACKENDISSÄ (puhelun jälkeinen
-osuus). Kirjautuminen: ei hackathonissa, tuotannossa Entra ID (MFA + roolit).
+kuittaus ja palautekenttä (luokitus oli oikea/väärä). Yhteenveto näkyy tehtävänäkymässä;
+litterointia ei tallenneta eikä näytetä (datan minimointi). Tehtävänäkymän katselut kirjataan
+audit-lokiin demo-katsojana, koska hackathonissa ei ole kirjautumista. Tuotannossa Entra ID
+(MFA + roolit).
 
 ---
 
