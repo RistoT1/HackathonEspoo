@@ -249,7 +249,6 @@ textarea {
   margin-left: 256px;
   display: flex;
   flex-direction: column;
-  padding-bottom: 96px;
 }
 
 .sisalto {
@@ -1028,6 +1027,137 @@ tbody tr:hover {
   height: 18px;
 }
 
+.potilasvalilehdet {
+  display: flex;
+  gap: 26px;
+  margin: 0;
+  padding: 0 22px;
+  overflow-x: auto;
+  background: #fff;
+  border-bottom: 1px solid #d4d4d8;
+  scrollbar-width: thin;
+}
+
+.potilasvalilehti {
+  position: relative;
+  min-height: 50px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 1px 12px;
+  color: #52525b;
+  border: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.potilasvalilehti:hover {
+  color: #0f5f93;
+}
+
+.potilasvalilehti[aria-selected="true"] {
+  color: #0f5f93;
+  font-weight: 700;
+}
+
+.potilasvalilehti[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background: #1473a9;
+}
+
+.valilehti-maara {
+  color: #71717a;
+  font-size: 0.76rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.potilasvalilehti[aria-selected="true"] .valilehti-maara {
+  color: #0f5f93;
+}
+
+.potilasvalilehden-sisalto {
+  min-height: 230px;
+  padding: 26px 22px;
+  background: #fff;
+}
+
+.potilasvalilehden-sisalto > .kortti,
+.potilasvalilehden-sisalto .tietoruudukko > .kortti {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.potilasvalilehden-sisalto .kortin-otsikko {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eeeeef;
+}
+
+.potilasvalilehden-sisalto .taulukko-sailio {
+  margin: 0;
+}
+
+.potilasvalilehden-sisalto .tietoruudukko {
+  gap: 0;
+  margin: 0;
+}
+
+.potilasvalilehden-sisalto .tieto {
+  min-height: 0;
+  padding-right: 30px;
+}
+
+.potilasvalilehden-sisalto .tieto + .tieto {
+  padding-right: 0;
+  padding-left: 30px;
+  border-left: 1px solid #e4e4e7;
+}
+
+.potilasvalilehden-sisalto .oirehistoria-mittarit {
+  gap: 0;
+  border-bottom: 1px solid #eeeeef;
+}
+
+.potilasvalilehden-sisalto .oirehistoria-mittarit .mittari {
+  padding-right: 24px;
+  padding-left: 24px;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid #eeeeef;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.potilasvalilehden-sisalto .oirehistoria-mittarit .mittari:first-child {
+  padding-left: 0;
+}
+
+.potilasvalilehden-sisalto .oirehistoria-mittarit .mittari:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.potilasvalilehden-sisalto:focus-visible {
+  outline: 3px solid #a1a1aa;
+  outline-offset: 4px;
+}
+
+.potilasvalilehden-sisalto[hidden] {
+  display: none;
+}
+
 .tietoruudukko {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1150,21 +1280,15 @@ textarea::placeholder {
 }
 
 .alatunniste {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 256px;
-  z-index: 2;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 8px clamp(24px, 4vw, 58px);
+  gap: 32px;
+  min-height: 78px;
+  padding: 14px clamp(24px, 4vw, 58px);
   color: var(--sidebar-muted);
   background: var(--sidebar);
   border-top: 1px solid #000;
-  box-shadow: 0 -6px 24px rgb(0 0 0 / 28%);
   font-size: 0.72rem;
 }
 
@@ -1176,10 +1300,9 @@ textarea::placeholder {
 }
 
 .alatunniste-logo {
-  height: 104px;
+  height: 48px;
   width: auto;
   flex: 0 0 auto;
-  margin: -14px 0;
 }
 
 .alatunniste-tekijat {
@@ -1444,7 +1567,7 @@ textarea::placeholder {
   }
 
   .alatunniste {
-    left: 218px;
+    gap: 20px;
   }
 
   .sisalto {
@@ -1497,7 +1620,6 @@ textarea::placeholder {
   }
 
   .alatunniste {
-    left: 0;
     padding: 14px 20px 18px;
   }
 }
@@ -1549,6 +1671,39 @@ textarea::placeholder {
 
   .tietoruudukko {
     grid-template-columns: 1fr;
+  }
+
+  .potilasvalilehdet {
+    gap: 22px;
+    padding: 0 17px;
+  }
+
+  .potilasvalilehden-sisalto {
+    padding: 22px 17px;
+  }
+
+  .potilasvalilehden-sisalto .tieto,
+  .potilasvalilehden-sisalto .tieto + .tieto {
+    padding: 0;
+    border-left: 0;
+  }
+
+  .potilasvalilehden-sisalto .tieto + .tieto {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #e4e4e7;
+  }
+
+  .potilasvalilehden-sisalto .oirehistoria-mittarit .mittari,
+  .potilasvalilehden-sisalto .oirehistoria-mittarit .mittari:first-child,
+  .potilasvalilehden-sisalto .oirehistoria-mittarit .mittari:last-child {
+    padding: 16px 0;
+    border-right: 0;
+    border-bottom: 1px solid #eeeeef;
+  }
+
+  .potilasvalilehden-sisalto .oirehistoria-mittarit .mittari:last-child {
+    border-bottom: 0;
   }
 
   .puhelutulos-ruudukko {

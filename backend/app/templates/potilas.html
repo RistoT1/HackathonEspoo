@@ -27,6 +27,14 @@
 </div>
 {% endif %}
 
+<nav class="potilasvalilehdet" aria-label="Potilaan tietojen osiot" role="tablist" data-valilehdet>
+  <a class="potilasvalilehti" id="valilehti-perustiedot" href="#perustiedot" role="tab" aria-controls="perustiedot">Perustiedot</a>
+  <a class="potilasvalilehti" id="valilehti-oirehistoria" href="#oirehistoria" role="tab" aria-controls="oirehistoria">Oirehistoria</a>
+  <a class="potilasvalilehti" id="valilehti-puhelut" href="#puhelut" role="tab" aria-controls="puhelut">Puhelut <span class="valilehti-maara">({{ oirehistoria.puhelut | length if oirehistoria else 0 }})</span></a>
+  <a class="potilasvalilehti" id="valilehti-soittotehtavat" href="#soittotehtavat" role="tab" aria-controls="soittotehtavat">Soittotehtävät <span class="valilehti-maara">({{ tehtavat | length }})</span></a>
+</nav>
+
+<div id="perustiedot" class="potilasvalilehden-sisalto" role="tabpanel" aria-labelledby="valilehti-perustiedot" tabindex="0" data-valilehtipaneeli>
 <section class="tietoruudukko" aria-label="Potilaan tiedot">
   <article class="kortti tieto">
     <div class="tieto-otsake">
@@ -64,10 +72,25 @@
     {% endif %}
   </article>
 </section>
+</div>
 
+<div id="oirehistoria" class="potilasvalilehden-sisalto" role="tabpanel" aria-labelledby="valilehti-oirehistoria" tabindex="0" data-valilehtipaneeli>
 {% include "osat/oirehistoria.html" %}
+{% if not oirehistoria %}
+<section class="kortti" aria-labelledby="oirehistoria-otsikko">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">OIREET PUHELUISSA</p>
+      <h2 id="oirehistoria-otsikko">Mistä henkilö on kertonut</h2>
+    </div>
+  </div>
+  <p class="toissijainen">Henkilölle ei ole vielä tallennettua oirehistoriaa.</p>
+</section>
+{% endif %}
+</div>
 
-<section class="kortti jonokortti" aria-labelledby="soittohistoria-otsikko" style="margin-bottom: 22px">
+<div id="puhelut" class="potilasvalilehden-sisalto" role="tabpanel" aria-labelledby="valilehti-puhelut" tabindex="0" data-valilehtipaneeli>
+<section class="kortti jonokortti" aria-labelledby="soittohistoria-otsikko">
   <div class="kortin-otsikko">
     <div>
       <p class="ylateksti">SOITTOHISTORIA</p>
@@ -105,7 +128,7 @@
             <span class="yhteenveto-kuvaus">{{ "Ei oireita" if puhelu.tavoitettu else "Ei tavoitettu" }}</span>
             {% endfor %}
           </td>
-          <td>{% if puhelu.tehtava_id %}<a class="tekstipainike" href="/hoitaja/tapaukset/{{ puhelu.tehtava_id }}">Tehtävä <span aria-hidden="true">→</span></a>{% endif %}</td>
+          <td>{% if puhelu.tehtava_id %}<a class="tekstipainike" href="/hoitaja/tapaukset/{{ puhelu.tehtava_id }}">Puhelun tiedot <span aria-hidden="true">→</span></a>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -115,7 +138,9 @@
   <p class="toissijainen">Henkilölle ei ole vielä tallennettuja puheluita.</p>
   {% endif %}
 </section>
+</div>
 
+<div id="soittotehtavat" class="potilasvalilehden-sisalto" role="tabpanel" aria-labelledby="valilehti-soittotehtavat" tabindex="0" data-valilehtipaneeli>
 <section class="kortti jonokortti" aria-labelledby="tehtavat-otsikko">
   <div class="kortin-otsikko">
     <div>
@@ -164,5 +189,6 @@
   <p class="toissijainen">Henkilölle ei ole soittotehtäviä.</p>
   {% endif %}
 </section>
+</div>
 <p class="nakyma-huomio">Hoitajan päätöksenteon tuki. Puheluista näytetään vain tallennettu yhteenveto, ei vastauksia eikä litterointia. Sivun avaus kirjataan katselulokiin.</p>
 {% endblock %}

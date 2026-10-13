@@ -253,7 +253,12 @@ def test_potilassivulla_soittohistoria(asiakas):
 
     assert "SOITTOHISTORIA" in vastaus.text
     assert "huimaus · lievä" in vastaus.text  # "pyörryttää" yhtenäistetty
-    assert 'href="/hoitaja/tapaukset/t-1">Tehtävä' in vastaus.text
+    assert 'href="/hoitaja/tapaukset/t-1">Puhelun tiedot' in vastaus.text
+    assert 'aria-label="Potilaan tietojen osiot"' in vastaus.text
+    assert 'href="#perustiedot"' in vastaus.text
+    assert 'href="#oirehistoria"' in vastaus.text
+    assert 'href="#puhelut"' in vastaus.text
+    assert 'href="#soittotehtavat"' in vastaus.text
 
 
 # --- Nimet (vanhuksen_henkilotieto) ---

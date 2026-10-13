@@ -128,3 +128,62 @@ function rivienTasot(juuri) {
   });
   return tasot;
 }
+
+// Potilassivun osiot välilehtiin. HTML näyttää kaikki osiot ilman JavaScriptiä.
+const valilehtinavigaatio = document.querySelector("[data-valilehdet]");
+if (valilehtinavigaatio instanceof HTMLElement) {
+  const valilehdet = [...valilehtinavigaatio.querySelectorAll('[role="tab"]')];
+  const paneelit = [...document.querySelectorAll("[data-valilehtipaneeli]")];
+  const tunnukset = new Set(paneelit.map((paneeli) => paneeli.id));
+
+  function avaaValilehti(tunnus, siirraKohdistus = false) {
+    const aktiivinenTunnus = tunnukset.has(tunnus) ? tunnus : paneelit[0]?.id;
+    if (!aktiivinenTunnus) {
+      return;
+    }
+
+    valilehdet.forEach((valilehti) => {
+      const aktiivinen = valilehti.getAttribute("aria-controls") === aktiivinenTunnus;
+      valilehti.setAttribute("aria-selected", String(aktiivinen));
+      valilehti.tabIndex = aktiivinen ? 0 : -1;
+      if (aktiivinen && siirraKohdistus) {
+        valilehti.focus();
+      }
+    });
+    paneelit.forEach((paneeli) => {
+      paneeli.hidden = paneeli.id !== aktiivinenTunnus;
+    });
+
+    window.requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+  }
+
+  valilehdet.forEach((valilehti, indeksi) => {
+    valilehti.addEventListener("click", (tapahtuma) => {
+      tapahtuma.preventDefault();
+      const tunnus = valilehti.getAttribute("aria-controls");
+      if (tunnus) {
+        avaaValilehti(tunnus);
+        window.history.replaceState(null, "", `#${tunnus}`);
+      }
+    });
+
+    valilehti.addEventListener("keydown", (tapahtuma) => {
+      let kohde = indeksi;
+      if (tapahtuma.key === "ArrowRight") kohde = (indeksi + 1) % valilehdet.length;
+      else if (tapahtuma.key === "ArrowLeft") kohde = (indeksi - 1 + valilehdet.length) % valilehdet.length;
+      else if (tapahtuma.key === "Home") kohde = 0;
+      else if (tapahtuma.key === "End") kohde = valilehdet.length - 1;
+      else return;
+
+      tapahtuma.preventDefault();
+      const tunnus = valilehdet[kohde].getAttribute("aria-controls");
+      if (tunnus) {
+        avaaValilehti(tunnus, true);
+        window.history.replaceState(null, "", `#${tunnus}`);
+      }
+    });
+  });
+
+  window.addEventListener("hashchange", () => avaaValilehti(window.location.hash.slice(1)));
+  avaaValilehti(window.location.hash.slice(1));
+}
