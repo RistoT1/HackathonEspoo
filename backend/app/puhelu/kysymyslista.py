@@ -79,6 +79,11 @@ def _esitetty(vastaus: str, kysymys: str) -> bool:
     if "?" not in vastaus:
         return False
     kysymyslause = _kysymyslause(kysymys)
+    if kysymys.startswith("Viime puhelussa mainitsit oireen:"):
+        # Malli saa muotoilla seurantakysymyksen luontevasti. Oireen vartalon osuma riittää,
+        # jotta backend ei lisää samaa kysymystä uudelleen eri sanoin kysytyn perään.
+        kuvaus = kysymys.split(":", 1)[1].split(".", 1)[0]
+        return bool(_sanavartalot(kuvaus) & _sanavartalot(vastaus))
     tarvittavat = _sanavartalot(kysymyslause)
     if not tarvittavat:
         # Pelkkiä täytesanoja ("Miten voit tänään?"): kysymyksen pitää olla mukana sellaisenaan

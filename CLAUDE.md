@@ -233,7 +233,9 @@ muisti/          edellinen puhelu: saman vanhus_id:n uusin hoitajayhteenveto (MU
                  30 pv) tiivistetään säännöllä (oire + voimakkuus + päivät, ei vakavia huolia,
                  ei litterointia). Liitetään Puhelukontekstiin soiton alkaessa (ei tallenneta
                  tehtävään), agentin ohjeen LOPPUUN (välimuisti säilyy). Triage: sama oire
-                 jatkuu -> keltainen. Hoitajan tapaussivulla "Edellinen puhelu".
+                 jatkuu -> keltainen. Seurantakysymys on backendin kysymyslistassa ja vastaus
+                 tallentuu rakenteisesti (poistunut/lievittynyt/ennallaan/pahentunut/epäselvä).
+                 Hoitajan tapaussivulla "Edellinen puhelu" ja oireen muutos.
 ```
 Sisältö (kysymystekstit, lääkeryhmät): kannassa, muokkaus `backend/sql/kysymyssisalto.sql`.
 Skeema: Alembic (`backend/alembic/`), uusi migraatio mallimuutoksen jälkeen.

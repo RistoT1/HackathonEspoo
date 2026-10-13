@@ -138,6 +138,7 @@ class EdellinenPuhelu(BaseModel):
     taso: str  # edellisen puhelun Kiireellisyys-arvo, esim. "keltainen"
     oireet: list[str] = Field(default_factory=list)  # sääntöjen oireavaimet (triagen vertailu)
     kuvaukset: list[str] = Field(default_factory=list)  # agentille, esim. "huimaus (kohtalainen)"
+    voimakkuudet: dict[str, str] = Field(default_factory=dict)  # oireavain -> voimakkuus
 
 
 class Puhelukonteksti(BaseModel):
@@ -269,6 +270,23 @@ class OireYhteenvedossa(BaseModel):
     varmuus: str = "epäselvä"  # selvä | epäselvä
 
 
+class OireenSeurannanTila(StrEnum):
+    POISTUNUT = "poistunut"
+    LIEVITTYNYT = "lievittynyt"
+    ENNALLAAN = "ennallaan"
+    PAHENTUNUT = "pahentunut"
+    EPASELVA = "epäselvä"
+
+
+class Oireseuranta(BaseModel):
+    """Edellisestä puhelusta kysytyn oireen rakenteinen muutos."""
+
+    oire: str
+    aiempi_voimakkuus: str = "ei tiedossa"
+    nykyinen_voimakkuus: str = "ei tiedossa"
+    tila: OireenSeurannanTila
+
+
 class Saantoloydokset(BaseModel):
     """Mitä säännöt tunnistivat puhelusta (deterministinen, ei LLM:ää)."""
 
@@ -282,6 +300,7 @@ class Saantoloydokset(BaseModel):
     tunnistetut_oireet: list[str] = Field(default_factory=list)
     huolestuttavat_oireet: list[str] = Field(default_factory=list)
     toistuvat_oireet: list[str] = Field(default_factory=list)  # myös edellisessä puhelussa
+    oireseurannat: list[Oireseuranta] = Field(default_factory=list)
     loukkaavia_puheenvuoroja: int = 0
     uhkauksia: int = 0
 

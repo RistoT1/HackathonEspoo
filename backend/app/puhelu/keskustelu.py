@@ -27,6 +27,7 @@ import time
 from dataclasses import dataclass, field, fields
 
 from app.mallit import KysymyksenVastaus, PuhelunLoppu
+from app.muisti.seuranta import luokittele_seuranta, on_seurantakysymys
 from app.puhelu.agentti import Keskusteluagentti
 from app.puhelu.istunto import (
     Puheluistunto,
@@ -225,7 +226,7 @@ async def kasittele(
     saannot = tunnista(teksti_)
     tieto = saannot.tieto
     istunto.tietohavainnot.append(tieto)
-    laake_poikkeama = _tunnista_laakepoikkeama(istunto, teksti_)
+    laake_poikkeama = _tallenna_kysymysvastaus(istunto, teksti_)
     konteksti = Vuorokonteksti(
         henkilo_kysyi=saannot.kysymys,
         laake_poikkeama=laake_poikkeama,
@@ -252,13 +253,20 @@ async def kasittele(
     return await _mallin_vuoro(istunto, agentti, konteksti, ohjeet, tarkistin)
 
 
-def _tunnista_laakepoikkeama(istunto: Puheluistunto, teksti_: str) -> bool:
-    """Vastaus juuri kysyttyyn lääkemuutoskysymykseen: noudatetaanko muutosta. 12.10.
+def _tallenna_kysymysvastaus(istunto: Puheluistunto, teksti_: str) -> bool:
+    """Liitä vastaus backendin viimeksi kysymään muistiseuranta- tai listakysymykseen.
+
+    Paluuarvo kertoo, poikkesiko vastaus lääkemuutoksesta. 12.10.
     puhelu: "mulla on niitä ylimääräisenä, niin mä jatkanut" -> sääntö ei tunnistanut
     (vain mallin analyysi jälkikäteen). Ei lääkeneuvoja eikä syyn kyselyä: hoitaja soittaa.
     Löydös nostaa triagen keltaiseksi (istunto.laakepoikkeamat -> saantoloydokset)."""
     kysytty = istunto.viimeksi_kysytty
     istunto.viimeksi_kysytty = None  # vain tämä vastaus on vastaus siihen
+    if on_seurantakysymys(kysytty) and istunto.konteksti.edellinen_puhelu is not None:
+        seuranta = luokittele_seuranta(kysytty, teksti_, istunto.konteksti.edellinen_puhelu)
+        istunto.oireseurannat.append(seuranta)
+        kirjaa_syy(istunto, f"muisti:seuranta:{seuranta.oire}:{seuranta.tila.value}")
+        return False
     peruste = laakemuutoksen_poikkeama(kysytty.tunniste, teksti_) if kysytty else None
     if peruste is None:
         return False
