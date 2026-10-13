@@ -196,6 +196,8 @@ class Puheluistunto:
     kotihoito_oireet: list[str] = field(default_factory=list)  # tämän vuoron kotihoito-ohjeet
     henkilo_kysyi: bool = False  # tämän vuoron puheessa oli kysymys
     malli_lammin: bool = False  # lämmitys valmis (siihen asti varatoiminta, ei odotusta)
+    lopuillaan: bool = False  # puhelun vuororaja lähellä: malli saa lopettaa listan kesken
+    lista_lopetus_ohitettu: bool = False  # mallin LOPETUS ohitettiin kerran (lista kesken)
     # Lokia varten: tämän vuoron mittaukset ja päätösten syyt.
     mittaukset: dict = field(default_factory=dict)
     syyt: list[str] = field(default_factory=list)
@@ -396,6 +398,7 @@ async def kasittele(
     if isinstance(selkeys, Vuoro):
         return selkeys
     lopuillaan = raja is not None and istunto.vuoro >= raja
+    istunto.lopuillaan = lopuillaan
     ohje = selkeys + _piilo_ohjeet(istunto, tieto, lopuillaan)
     return await _mallin_vuoro(istunto, agentti, ohje, tarkistin)
 
@@ -745,6 +748,19 @@ async def _mallin_vuoro(
         kysymys = istunto.kysymykset[max(0, istunto.seuraava - 1)].teksti
         if "?" not in vastaus and istunto.kysymykset:
             vastaus = f"{vastaus.strip()} {kysymys}"
+    lista_kesken = _avoin_kysymys(istunto) is not None
+    saa_lopettaa_kesken = (
+        istunto.lopuillaan or istunto.laake_poikkeama or istunto.lista_lopetus_ohitettu
+    )
+    if lopettaa and lista_kesken and not saa_lopettaa_kesken:
+        # Ohje sallii LOPETUKSEN vasta, kun lääkekysymykset on käyty (12.10. puhelu: kolmesta
+        # kysytty yksi, malli kuuli päänsäryn paranemiseksi ja lopetti). Vain kerran: toinen
+        # LOPETUS hyväksytään, ettei ketään pidetä puhelimessa vastoin tahtoa, jos säännöt
+        # eivät tunnistaneet lopetuspyyntöä. Seuraava kysymys lisätään (_eteneminen).
+        _syy(istunto, "malli:lopetus_ohitettu_lista")
+        istunto.lista_lopetus_ohitettu = True
+        lopettaa = False
+        vastaus = vastaus.replace(LOPETUSMERKKI, "")
     puhuttava = _puhuttavaksi(istunto, vastaus.replace(LOPETUSMERKKI, ""))
     if puhuttava and not tarkistin(puhuttava):
         _syy(istunto, "kieli:epavarma")  # kirjataan, ei estetä (Jere: ei tarkistusta)

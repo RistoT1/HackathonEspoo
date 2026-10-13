@@ -297,10 +297,64 @@ def test_kielletty_vapina_ei_ole_oire():
         ("lopetin sen lääkkeen", False),
         ("mä lopetan nyt sen lääkkeen", False),
         ("lääkäri sanoi että lopetetaan se lääke", False),
+        # 12.10. ilta: vastaus kysymykseen "Haluatko kertoa tästä vielä, vai jatketaanko?"
+        # lopetti puhelun.
+        ("En halua puhua siitä enempää. Jatketaan vaan", False),
+        ("en halua puhua tästä", False),
+        ("En halua enää puhua.", True),
     ],
 )
 def test_lopetuspyynto(teksti, odotettu):
     assert tunnista(teksti).lopetuspyynto is odotettu
+
+
+def test_puhekielen_ahistaa_on_huoli():
+    # 12.10. ilta: "vähän ahistaa olla näitten seurassa" ei tunnistunut huoleksi.
+    assert tunnista("Tässä mulla on vähän ahistaa olla näitten seurassa").huoli
+
+
+@pytest.mark.parametrize(
+    ("teksti", "odotettu"),
+    [
+        # 12.10. ilta: kolme puhelua, joissa säännöt eivät nähneet mitään (taso vihreä).
+        ("Arkin koko päivän sattu päähän", "sattu päähän"),
+        ("Ei se oikein sopinut hirveä rapula iski", "ei se oikein sopinut"),
+        ("viina maistuu, tullut juotua aika paljon", "viina"),
+        ("kaverit on vähän kännissä", "kännissä"),
+        # 12.10. klo 23.25: unohtuneet sydänlääkkeet ja lääkkeiden väärinkäyttö ohi säännöiltä.
+        ("Kun mulla on noi sydänlääkkeet ottamatta tänään.", "sydänlääkkeet ottamatta"),
+        ("kun en ottanut niitä lääkkeitä tänään", "en ottanut niitä lääk"),
+        ("Vaan popsin niitä pillareita ihan huvikseen koko aika.", "popsin niitä pillar"),
+    ],
+)
+def test_hoitajalle_merkittava_nostaa_keltaiseksi(teksti, odotettu):
+    assert odotettu in tunnista(teksti).keltainen
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        "Sopi se ihan hyvin",
+        "on sopinut hyvin",
+        "ei sovi nyt",
+        "otan lääkkeitä koko ajan ohjeen mukaan",
+        "otin lääkkeen aamulla",
+    ],
+)
+def test_sopiminen_ei_nosta(teksti):
+    assert tunnista(teksti).keltainen == []
+
+
+def test_sydantuntemus_on_huolestuttava_oire_ja_kysyy_rintakivusta():
+    # 12.10. klo 23.25: "ne tuntuu sydämessä" -> agentti siirtyi listan kysymykseen.
+    havainto = tunnista("Mulla on tosi paha olo ja ne tuntuu sydämessä")
+
+    assert "sydäntuntemukset" in havainto.huolestuttavat
+    assert any("rintakipu" in k for k in t.oireen_jatkokysymykset("sydäntuntemukset"))
+
+
+def test_sattuu_paahan_on_paansarky():
+    assert "päänsärky" in tunnista("koko päivän sattu päähän").oireet
 
 
 @pytest.mark.parametrize(

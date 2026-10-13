@@ -76,6 +76,7 @@ def test_avaus_kertoo_tekoalysta_eika_katkea():
 
 def test_malli_keskustelee_ja_lopettaa_lopetus_merkilla():
     tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
     malli = Malli("Mukava kuulla. Miten uusi lääke on sopinut?", "Hyvä kuulla. LOPETUS")
     vuoro(tila, None, malli)
 
@@ -85,6 +86,28 @@ def test_malli_keskustelee_ja_lopettaa_lopetus_merkilla():
     assert eka.sanottavat == ["Mukava kuulla. Miten uusi lääke on sopinut?"]
     assert loppu.sanottavat[0] == "Hyvä kuulla."
     assert loppu.sanottavat[-1] in LOPETUSLAUSEET
+    assert not loppu.kuuntele
+    assert tila.loppu == PuhelunLoppu.VALMIS
+
+
+def test_lopetus_ohitetaan_kerran_kun_listan_kysymyksia_puuttuu():
+    # 12.10. puhelu: kolmesta kysymyksestä kysytty yksi, malli sanoi LOPETUS.
+    tila = istunto()
+    malli = Malli(
+        "Mukava kuulla. Miten uusi lääke on sopinut?",
+        "Kiitos, että kerroit tästä. LOPETUS",
+        "Selvä. LOPETUS",
+    )
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin menee.", malli)
+
+    jatko = vuoro(tila, "Ei sitä nyt kunnolla.", malli)
+    syyt = list(tila.syyt)
+    loppu = vuoro(tila, "Ihan hyvin.", malli)
+
+    assert jatko.kuuntele
+    assert jatko.sanottavat[-1] == KYSYMYKSET[1].teksti
+    assert "malli:lopetus_ohitettu_lista" in syyt
     assert not loppu.kuuntele
     assert tila.loppu == PuhelunLoppu.VALMIS
 
@@ -106,6 +129,7 @@ def test_pienella_kirjoitettu_lopetus_ei_kuulu_puheeseen():
 def test_lopetuksessa_mallin_kiitokset_jaavat_pois():
     # 12.10. läpikäynti: "Kiitos, että kerroit. ... Kiitos kuulumisista. Välitän ne hoitajalle"
     tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
     malli = Malli(
         "Selvä. Miten uusi lääke on sopinut?",
         "Hyvä kuulla, että lääke on sopinut. Kiitos, että kerroit. Välitän tämän hoitajalle. "
@@ -579,7 +603,9 @@ def test_usein_kysyttyyn_vastataan_saannolla():
 
 
 # 12.10. puhelu: "Mikä oli kysymys?" ei toistanut, malli kysyi kokonaan muuta.
-@pytest.mark.parametrize("pyynto", ["Mitä kysyit?", "Mikä oli kysymys?", "mitä sä kysyit"])
+@pytest.mark.parametrize(
+    "pyynto", ["Mitä kysyit?", "Mikä oli kysymys?", "mitä sä kysyit", "Mitä siinä kysyit?"]
+)
 def test_toistopyynto_toistaa_kysymyksen(pyynto):
     tila = istunto()
     malli = Malli("Kiitos. Miten uusi lääke on sopinut?")
