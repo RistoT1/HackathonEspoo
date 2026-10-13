@@ -136,14 +136,16 @@ class PuhelunTulosRivi(Base):
 
 
 class KatseluLokiRivi(Base):
-    """Tehtävänäkymän katselutapahtuma; hackathonissa katsojan tunnistautumista ei ole."""
+    """Hoitajan katselutapahtuma: tehtävänäkymä (tehtava_id) tai potilassivu (vanhus_id).
+    Hackathonissa katsojan tunnistautumista ei ole."""
 
     __tablename__ = "katseluloki"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tehtava_id: Mapped[str] = mapped_column(
-        ForeignKey("puhelutehtava.id", ondelete="CASCADE"), index=True
+    tehtava_id: Mapped[str | None] = mapped_column(
+        ForeignKey("puhelutehtava.id", ondelete="CASCADE"), index=True, nullable=True
     )
+    vanhus_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     katsoja: Mapped[str] = mapped_column(String(100))
     aika: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_nyt)
     toiminto: Mapped[str] = mapped_column(

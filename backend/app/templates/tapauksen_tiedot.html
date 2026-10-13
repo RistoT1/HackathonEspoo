@@ -14,6 +14,7 @@
     <p class="ylateksti">SOITTOTEHTÄVÄ</p>
     <h1>{{ tapaus.id[:8] }}</h1>
     <p class="toissijainen">Pseudonyymi tunniste: {{ tapaus.vanhus_id }}</p>
+    <p class="toissijainen"><a class="tekstipainike" href="/hoitaja/potilaat/{{ tapaus.vanhus_id }}">Avaa potilaan sivu <span aria-hidden="true">→</span></a></p>
   </div>
   <span class="tilamerkki tilamerkki-{{ tilan_css }}">{{ tilan_nimi }}</span>
 </section>
@@ -75,7 +76,7 @@
     {% else %}
     <p>Tehtävälle ei ole tallennettu erillisiä perusteluja.</p>
     {% endif %}
-    <p class="tietojen-aikaleima">Viitepäivä {{ tapaus.viitepaiva.strftime("%d.%m.%Y") }}</p>
+    <p class="tietojen-aikaleima">Viitepäivä {{ tapaus.viitepaiva | aika("%d.%m.%Y") }}</p>
   </article>
   <article class="kortti tieto">
     <div class="tieto-otsake">
@@ -84,8 +85,8 @@
       </span>
       <p class="ylateksti">TEHTÄVÄN AJANKOHTA</p>
     </div>
-    <h2>Luotu {{ tapaus.luotu.strftime("%d.%m.%Y klo %H:%M") }}</h2>
-    <p>Viimeksi päivitetty {{ tapaus.paivitetty.strftime("%d.%m.%Y klo %H:%M") }}.</p>
+    <h2>Luotu {{ tapaus.luotu | aika("%d.%m.%Y klo %H:%M") }}</h2>
+    <p>Viimeksi päivitetty {{ tapaus.paivitetty | aika("%d.%m.%Y klo %H:%M") }}.</p>
   </article>
 </section>
 
@@ -110,7 +111,7 @@
           <span class="muutostyyppi">{{ muutos.tyyppi.value | replace("_", " ") | lower }}</span>
         </div>
         <p>{{ muutos.kuvaus }}</p>
-        <span class="muutospaiva">Tapahtui {{ muutos.tapahtui.strftime("%d.%m.%Y") }} · {{ muutos.paivia_sitten }} päivää sitten</span>
+        <span class="muutospaiva">Tapahtui {{ muutos.tapahtui | aika("%d.%m.%Y") }} · {{ muutos.paivia_sitten }} päivää sitten</span>
       </div>
     </article>
     {% endfor %}
@@ -191,7 +192,7 @@
   {% else %}
   {% set yhteenveto = puhelutulos.yhteenveto %}
   <p class="puhelutulos-aika">
-    Puhelu päättyi {{ puhelutulos.paattyi.strftime("%d.%m.%Y klo %H:%M") if puhelutulos.paattyi else "tuntemattomaan aikaan" }}.
+    Puhelu päättyi {{ puhelutulos.paattyi | aika("%d.%m.%Y klo %H:%M") if puhelutulos.paattyi else "tuntemattomaan aikaan" }}.
     Tulos: {{ puhelutulos.loppu | replace("_", " ") | lower if puhelutulos.loppu else "ei ilmoitettu" }}.
   </p>
 
@@ -288,6 +289,8 @@
 
   <p class="api-huomio">Tämä on hoitajan päätöksenteon tuki, ei diagnoosi. Raakavastauksia tai litterointia ei näytetä.</p>
 </section>
+
+{% include "osat/oirehistoria.html" %}
 
 <section class="kortti kasittelykortti">
   <div class="kortin-otsikko">

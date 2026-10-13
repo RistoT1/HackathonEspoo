@@ -1,0 +1,168 @@
+{% extends "perus.html" %}
+{% set aktiivinen = "potilaat" %}
+
+{% block title %}Potilas {{ tiedot.vanhus_id[:8] }}{% endblock %}
+
+{% block content %}
+<nav class="murupolku" aria-label="Murupolku">
+  <a href="/hoitaja/potilaat/">Potilaat</a>
+  <span aria-hidden="true">/</span>
+  <span aria-current="page">Potilas {{ tiedot.vanhus_id[:8] }}</span>
+</nav>
+
+<section class="sivun-otsikko tapaus-otsikko">
+  <div>
+    <p class="ylateksti">POTILAS</p>
+    <h1>{{ tiedot.vanhus_id[:8] }}</h1>
+    <p class="toissijainen">Pseudonyymi tunniste: {{ tiedot.vanhus_id }}</p>
+  </div>
+</section>
+
+{% if not tiedot.terveysdata_saatavilla %}
+<div class="varoitus">
+  <span class="varoitus-kuvake" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M12 3.5 21 20H3L12 3.5Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
+  </span>
+  <span>Terveysdataa ei saatu luettua. Näytetään soittotehtävät ja puhelut.</span>
+</div>
+{% endif %}
+
+<section class="tietoruudukko" aria-label="Potilaan tiedot">
+  <article class="kortti tieto">
+    <div class="tieto-otsake">
+      <span class="tieto-kuvake" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>
+      </span>
+      <p class="ylateksti">PERUSTIEDOT</p>
+    </div>
+    {% if tiedot.terveysdata_saatavilla %}
+    <h2>{{ tiedot.ika }} vuotta{% if tiedot.sukupuoli %}, {{ tiedot.sukupuoli }}{% endif %}</h2>
+    <ul class="perustelulista">
+      <li>{{ tiedot.aktiiviset_laakkeet | length }} lääkettä käytössä</li>
+      <li>{{ tehtavat | length }} soittotehtävää</li>
+    </ul>
+    <p class="tietojen-aikaleima">Tiedot viitepäivänä {{ tiedot.viitepaiva | aika("%d.%m.%Y") }}</p>
+    {% else %}
+    <p class="toissijainen">Perustiedot eivät ole saatavilla.</p>
+    {% endif %}
+  </article>
+  <article class="kortti tieto">
+    <div class="tieto-otsake">
+      <span class="tieto-kuvake" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M8 4h8v3H8zM7 7h10v13H7zM9.5 11h5M9.5 14h5M9.5 17h3"/></svg>
+      </span>
+      <p class="ylateksti">KÄYTÖSSÄ OLEVAT LÄÄKKEET</p>
+    </div>
+    {% if tiedot.aktiiviset_laakkeet %}
+    <ul class="perustelulista">
+      {% for laake in tiedot.aktiiviset_laakkeet %}
+      <li>{{ laake.nimi }} <span class="tunniste-ala">määrätty {{ laake.alkoi | aika("%d.%m.%Y") }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="toissijainen">{{ "Ei käytössä olevia lääkkeitä." if tiedot.terveysdata_saatavilla else "Lääkitys ei ole saatavilla." }}</p>
+    {% endif %}
+  </article>
+</section>
+
+{% include "osat/oirehistoria.html" %}
+
+<section class="kortti jonokortti" aria-labelledby="soittohistoria-otsikko" style="margin-bottom: 22px">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">SOITTOHISTORIA</p>
+      <h2 id="soittohistoria-otsikko">Kaikki puhelut</h2>
+      <p class="toissijainen">Tallennetuista yhteenvedoista, uusin ensin. Vastauksia tai litterointia ei tallenneta.</p>
+    </div>
+    <span class="tapausmaara">{{ oirehistoria.puhelut | length if oirehistoria else 0 }} puhelua</span>
+  </div>
+  {% if oirehistoria %}
+  <div class="taulukko-sailio">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Päättyi</th>
+          <th scope="col">Arvio</th>
+          <th scope="col">Tulos</th>
+          <th scope="col">Kerrotut oireet</th>
+          <th scope="col"><span class="sr-only">Toiminto</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for puhelu in oirehistoria.puhelut | reverse %}
+        <tr>
+          <td class="aikaleima">{{ puhelu.paattyi | aika("%d.%m.%Y %H:%M") }}</td>
+          <td>
+            {% if puhelu.taso %}
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-{{ puhelu.taso.value | replace('ä', 'a') }}">{{ puhelu.taso.value | capitalize }}</span>
+            {% else %}<span class="tunniste-ala">Ei arviota</span>{% endif %}
+          </td>
+          <td>{{ puhelu.loppu.value | replace("_", " ") | lower | capitalize if puhelu.loppu else "Ei ilmoitettu" }}</td>
+          <td>
+            {% for oire in puhelu.oireet %}
+            <span class="yhteenveto-kuvaus">{{ oire.oire }}{% if oire.voimakkuus != "ei tiedossa" %} · {{ oire.voimakkuus }}{% endif %}</span>
+            {% else %}
+            <span class="yhteenveto-kuvaus">{{ "Ei oireita" if puhelu.tavoitettu else "Ei tavoitettu" }}</span>
+            {% endfor %}
+          </td>
+          <td>{% if puhelu.tehtava_id %}<a class="tekstipainike" href="/hoitaja/tapaukset/{{ puhelu.tehtava_id }}">Tehtävä <span aria-hidden="true">→</span></a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="toissijainen">Henkilölle ei ole vielä tallennettuja puheluita.</p>
+  {% endif %}
+</section>
+
+<section class="kortti jonokortti" aria-labelledby="tehtavat-otsikko">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">SOITTOTEHTÄVÄT</p>
+      <h2 id="tehtavat-otsikko">Henkilön soittotehtävät</h2>
+    </div>
+    <span class="tapausmaara">{{ tehtavat | length }} tehtävää</span>
+  </div>
+  {% if tehtavat %}
+  <div class="taulukko-sailio">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Kiireellisyys</th>
+          <th scope="col">Tunnistetut lääkemuutokset</th>
+          <th scope="col">Luotu</th>
+          <th scope="col">Tila</th>
+          <th scope="col"><span class="sr-only">Toiminto</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tapaus in tehtavat %}
+        {% set arvio = arviot.get(tapaus.id) %}
+        <tr>
+          <td>
+            {% if arvio %}
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-{{ arvio.taso.value | replace('ä', 'a') }}">{{ arvio.taso.value | capitalize }}</span>
+            {% else %}<span class="tunniste-ala">Ei arviota</span>{% endif %}
+          </td>
+          <td>
+            {% for muutos in tapaus.muutokset[:2] %}
+            <span class="yhteenveto-otsikko">{{ muutos.tyyppi.value | replace("_", " ") | lower }}</span>
+            <span class="yhteenveto-kuvaus">{{ muutos.laake.nimi }}</span>
+            {% endfor %}
+            {% if not tapaus.muutokset %}<span class="yhteenveto-kuvaus">Ei muutostietoja</span>{% endif %}
+          </td>
+          <td class="aikaleima">{{ tapaus.luotu | aika("%d.%m.%Y %H:%M") }}</td>
+          <td><span class="tilamerkki tilamerkki-{{ tilan_css[tapaus.tila] }}">{{ tilan_nimet[tapaus.tila] }}</span></td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/{{ tapaus.id }}">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="toissijainen">Henkilölle ei ole soittotehtäviä.</p>
+  {% endif %}
+</section>
+<p class="nakyma-huomio">Hoitajan päätöksenteon tuki. Puheluista näytetään vain tallennettu yhteenveto, ei vastauksia eikä litterointia. Sivun avaus kirjataan katselulokiin.</p>
+{% endblock %}

@@ -385,3 +385,81 @@ class TilanMuutos(BaseModel):
 
 class PuhelutehtavienNollaus(BaseModel):
     poistettuja_puhelutehtavia: int
+
+
+# --- Hoitajan tapaussivu: henkilön oireet puheluittain (hoitaja/historia.py) ---
+
+
+class Oiremerkinta(BaseModel):
+    """Yksi oire yhdessä puhelussa. Tallennetusta yhteenvedosta, ei litteroinnista."""
+
+    oire: str  # tietopohjan oire (esim. "päänsärky") tai mallin sanoin, jos ei tunnistunut
+    voimakkuus: str  # lievä | kohtalainen | voimakas | poistunut | ei tiedossa
+    kuvaukset: list[str] = Field(default_factory=list)  # yhteenvedon sanamuodot
+    alkoi_laakkeen_jalkeen: str = "ei tiedossa"
+
+
+class OirehistorianPuhelu(BaseModel):
+    nimi: str  # x-akselille, esim. "12.10. klo 20.38"
+    paattyi: datetime
+    taso: Kiireellisyys | None  # None = yhteenveto ei saatavilla
+    tavoitettu: bool  # ei: ei vastannut tai ei sanonut mitään
+    tehtava_id: str = ""
+    loppu: PuhelunLoppu | None = None
+    tama_tehtava: bool = False
+    oireet: list[Oiremerkinta] = Field(default_factory=list)
+
+
+class Oiresivu(BaseModel):
+    """Kuukauden sisäinen sivu (enintään SIVUN_KOKO puhelua), vanhin ensin."""
+
+    alku: int  # puhelun järjestysnumero kuukaudessa, 1 = kuun ensimmäinen
+    loppu: int
+    puhelut: list[OirehistorianPuhelu]
+    oireet: list[str]  # rivit: sivulla mainitut, koko historian yleisin ensin
+
+
+class Oirekuukausi(BaseModel):
+    """Taulukon sivu: yhden kalenterikuukauden puhelut (vanhin ensin) ja niissä kerrotut oireet."""
+
+    avain: str  # "2026-10"
+    nimi: str  # "Lokakuu 2026"
+    puhelut: list[OirehistorianPuhelu]
+    oireet: list[str]  # rivit: kuukaudessa mainitut, koko historian yleisin ensin
+    sivut: list[Oiresivu] = Field(default_factory=list)  # yli SIVUN_KOKO puhelua -> useampi
+
+
+class Oirehistoria(BaseModel):
+    """Saman henkilön (vanhus_id) kaikkien tehtävien puhelut, vanhin ensin."""
+
+    puhelut: list[OirehistorianPuhelu]
+    oireet: list[str]  # kaavion rivit: useimmin mainittu ensin
+    mainintoja: dict[str, int]  # oire -> monessako puhelussa (poistunut ei lasketa)
+    tavoitettu: int = 0
+    viimeisin_taso: Kiireellisyys | None = None
+    viimeisin_aika: datetime | None = None
+    toistuvin_tila: str = ""  # yleisimmän oireen tilanne, esim. "poistunut 9.10."
+    kuukaudet: list[Oirekuukausi] = Field(default_factory=list)  # vanhin ensin
+
+
+class Potilastiedot(BaseModel):
+    """Potilassivun perustiedot adapterista. Pseudonyymi: ei nimeä eikä henkilötunnusta."""
+
+    vanhus_id: str
+    ika: int | None = None  # viitepäivänä
+    sukupuoli: str | None = None
+    viitepaiva: datetime | None = None
+    aktiiviset_laakkeet: list[Laake] = Field(default_factory=list)  # yksi rivi per lääke
+    terveysdata_saatavilla: bool = True
+
+
+class Potilasrivi(BaseModel):
+    """Potilaslistan rivi: henkilö, jolla on soittotehtäviä. Pseudonyymi, ei nimeä."""
+
+    vanhus_id: str
+    ika: int | None = None  # uusimman tehtävän viitepäivänä
+    tehtavia: int = 0
+    avoimia: int = 0  # odottaa soittoa tai soitetaan
+    puheluita: int = 0
+    viimeisin_puhelu: datetime | None = None
+    viimeisin_taso: Kiireellisyys | None = None
