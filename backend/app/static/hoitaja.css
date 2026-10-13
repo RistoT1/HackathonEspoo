@@ -369,7 +369,7 @@ textarea:focus-visible {
 
 .mittaririvi {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 22px;
 }
@@ -419,6 +419,11 @@ textarea:focus-visible {
 .mittari-ikoni-valmis {
   color: #58806a;
   background: #eef5f0;
+}
+
+.mittari-ikoni-halytys {
+  color: #785400;
+  background: #fff4d6;
 }
 
 .mittari-sisalto {
@@ -1110,9 +1115,164 @@ textarea::placeholder {
   clip-path: inset(50%);
 }
 
+.puhelutuloskortti {
+  margin-bottom: 22px;
+}
+
+.kiireellisyysmerkki {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-transform: capitalize;
+}
+
+.kiireellisyysmerkki-pieni {
+  min-height: 24px;
+  padding: 3px 9px;
+  font-size: 0.67rem;
+  white-space: nowrap;
+}
+
+/* Jonon automaattinen päivitys: rivi, jonka arvio ilmestyi tai muuttui. */
+.rivi-uusi-arvio {
+  animation: uusi-arvio 3.5s ease-out;
+}
+
+@keyframes uusi-arvio {
+  0%,
+  35% {
+    background: #fff4d6;
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+.kiireellisyys-vihrea {
+  color: #286044;
+  background: #e8f4ec;
+  border-color: #cde6d5;
+}
+
+.kiireellisyys-keltainen {
+  color: #785400;
+  background: #fff4d6;
+  border-color: #f0dda4;
+}
+
+.kiireellisyys-punainen {
+  color: #8b302c;
+  background: #fff0ee;
+  border-color: #f2ceca;
+}
+
+.puhelutulos-aika {
+  margin: 4px 0 18px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.analyysi-odottaa {
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  color: #624d1a;
+  background: #fff8e6;
+  border: 1px solid #efdfb2;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.analyysi-odottaa strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.puhelutulos-ruudukko {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.puhelutulos-osio {
+  min-width: 0;
+  padding: 15px 16px;
+  background: #f8faf9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.puhelutulos-osio h3 {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+}
+
+.puhelutulos-osio p,
+.puhelutulos-osio ul {
+  margin: 0;
+  color: #465a60;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.puhelutulos-osio ul {
+  padding-left: 19px;
+}
+
+.puhelutulos-osio li + li {
+  margin-top: 7px;
+}
+
+.puhelutulos-osio li span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.puhelutulos-huomio {
+  background: #fff8f6;
+  border-color: #f0d8d3;
+}
+
+.saantotiedot {
+  margin-top: 14px;
+  padding: 12px 14px;
+  color: #465a60;
+  background: #f8faf9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.saantotiedot summary {
+  color: #30484d;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.saantotiedot ul {
+  padding-left: 19px;
+}
+
+.saantotiedot p,
+.saantotiedot ul {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
 @media (max-width: 1050px) {
   .sivupalkki {
     width: 218px;
+  }
+
+  .mittaririvi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .paaalue {
@@ -1222,6 +1382,10 @@ textarea::placeholder {
     grid-template-columns: 1fr;
   }
 
+  .puhelutulos-ruudukko {
+    grid-template-columns: 1fr;
+  }
+
   .suodatinrivi {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -1272,5 +1436,6 @@ textarea::placeholder {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

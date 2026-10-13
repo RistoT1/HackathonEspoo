@@ -8,8 +8,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.mallit import Kysymys, Puhelukonteksti
+from app.mallit import Kiireellisyys, Kysymys, Puhelukonteksti, PuhelunLoppu
 from app.puhelu import relay
+from app.puhelu.istunnot import Istuntovarasto
 from app.puhelu.keskustelu import EI_KUULUNUT, Puheluistunto, Vaihe, kasittele
 from app.puhelu.relay import MAX_JATKOT, Relayistunto, on_kaikua
 
@@ -321,3 +322,35 @@ def test_tukitilassa_valitaytteen_jalkeinen_puhe_kuullaan():
         assert "huutaa" in malli.viestit[-1][-1]["content"]
 
     asyncio.run(aja())
+
+
+def test_katkennut_yhteys_paattaa_puhelun_keskeytyneena(sessiotehdas):
+    # 12.10.: ngrok katkesi kesken puhelun, Twilion paluukutsut saivat 404:n ja puhelu jäi
+    # muistiin käynnissä-tilaan (ei tulosta hoitajalle, lämmitysvahti ja triage odottivat).
+    async def aja() -> tuple[Puheluistunto, Istuntovarasto]:
+        tila = istunto()
+        await kasittele(tila, None, None, HidasMalli())
+        istunnot = Istuntovarasto()
+        istunnot.lisaa(tila)
+        asetukset = SimpleNamespace(puhelu_valivastaus_s=30.0, relay_puheen_tauko_ms=1500)
+        yhteys = Relayistunto(
+            Ws(), tila, istunnot, HidasMalli(), lambda _: True, asetukset, None, sessiotehdas
+        )
+        yhteys.katkesi()
+        yhteys.katkesi()  # toinen kutsu (Twilion myöhästynyt paluukutsu) ei tee mitään
+        return tila, istunnot
+
+    tila, istunnot = asyncio.run(aja())
+
+    assert not istunnot.puheluita_kaynnissa()
+    tulokset = istunnot.tulokset()
+    assert len(tulokset) == 1
+    assert tulokset[0].loppu == PuhelunLoppu.KESKEYTYI
+    assert tulokset[0].yhteenveto.taso == Kiireellisyys.KELTAINEN  # katkesi kesken
+
+
+def test_hallitun_lopetuksen_jalkeen_katkos_ei_muuta_tulosta():
+    yhteys = Relayistunto(Ws(), istunto(), None, HidasMalli(), lambda _: True, None, None, None)
+    yhteys.paattynyt = True
+
+    yhteys.katkesi()  # ei kosketa varastoon eikä kantaan (molemmat None)

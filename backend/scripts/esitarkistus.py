@@ -25,13 +25,12 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # backend/: app-paketti
 
 from app.config import hae_asetukset  # noqa: E402
-from app.puhelu.tietopohja import jarjestelmaohje, teksti  # noqa: E402
+from app.puhelu.lammitys import LAMMIN_RAJA_S, lammita_malli  # noqa: E402
 
 BACKEND = "http://127.0.0.1:8000"
 NGROK_API = "http://127.0.0.1:4040/api/tunnels"
 DOCKER_ASETUKSET = Path.home() / "Library/Group Containers/group.com.docker/settings-store.json"
 # Lämmin malli: uuden puhelun lämmitys 6-8 s (mitattu 11.10.), kylmä 46-54 s.
-LAMMIN_RAJA_S = 15.0
 DOCKER_MUISTI_MAX_MIB = 4096
 SWAP_VAROITUS_GT = 4.0
 
@@ -149,35 +148,16 @@ def tarkista_malli(lammita: bool) -> None:
     else:
         ok(f"{a.llm_malli} muistissa pysyvästi")
     if lammita:
-        _lammita(a.llm_base_url, a.llm_malli)
+        _lammita()
 
 
-def _lammita(base_url: str, malli: str) -> None:
-    """Sama alku kuin puhelun lämmityksessä: järjestelmäohje + avaus. Kahden kylmän ajon
-    jälkeen välimuisti osaa haarakohdan, ja uusi puhelu lämpenee sekunneissa (11.10.)."""
-    ohje = jarjestelmaohje(
-        80,
-        ["uusi lääke (ryhmä verenpainelääke)"],
-        ["Oletko aloittanut uuden lääkkeen käytön?", "Miten voit tänään?"],
-    )
-    viestit = [
-        {"role": "system", "content": ohje},
-        {"role": "assistant", "content": teksti("avauslause", {})},
-    ]
-    runko = {
-        "model": malli,
-        "messages": viestit,
-        "max_tokens": 1,
-        "reasoning_effort": "none",
-        "keep_alive": -1,
-    }
-    alku = time.perf_counter()
+def _lammita() -> None:
+    """Sama lämmitys kuin backendin lämmitysvahdissa (app/puhelu/lammitys.py)."""
     try:
-        httpx.post(f"{base_url.rstrip('/')}/chat/completions", json=runko, timeout=180)
+        kesto = lammita_malli(hae_asetukset())
     except httpx.HTTPError as poikkeus:
         virhe(f"lämmitys epäonnistui: {poikkeus}")
         return
-    kesto = time.perf_counter() - alku
     if kesto <= LAMMIN_RAJA_S:
         ok(f"lämmitys {kesto:.1f} s: malli lämmin")
     else:
@@ -243,7 +223,12 @@ def tarkista_virta() -> None:
         ).stdout.splitlines()
     except (OSError, subprocess.CalledProcessError):
         prosessit = []
-    pysyva = [rivi for rivi in prosessit if rivi.startswith("caffeinate") and " -t " not in rivi]
+    # PowerShell käynnistää koko polulla (/usr/bin/caffeinate), zsh pelkällä nimellä.
+    pysyva = [
+        rivi
+        for rivi in prosessit
+        if rivi.split(" ", 1)[0].endswith("caffeinate") and " -t " not in rivi
+    ]
     if pysyva:
         ok(f"lepotila estetty: {pysyva[0][:60]}")
     else:
@@ -296,6 +281,11 @@ def tarkista_twilio() -> None:
 
 
 def main() -> None:
+    # 12.10.: kirjoitusvirhe "--lammitaa" ohitti lämmityksen hiljaa.
+    tuntemattomat = [arg for arg in sys.argv[1:] if arg != "--lammita"]
+    if tuntemattomat:
+        print(f"Tuntematon valitsin: {' '.join(tuntemattomat)} (ainoa valitsin: --lammita)")
+        sys.exit(2)
     lammita = "--lammita" in sys.argv
     tarkista_asetukset()
     tarkista_backend()

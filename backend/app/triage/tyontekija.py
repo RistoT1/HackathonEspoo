@@ -24,11 +24,15 @@ class Analysoija(Protocol):
 
 class Triagetyontekija:
     def __init__(
-        self, analysoija: Analysoija, puheluita_kaynnissa: Callable[[], bool] = lambda: False
+        self,
+        analysoija: Analysoija,
+        puheluita_kaynnissa: Callable[[], bool] = lambda: False,
+        tallenna: Callable[[PuhelunTulos], None] | None = None,
     ) -> None:
         self._analysoija = analysoija
         # Analyysi vasta kun yhtään puhelua ei ole käynnissä: puhelu menee aina edelle.
         self._puheluita_kaynnissa = puheluita_kaynnissa
+        self._tallenna = tallenna
         self._jono: queue.Queue[tuple[PuhelunTulos, str]] = queue.Queue()
         self._saie = threading.Thread(target=self._aja, name="triage", daemon=True)
         self._saie.start()
@@ -57,6 +61,14 @@ class Triagetyontekija:
                     saanto.taso,
                     tulos.yhteenveto.mallin_taso,
                 )
+                if self._tallenna is not None:
+                    try:
+                        self._tallenna(tulos)
+                    except Exception:
+                        logger.exception(
+                            "Triage-yhteenvedon tallennus epäonnistui: istunto=%s",
+                            tulos.istunto_id,
+                        )
             except Exception:
                 logger.exception("Triage-analyysi kaatui; sääntötaso jää voimaan")
             finally:

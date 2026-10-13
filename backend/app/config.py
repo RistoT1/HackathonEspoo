@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     # Puhelun jälkeisen analyysin ajattelu: tarkempi, mutta varaa mallin minuuteiksi (Gemma 12B
     # M2:lla puhelun vuorossa 121 s), jolloin seuraavan puhelun vuorot jonottavat. Pois oletuksena.
     llm_analyysi_ajattelu: bool = False
+    # Lämmitysvahti (puhelu/lammitys.py): malli ja välimuisti lämpimäksi käynnistyksessä ja
+    # tämän välein, kun puheluita ei ole. 0 = pois. 12.10.: Ollaman uudelleenkäynnistyksen
+    # jälkeen kaksi puhelua alkoi kylmällä mallilla ja kulki varatoiminnalla.
+    llm_lammitysvali_s: float = 60.0
+    # Käynnistys odottaa, kunnes malli on lämmin, ja ajaa simuloidun puhelun (kylmänä pari
+    # minuuttia). false = nopea käynnistys, esim. --reload-kehityksessä ilman soittoja.
+    llm_lammita_kaynnistyksessa: bool = True
 
     # Twilio (puhelu). Arvot Consolesta .env:iin, ei koskaan repoon. None = soitto pois kaytosta.
     twilio_account_sid: str | None = None

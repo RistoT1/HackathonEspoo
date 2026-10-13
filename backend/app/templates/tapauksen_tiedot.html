@@ -140,7 +140,125 @@
   {% else %}
   <p class="toissijainen">Tehtävälle ei ole muodostettu kysymysrunkoa.</p>
   {% endif %}
-  <p class="api-huomio">Nykyinen API tallentaa tehtävän ja kysymysrungon. Puheluvastauksia tai litterointia tämä näkymä ei näytä.</p>
+</section>
+
+<section class="kortti puhelutuloskortti" aria-labelledby="puhelutulos-otsikko">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">PUHELUN YHTEENVETO</p>
+      <h2 id="puhelutulos-otsikko">Hoitajan arviointia tukeva yhteenveto</h2>
+    </div>
+    {% if puhelutulos and puhelutulos.yhteenveto %}
+    <span class="kiireellisyysmerkki kiireellisyys-{{ puhelutulos.yhteenveto.taso | lower | replace('ä', 'a') }}">
+      {{ puhelutulos.yhteenveto.taso | capitalize }}
+    </span>
+    {% endif %}
+  </div>
+  <p class="toissijainen">Sanatarkkoja puheluvastauksia tai litterointia ei tallenneta.</p>
+
+  {% if not puhelutulos %}
+  <p class="toissijainen">Puhelun tulosta ei ole vielä tallennettu.</p>
+  {% elif not puhelutulos.yhteenveto %}
+  <p class="toissijainen">Puhelu on päättynyt, mutta yhteenveto ei ole vielä saatavilla.</p>
+  {% else %}
+  {% set yhteenveto = puhelutulos.yhteenveto %}
+  <p class="puhelutulos-aika">
+    Puhelu päättyi {{ puhelutulos.paattyi.strftime("%d.%m.%Y klo %H:%M") if puhelutulos.paattyi else "tuntemattomaan aikaan" }}.
+    Tulos: {{ puhelutulos.loppu | replace("_", " ") | lower if puhelutulos.loppu else "ei ilmoitettu" }}.
+  </p>
+
+  {% if not yhteenveto.analyysi_valmis %}
+  <div class="analyysi-odottaa" role="status">
+    <strong>Yksityiskohtainen analyysi on kesken.</strong>
+    Näytössä on heti muodostettu sääntöpohjainen arvio. Päivitä sivu myöhemmin nähdäksesi
+    mahdollisen täydennyksen. Malli ei voi alentaa sääntöjen kiireellisyystasoa.
+  </div>
+  {% elif yhteenveto.varayhteenveto %}
+  <div class="analyysi-odottaa" role="status">
+    Tarkempi analyysi ei valmistunut. Näytössä on sääntöpohjainen yhteenveto.
+  </div>
+  {% endif %}
+
+  <div class="puhelutulos-ruudukko">
+    {% if yhteenveto.yleisvointi %}
+    <article class="puhelutulos-osio">
+      <h3>Yleisvointi</h3>
+      <p>{{ yhteenveto.yleisvointi }}</p>
+    </article>
+    {% endif %}
+    {% if yhteenveto.perustelu %}
+    <article class="puhelutulos-osio">
+      <h3>Kiireellisyystason perustelu</h3>
+      <p>{{ yhteenveto.perustelu }}</p>
+    </article>
+    {% endif %}
+    {% if yhteenveto.oireet %}
+    <article class="puhelutulos-osio">
+      <h3>Oireet</h3>
+      <ul>
+        {% for oire in yhteenveto.oireet %}
+        <li>
+          <strong>{{ oire.oire }}</strong>
+          <span>{{ oire.voimakkuus }}, varmuus: {{ oire.varmuus }}</span>
+          {% if oire.tilanne %}<span>{{ oire.tilanne }}</span>{% endif %}
+          {% if oire.alkoi_laakkeen_jalkeen != "ei tiedossa" %}
+          <span>Alkoi lääkkeen jälkeen: {{ oire.alkoi_laakkeen_jalkeen }}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endif %}
+    {% if yhteenveto.turvallisuushuolet %}
+    <article class="puhelutulos-osio puhelutulos-huomio">
+      <h3>Turvallisuushuolet</h3>
+      <ul>{% for huoli in yhteenveto.turvallisuushuolet %}<li>{{ huoli }}</li>{% endfor %}</ul>
+    </article>
+    {% endif %}
+    {% if yhteenveto.huolet %}
+    <article class="puhelutulos-osio">
+      <h3>Hoitajan huomioitavat asiat</h3>
+      <ul>{% for huoli in yhteenveto.huolet %}<li>{{ huoli }}</li>{% endfor %}</ul>
+    </article>
+    {% endif %}
+    {% if yhteenveto.annetut_ohjeet %}
+    <article class="puhelutulos-osio">
+      <h3>Puhelussa annetut ohjeet</h3>
+      <ul>{% for ohje in yhteenveto.annetut_ohjeet %}<li>{{ ohje }}</li>{% endfor %}</ul>
+    </article>
+    {% endif %}
+    {% if yhteenveto.laakkeen_huomiot or yhteenveto.laakkeen_kaytto != "ei tiedossa" %}
+    <article class="puhelutulos-osio">
+      <h3>Lääkkeen käyttö</h3>
+      <p>Otettu ohjeen mukaan: {{ yhteenveto.laakkeen_kaytto }}.</p>
+      {% if yhteenveto.laakkeen_huomiot %}<p>{{ yhteenveto.laakkeen_huomiot }}</p>{% endif %}
+    </article>
+    {% endif %}
+    {% if yhteenveto.muuta_hoitajalle %}
+    <article class="puhelutulos-osio">
+      <h3>Muuta hoitajalle</h3>
+      <p>{{ yhteenveto.muuta_hoitajalle }}</p>
+    </article>
+    {% endif %}
+  </div>
+
+  {% if yhteenveto.saanto.perusteet or yhteenveto.saanto.hatamerkit or yhteenveto.saanto.vakavat_huolet %}
+  <details class="saantotiedot">
+    <summary>Sääntöjen tunnistamat perusteet</summary>
+    {% if yhteenveto.saanto.perusteet %}
+    <ul>{% for peruste in yhteenveto.saanto.perusteet %}<li>{{ peruste }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if yhteenveto.saanto.hatamerkit %}
+    <p><strong>Hätämerkit:</strong> {{ yhteenveto.saanto.hatamerkit | join(", ") }}</p>
+    {% endif %}
+    {% if yhteenveto.saanto.vakavat_huolet %}
+    <p><strong>Vakavat huolet:</strong> {{ yhteenveto.saanto.vakavat_huolet | join(", ") }}</p>
+    {% endif %}
+  </details>
+  {% endif %}
+  {% endif %}
+
+  <p class="api-huomio">Tämä on hoitajan päätöksenteon tuki, ei diagnoosi. Raakavastauksia tai litterointia ei näytetä.</p>
 </section>
 
 <section class="kortti kasittelykortti">

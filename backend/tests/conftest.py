@@ -6,6 +6,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.config import hae_asetukset
 from app.kysymykset.sisalto import Kysymyssisalto, Laakeryhma
 from app.mallit import MuutosTyyppi
 
@@ -19,6 +20,15 @@ def migroi(url: str) -> None:
     asetukset.set_main_option("sqlalchemy.url", url)
     asetukset.attributes["konfiguroi_lokitus"] = False
     command.upgrade(asetukset, "head")
+
+
+@pytest.fixture(autouse=True)
+def _ei_puhelulokia(monkeypatch):
+    """Testit eivät kirjoita kehittäjän puhelulokiin, vaikka .env:ssä PUHELU_LOKI=true."""
+    monkeypatch.setenv("PUHELU_LOKI", "false")
+    hae_asetukset.cache_clear()
+    yield
+    hae_asetukset.cache_clear()
 
 
 @pytest.fixture

@@ -402,6 +402,18 @@ class Relayistunto:
             {"type": "end", "handoffData": json.dumps({"sanottavat": vuoro.sanottavat})}
         )
 
+    def katkesi(self) -> None:
+        """Websocket sulkeutui ilman hallittua lopetusta (henkilö katkaisi tai yhteys katkesi):
+        puhelu päätetään keskeytyneenä heti. 12.10.: ngrok katkesi, Twilion paluukutsut
+        (/relay-loppu, /tila) saivat 404:n, ja puhelu jäi muistiin käynnissä-tilaan. Hoitaja ei
+        nähnyt mitään, ja lämmitysvahti ja triage-analyysi jäivät odottamaan puhelun loppua."""
+        if self.paattynyt:
+            return
+        self.paattynyt = True
+        self._kirjaa("relay_katkesi")
+        with self.sessiotehdas() as sessio:
+            kasittele_tila(self.istunto.istunto_id, "", self.istunnot, sessio)
+
     def _kirjaa(self, tapahtuma: str, **tiedot: object) -> None:
         if self.loki is not None:
             self.loki.kirjaa(self.istunto.istunto_id, tapahtuma, tapa="relay", **tiedot)
@@ -479,6 +491,7 @@ async def relay(
             yhteys.tyo.cancel()
         if yhteys.vahti is not None:
             yhteys.vahti.cancel()
+        yhteys.katkesi()
 
 
 @router.post("/relay-loppu/{istunto_id}", include_in_schema=False)

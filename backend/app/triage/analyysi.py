@@ -24,6 +24,11 @@ logger = logging.getLogger(__name__)
 ANALYYSI_OHJE = """Analysoi alla oleva seurantapuhelu hoitajalle. Kirjoita suomeksi.
 Kenttien arvot (lievä, kyllä, keltainen...) ovat aina täsmälleen kuten alla.
 Käytä VAIN sitä, mitä henkilö itse sanoi. Älä arvaa äläkä diagnosoi. Kirjoita lyhyesti.
+Avustajan tiivistykset eivät ole henkilön sanoja: jos avustaja kuvasi asian toisin kuin
+henkilö, kirjaa henkilön oma ilmaus (esim. henkilö sanoi nukkuneensa heikosti ja avustaja
+puhui heikkoudesta: oire on huono uni).
+Jos henkilö kertoi, milloin oire alkoi (esim. kuurin lopettamisen jälkeen), kirjaa se
+kenttään tilanne.
 Oireiksi kirjataan vain tuntemukset ja vaivat. Turvallisuuteen liittyvät asiat (väkivalta,
 huono kohtelu, itsetuhoiset ajatukset, liian suuri lääkemäärä, outoja aistimuksia,
 toivottomuus) kirjataan kenttään turvallisuushuolet, ei oireisiin.

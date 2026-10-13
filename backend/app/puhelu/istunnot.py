@@ -1,13 +1,15 @@
-"""Kesken olevat puhelut ja paattyneiden tulokset MUISTISSA (ei kantaa).
+"""Kesken olevat puhelut ja viimeisimmät tulokset muistissa.
 
-Datan minimointi: vanhuksen raakavastaukset eivat paady kantaan. Triage lukee tuloksen
-taalta ja tallentaa vain yhteenvedon. Hinta: backendin uudelleenkaynnistys kesken puhelun
-katkaisee puhelun (Twilio saa virhe-TwiML:n), mika on demossa hyvaksyttava.
+Datan minimointi: raakavastaukset eivät päädy kantaan. Puhelun päättyessä tietokantaan
+tallennetaan triage-yhteenveto; muistin tuloslista palvelee kehityksen tarkastelua.
+Hinta: backendin uudelleenkäynnistys kesken puhelun katkaisee puhelun (Twilio saa
+virhe-TwiML:n), mikä on demossa hyväksyttävä.
 Yksi prosessi (uvicorn ilman workereita); useampi prosessi vaatisi jaetun varaston.
 """
 
 import asyncio
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from threading import Lock
 
@@ -72,13 +74,15 @@ class Istuntovarasto:
         with self._lukko:
             self._istunnot.pop(istunto_id, None)
 
-    def paata(self, istunto: Puheluistunto) -> bool:
-        """Siirtaa paattyneen puhelun tuloksiin. False, jos se oli jo siirretty."""
+    def paata(self, istunto: Puheluistunto, tallenna: Callable[[PuhelunTulos], None]) -> bool:
+        """Tallentaa yhteenvedon ennen kuin istunto poistetaan ja tulos julkaistaan."""
         with self._lukko:
-            poistettu = self._istunnot.pop(istunto.istunto_id, None)
-            if poistettu is None:
+            if istunto.istunto_id not in self._istunnot:
                 return False
             tulos = istunto.tulos()
+            # Jos kanta ei ole käytettävissä, jätä istunto aktiiviseksi uudelleenyritystä varten.
+            tallenna(tulos)
+            self._istunnot.pop(istunto.istunto_id)
             self._tulokset.append(tulos)
         if self._triage is not None:
             self._triage.lisaa(tulos, istunto.litterointi())

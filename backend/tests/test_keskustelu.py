@@ -5,7 +5,7 @@ import asyncio
 
 import pytest
 
-from app.mallit import Kysymys, Puhelukonteksti, PuhelunLoppu
+from app.mallit import Kysymys, Muutoskonteksti, MuutosTyyppi, Puhelukonteksti, PuhelunLoppu
 from app.puhelu.agentti import KiinteaAgentti
 from app.puhelu.keskustelu import (
     EI_KUULUNUT,
@@ -76,6 +76,7 @@ def test_avaus_kertoo_tekoalysta_eika_katkea():
 
 def test_malli_keskustelee_ja_lopettaa_lopetus_merkilla():
     tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
     malli = Malli("Mukava kuulla. Miten uusi lääke on sopinut?", "Hyvä kuulla. LOPETUS")
     vuoro(tila, None, malli)
 
@@ -87,6 +88,78 @@ def test_malli_keskustelee_ja_lopettaa_lopetus_merkilla():
     assert loppu.sanottavat[-1] in LOPETUSLAUSEET
     assert not loppu.kuuntele
     assert tila.loppu == PuhelunLoppu.VALMIS
+
+
+def test_lopetus_ohitetaan_kerran_kun_listan_kysymyksia_puuttuu():
+    # 12.10. puhelu: kolmesta kysymyksestä kysytty yksi, malli sanoi LOPETUS.
+    tila = istunto()
+    malli = Malli(
+        "Mukava kuulla. Miten uusi lääke on sopinut?",
+        "Kiitos, että kerroit tästä. LOPETUS",
+        "Selvä. LOPETUS",
+    )
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin menee.", malli)
+
+    jatko = vuoro(tila, "Ei sitä nyt kunnolla.", malli)
+    syyt = list(tila.syyt)
+    loppu = vuoro(tila, "Ihan hyvin.", malli)
+
+    assert jatko.kuuntele
+    assert jatko.sanottavat[-1] == KYSYMYKSET[1].teksti
+    assert "malli:lopetus_ohitettu_lista" in syyt
+    assert not loppu.kuuntele
+    assert tila.loppu == PuhelunLoppu.VALMIS
+
+
+def test_pienella_kirjoitettu_lopetus_ei_kuulu_puheeseen():
+    # 12.10. läpikäynti: malli kirjoitti "Lopetus." ja agentti luki sen ääneen.
+    tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
+    malli = Malli("Selvä. Miten uusi lääke on sopinut?", "Hyvä kuulla. Lopetus.")
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin.", malli)
+
+    loppu = vuoro(tila, "Hyvin on sopinut.", malli)
+
+    assert tila.loppu == PuhelunLoppu.VALMIS
+    assert not any("lopetus" in osa.lower() for osa in loppu.sanottavat)
+
+
+def test_lopetuksessa_mallin_kiitokset_jaavat_pois():
+    # 12.10. läpikäynti: "Kiitos, että kerroit. ... Kiitos kuulumisista. Välitän ne hoitajalle"
+    tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
+    malli = Malli(
+        "Selvä. Miten uusi lääke on sopinut?",
+        "Hyvä kuulla, että lääke on sopinut. Kiitos, että kerroit. Välitän tämän hoitajalle. "
+        "LOPETUS",
+    )
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin.", malli)
+
+    loppu = vuoro(tila, "Hyvin on sopinut.", malli)
+
+    assert loppu.sanottavat[0] == "Hyvä kuulla, että lääke on sopinut."
+    assert loppu.sanottavat[-1] in LOPETUSLAUSEET
+    assert len(loppu.sanottavat) == 2
+
+
+def test_lopetuksessa_ei_jaa_vastaamatonta_kysymysta():
+    # 12.10. läpikäynti: lista käyty, malli kysyi yleiskysymyksen ja puhelu loppui samassa
+    # vuorossa ("Oletko pystynyt ottamaan lääkkeen ohjeen mukaan? Kiitos, että kerroit...").
+    tila = istunto()
+    tila.kysymykset = tila.kysymykset[:1]
+    tila.seuraava = 1
+    tila.ilman_edistysta = 2
+    malli = Malli("Hyvä kuulla. Oletko pystynyt ottamaan lääkkeen ohjeen mukaan?")
+    vuoro(tila, None, malli)
+
+    loppu = vuoro(tila, "Aamuisin lähinnä.", malli)
+
+    assert tila.loppu == PuhelunLoppu.VALMIS
+    assert not any("?" in osa for osa in loppu.sanottavat)
+    assert loppu.sanottavat[0] == "Hyvä kuulla."
 
 
 def test_mallille_jarjestelmaohje_kysymykset_ja_keskustelu():
@@ -116,6 +189,45 @@ def test_oireeseen_tietopohjan_jatkokysymykset_ja_kotihoito_piilo_ohjeena():
     viimeinen = malli.viestit[0][-1]["content"]
     assert "(Tietopohja: henkilö mainitsi oire 'huimaus'" in viimeinen
     assert "Kotihoito-ohjeet:" in viimeinen
+
+
+def test_ajoituskysymys_muutoksen_tyypin_mukaan_eika_kerrottua_kysyta():
+    # 13.10. puhelu: kuurin lopettamisen jälkeen alkanutta päänsärkyä kysyttiin "lääkkeen
+    # aloittamisen jälkeen". Nyt sanamuoto tulee muutoksesta, ja kerrottu ajoitus jää pois.
+    tila = istunto()
+    tila.konteksti = Puhelukonteksti(
+        ika=82,
+        aktiivisia_laakkeita=3,
+        muutokset=[
+            Muutoskonteksti(
+                tyyppi=MuutosTyyppi.LYHYT_KUURI, laakeryhma="antibiootti", paivia_sitten=5
+            )
+        ],
+    )
+    malli = Malli("Ikävä kuulla.", "Ymmärrän.")
+    vuoro(tila, None, malli)
+
+    vuoro(tila, "Väsyttää vähän.", malli)
+    vuoro(tila, "Ja päänsärkyä tuli sen jälkeen kun lopetin.", malli)
+
+    vasymys = malli.viestit[0][-1]["content"]
+    paansarky = malli.viestit[1][-1]["content"]
+    assert "Onko väsymys alkanut lääkekuurin aikana tai sen jälkeen?" in vasymys
+    assert "aloittamisen" not in vasymys
+    assert "Kuinka usein päänsärkyä on?" in paansarky
+    assert "Onko päänsärky alkanut" not in paansarky
+    assert "Älä kysy uudelleen sitä, minkä henkilö jo kertoi." in paansarky
+
+
+def test_nukuttu_heikosti_on_unettomuus_eika_jaa_mallin_arvattavaksi():
+    # 13.10. puhelu: "Tuli nukuttaa vähän heikosti" ilman tietopohjaa -> malli: "heikkoutta".
+    tila = istunto()
+    malli = Malli("Ymmärrän.")
+    vuoro(tila, None, malli)
+
+    vuoro(tila, "Ei ole. Tuli nukuttaa vähän heikosti.", malli)
+
+    assert "(Tietopohja: henkilö mainitsi oire 'unettomuus'" in malli.viestit[0][-1]["content"]
 
 
 def test_oireen_jatkokysymysta_ei_korvata_listan_kysymyksella():
@@ -228,6 +340,51 @@ def test_kotihoitoa_ei_lisata_kun_malli_antoi_sen():
     assert kotihoito.sanottavat == [
         "Nouse ylös rauhallisesti ja istu ensin hetki sängyn reunalla. Miten uusi lääke on sopinut?"
     ]
+
+
+LOPETETTU = Kysymys(
+    tunniste="LOPETETTU_LAAKE",
+    teksti="Oletko lopettanut sen käytön, ja onko vanhoja oireita palannut?",
+)
+
+
+def _lopetettu_kysytty(malli: Malli) -> Puheluistunto:
+    tila = istunto()
+    tila.kysymykset = [LOPETETTU]
+    vuoro(tila, None, malli)
+    vuoro(tila, "Ihan hyvin.", malli)
+    return tila
+
+
+def test_lopetetun_laakkeen_jatkaminen_nostaa_keltaiseksi_ja_lupaa_soiton():
+    # 12.10. puhelu: "mulla on niitä ylimääräisenä, niin mä jatkanut vähän" -> sääntö ei
+    # tunnistanut, lopetus lupasi soiton vain "tarvittaessa". Ei lääkeneuvoa, ei syyn kyselyä.
+    malli = Malli(
+        f"Selvä. {LOPETETTU.teksti}", "Kiitos, että kerroit. Välitän tämän hoitajalle. LOPETUS"
+    )
+    tila = _lopetettu_kysytty(malli)
+
+    loppu = vuoro(tila, "No mulla on niitä ylimääräisenä, niin mä jatkanut vähän.", malli)
+
+    assert "laake:poikkeama:LOPETETTU_LAAKE" in tila.syyt
+    ohje = malli.viestit[-1][-1]["content"]
+    assert "ettei lääkemuutosta noudateta" in ohje
+    assert "kysele syytä" in ohje
+    assert tila.loppu == PuhelunLoppu.VALMIS
+    assert loppu.sanottavat[-1] in tietopohja()["lopetuslause_huolestuttava"]
+    yhteenveto = tila.tulos().yhteenveto
+    assert yhteenveto.taso.value == "keltainen"
+    assert "huomiosana: lääkemuutosta ei noudateta" in yhteenveto.saanto.perusteet
+
+
+def test_lopetetun_laakkeen_lopettaminen_ei_ole_poikkeama():
+    malli = Malli(f"Selvä. {LOPETETTU.teksti}", "Hyvä kuulla. LOPETUS")
+    tila = _lopetettu_kysytty(malli)
+
+    vuoro(tila, "En ole jatkanut, lopetin sen kokonaan.", malli)
+
+    assert not any(syy.startswith("laake:") for syy in tila.syyt)
+    assert tila.loppu == PuhelunLoppu.VALMIS
 
 
 def test_huonoon_vointiin_ei_lopeteta():
@@ -484,13 +641,17 @@ def test_usein_kysyttyyn_vastataan_saannolla():
     assert malli.viestit == []
 
 
-def test_toistopyynto_toistaa_kysymyksen():
+# 12.10. puhelu: "Mikä oli kysymys?" ei toistanut, malli kysyi kokonaan muuta.
+@pytest.mark.parametrize(
+    "pyynto", ["Mitä kysyit?", "Mikä oli kysymys?", "mitä sä kysyit", "Mitä siinä kysyit?"]
+)
+def test_toistopyynto_toistaa_kysymyksen(pyynto):
     tila = istunto()
     malli = Malli("Kiitos. Miten uusi lääke on sopinut?")
     vuoro(tila, None, malli)
     vuoro(tila, "Ihan hyvin.", malli)
 
-    toisto = vuoro(tila, "Mitä kysyit?", malli)
+    toisto = vuoro(tila, pyynto, malli)
 
     assert toisto.sanottavat[0] in tietopohja()["uudelleenkysymys"]["toistoviesti"]
     assert toisto.sanottavat[1] == "Miten uusi lääke on sopinut?"

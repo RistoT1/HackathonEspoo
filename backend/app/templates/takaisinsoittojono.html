@@ -15,7 +15,17 @@
   </a>
 </section>
 
-<section class="mittaririvi" aria-label="Jonon yhteenveto">
+<section class="mittaririvi" aria-label="Jonon yhteenveto" data-paivittyva="mittarit">
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-halytys" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 4 3 19.5h18L12 4Z"/><path d="M12 10v4M12 17h.01"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Kiireelliset arviot</span>
+      <strong>{{ yhteenveto.hoitaja_soittaa }}</strong>
+    </span>
+    <span class="mittari-kuvaus">punainen tai keltainen: hoitaja soittaa</span>
+  </article>
   <article class="mittari">
     <span class="mittari-ikoni mittari-ikoni-avoin" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5zM8 9h8M8 12h8M8 15h5"/></svg>
@@ -52,9 +62,9 @@
   <div class="kortin-otsikko">
     <div>
       <h2>Soittojono</h2>
-      <p class="toissijainen">Järjestetty backendin määrittämän soittojärjestyksen mukaan.</p>
+      <p class="toissijainen">Puhelun kiireellisyyden mukaan (punainen, keltainen, vihreä), sitten soittojärjestyksen mukaan. Päivittyy automaattisesti.</p>
     </div>
-    <span class="tapausmaara">{{ tapaukset | length }} tehtävää</span>
+    <span class="tapausmaara" data-paivittyva="maara">{{ tapaukset | length }} tehtävää</span>
   </div>
 
   <form class="suodatinrivi" method="get" action="/hoitaja/">
@@ -70,11 +80,13 @@
     <button class="painike painike-toissijainen" type="submit">Suodata</button>
   </form>
 
+  <div data-paivittyva="taulukko">
   {% if tapaukset %}
   <div class="taulukko-sailio">
     <table>
       <thead>
         <tr>
+          <th scope="col">Kiireellisyys</th>
           <th scope="col">Soittojärjestys</th>
           <th scope="col">Tehtävä / pseudonyymi</th>
           <th scope="col">Tunnistetut lääkemuutokset</th>
@@ -85,7 +97,18 @@
       </thead>
       <tbody>
         {% for tapaus in tapaukset %}
-        <tr>
+        {% set jonon_taso = tasot.get(tapaus.id) %}
+        <tr data-tehtava="{{ tapaus.id }}" data-taso="{{ jonon_taso.taso.value if jonon_taso else '' }}">
+          <td>
+            {% if jonon_taso %}
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-{{ jonon_taso.taso.value | replace('ä', 'a') }}">
+              {{ jonon_taso.taso.value | capitalize }}
+            </span>
+            {% if not jonon_taso.analyysi_valmis %}<span class="tunniste-ala">sääntöarvio, analyysi kesken</span>{% endif %}
+            {% else %}
+            <span class="tunniste-ala">Ei arviota</span>
+            {% endif %}
+          </td>
           <td><span class="prioriteetti">{{ tapaus.prioriteetti }}</span><span class="tunniste-ala">pistettä</span></td>
           <td>
             <span class="tunniste">{{ tapaus.id[:8] }}</span>
@@ -124,6 +147,7 @@
     <p>Vaihda tilasuodatusta tai päivitä jono.</p>
   </div>
   {% endif %}
+  </div>
 </section>
 <p class="nakyma-huomio">Soittoprioriteetti määrittää järjestystä, eikä ole triage- tai kiireellisyysluokitus.</p>
 {% endblock %}

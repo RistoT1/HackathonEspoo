@@ -37,7 +37,7 @@
       "en (kuullut|ymmärtänyt|saanut selvää)",
       "(toista|toistaisitko|sano uudelleen|voitko toistaa|kysy uudelleen)",
       "mitä sinä sanoit",
-      "mitä kysyit"
+      "mitä (\\w+ ){0,2}kysyit", "mikä (se )?(oli|on) (se )?kysymys", "mikä se kysymys (oli|on)", "mitä sä sanoit"
     ],
     "puheentunnistuksen_harhat": [
       "kiitos katsomisesta",
@@ -58,7 +58,7 @@
       "eiköhän (me )?(nyt )?lopeteta",
       "^(lopeta|lopetetaan|lopetellaan)\\b",
       "haluan lopettaa",
-      "en (halua|jaksa) (enää )?(puhua|jutella|jatkaa|vastata)",
+      "en (halua|jaksa) (enää )?(puhua|jutella|jatkaa|vastata)(?! (siitä|tästä|niistä|noista|sitä|tätä|asiasta))",
       "^ei (sovi|käy)",
       "ei (sovi|käy) (nyt|tähän aikaan)",
       "soita(kaa)? (myöhemmin|toiste|toisella kertaa)",
@@ -249,6 +249,35 @@
     "ollenkaan",
     "koskaan"
   ],
+  "laakemuutoksen_poikkeama": {
+    "_kuvaus": "Vastaus lääkemuutoskysymykseen kertoo, ettei muutosta noudateta (lopetettu lääke yhä käytössä, uutta ei aloitettu, vanha annos, kuuri kesken). Tunnistetaan VAIN juuri kysytyn muutoskysymyksen vastauksesta (kysymyksen tunniste), koska 'jatkanut' tai 'lopetin sen' muualla tarkoittaa muuta. Nostaa keltaiseksi (12.10. puhelu: 'mulla on niitä ylimääräisenä, niin mä jatkanut vähän' jäi säännöiltä huomaamatta). Agentti ei neuvo lääkityksessä eikä kysele syytä (voi kuulostaa moitteelta, hoitaja selvittää): toteaa ja lupaa hoitajan soiton, puhelu saa päättyä.",
+    "kuviot": {
+      "LOPETETTU_LAAKE": [
+        "(?<!en )(?<!ole )(?<!oo )jatka",
+        "ylimääräi",
+        "(otan|syön|käytän|otin|ottanut|syönyt) (sitä |niitä )?(vielä|edelleen|yhä)",
+        "(vielä|edelleen|yhä) (otan|syön|käytän)",
+        "en (ole |oo )?lopettanut"
+      ],
+      "UUSI_LAAKE": [
+        "en (ole |oo )?(aloittanut|alottanut|alkanut|ottanut)",
+        "jätin (sen |ne )?(ottamatta|pois|väliin)",
+        "(lopetin|lopettanut) (sen|ne|sitä)"
+      ],
+      "ANNOSMUUTOS": [
+        "vanha\\w* anno(s|k)",
+        "(otan|otin|syön) (kuten|niin kuin|samaa kuin|samalla tavalla kuin) ennen",
+        "en (ole |oo )?(muuttanut|vaihtanut)"
+      ],
+      "LYHYT_KUURI": [
+        "jäi kesken",
+        "en (ole |oo )?(syönyt|ottanut|käyttänyt|saanut) (sitä |sen )?loppuun",
+        "lopetin (sen )?kesken"
+      ]
+    },
+    "peruste": "lääkemuutosta ei noudateta",
+    "ohje_mallille": "Henkilö kertoi juuri, ettei lääkemuutosta noudateta. Älä anna lääkeneuvoa, älä moiti äläkä kysele syytä. Sano lyhyesti: Kiitos, että kerroit. Välitän tämän hoitajalle. Älä kysy enää lääkkeen ottamisesta. Jatka sitten tavalliseen tapaan."
+  },
   "hoitajalle_merkittavat": {
     "_kuvaus": "Ei hätä, mutta nostaa vähintään keltaiseksi. Sääntö voi vain nostaa tasoa. Kuume lisätty 11.10. (testipankki): kannan tarkennusaihe korkean riskin ryhmille (solunsalpaajat, immuunivastetta heikentävät).",
     "keltainen": [
@@ -267,6 +296,13 @@
       "lopetin lääkkeen",
       "jätin lääkkeen",
       "päänsär",
+      "(sattuu|sattui|sattu) päähän",
+      "ei (se |ne )?(oikein |ihan |hyvin |yhtään )?(sopinut|sopineet)",
+      "(viina|kännissä|humalassa|ryyp|alkoholi|tullut juotua)",
+      "\\w*(lääkkeet|lääke|lääkkeitä|lääkkeen|pillerit|tabletit) (jäi |jäivät |on |ovat )?ottamatta",
+      "en (ole )?ottanut (niitä |sitä |mun |minun )?(lääk|pill|tablet)",
+      "(pops|vetel|vedä)\\w* (niitä |noita |näitä )?(pill[ae]r|lääkk|napp|tabu|tablet)",
+      "(pill[ae]r|lääkk|napp|tabu|tablet)\\w* (ihan )?huvikseen",
       "sydän hakkaa",
       "tykyttä",
       "oksen",
@@ -282,6 +318,11 @@
       "(oli|on ollut|nousi) (vähän )?lämpöä"
     ]
   },
+  "lopetuslause_huolestuttava": [
+    "Kiitos, että kerroit minulle. Välitän kertomasi hoitajalle, ja hän soittaa sinulle tänään. Jos olo huononee, soita terveysasemalle tai numeroon 116117. Hätätilanteessa soita 112. Pidä huolta itsestäsi.",
+    "Kiitos, että jaksoit jutella kanssani. Kerron asiasta hoitajalle, ja hän soittaa sinulle tänään. Jos olo huononee, soita terveysasemalle tai numeroon 116117. Hätätilanteessa soita 112. Hyvää päivänjatkoa.",
+    "Kiitos kuulumisista. Välitän ne hoitajalle, ja hän soittaa sinulle vielä tänään. Jos vointi huononee, soita terveysasemalle tai numeroon 116117. Hätätilanteessa soita 112. Pidä huolta itsestäsi."
+  ],
   "lopetuslause_tuki": [
     "Kiitos, että kerroit minulle. Se vaati rohkeutta. Välitän tämän hoitajalle heti, ja hän soittaa sinulle tänään. Jos tilanne tuntuu vaaralliselta, soita heti 112. Sinun ei tarvitse jäädä tämän kanssa yksin.",
     "Olen iloinen, että uskalsit kertoa tästä. Kerron asiasta hoitajalle heti, ja hän soittaa sinulle tänään. Jos tilanne tuntuu vaaralliselta, soita heti 112. Et ole tämän kanssa yksin.",
@@ -362,6 +403,7 @@
       "huoli(ta)? (on|siitä|että)",
       "(pelkään|pelottaa|pelotti|pelokas|säikähd|kauhistu)",
       "ahdista",
+      "ahista",
       "(hätä|hädissä)(ni)?( on| olen)?",
       "(itken|itkettää|itkin|itkenyt)",
       "(surullinen|surettaa|suru|murhe)",
@@ -487,6 +529,7 @@
     "muunneltavat": [
       "lopetuslause",
       "lopetuslause_tuki",
+      "lopetuslause_huolestuttava",
       "lopetuspyynto.kysy_syy",
       "lopetuspyynto.turvallisuuskysymys",
       "lopetuspyynto.lopetus",
