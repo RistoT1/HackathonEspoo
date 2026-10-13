@@ -97,14 +97,14 @@
       </thead>
       <tbody>
         {% for tapaus in tapaukset %}
-        {% set jonon_taso = tasot.get(tapaus.id) %}
-        <tr data-tehtava="{{ tapaus.id }}" data-taso="{{ jonon_taso.taso.value if jonon_taso else '' }}">
+        {% set arvio = arviot.get(tapaus.id) %}
+        <tr data-tehtava="{{ tapaus.id }}" data-taso="{{ arvio.taso.value if arvio else '' }}">
           <td>
-            {% if jonon_taso %}
-            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-{{ jonon_taso.taso.value | replace('ä', 'a') }}">
-              {{ jonon_taso.taso.value | capitalize }}
+            {% if arvio %}
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-{{ arvio.taso.value | replace('ä', 'a') }}">
+              {{ arvio.taso.value | capitalize }}
             </span>
-            {% if not jonon_taso.analyysi_valmis %}<span class="tunniste-ala">sääntöarvio, analyysi kesken</span>{% endif %}
+            {% if not arvio.analyysi_valmis %}<span class="tunniste-ala">sääntöarvio, analyysi kesken</span>{% endif %}
             {% else %}
             <span class="tunniste-ala">Ei arviota</span>
             {% endif %}
