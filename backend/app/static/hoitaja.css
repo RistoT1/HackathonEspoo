@@ -1244,6 +1244,10 @@ textarea::placeholder {
   margin: 12px 0;
 }
 
+.puhelutulos-osio .oireseuranta-lista {
+  margin: 8px 0;
+}
+
 .saantotiedot {
   margin-top: 14px;
   padding: 12px 14px;

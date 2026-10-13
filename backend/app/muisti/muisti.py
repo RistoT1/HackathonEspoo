@@ -57,6 +57,11 @@ def tiivista(yhteenveto: Yhteenveto, paattyi: datetime, nyt: datetime) -> Edelli
         taso=yhteenveto.taso.value,
         oireet=list(yhteenveto.saanto.tunnistetut_oireet),
         kuvaukset=kuvaukset,
+        voimakkuudet={
+            oire.oire: oire.voimakkuus
+            for oire in yhteenveto.oireet
+            if oire.voimakkuus not in ("", "ei tiedossa")
+        },
     )
 
 

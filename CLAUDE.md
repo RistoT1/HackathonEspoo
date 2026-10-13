@@ -74,11 +74,13 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 # Migraatio mallimuutoksen jalkeen:  uv run alembic revision --autogenerate -m "kuvaus"
 # Synthean ATC-vastaavuus uudelleen:  PYTHONPATH=. uv run python scripts/hae_synthea_atc.py
 # Puhelun LLM (Ollama natiivisti Macilla, EI kontissa: Docker Macilla ei näe GPU:ta):
-#   ollama pull gemma4:12b && ollama create hyvinvointi-gemma12 -f ollama/Modelfile.gemma12
-#   .env: LLM_MALLI=hyvinvointi-gemma12, LLM_AJATTELU_POIS=true, LLM_VUORON_AIKARAJA_S=120
-#   palvelin:  OLLAMA_KEEP_ALIVE=-1 ollama serve   (oletus 5 min pudottaa mallin + välimuistin)
+#   ollama pull gemma4:12b-it-q4_K_M
+#   ollama create hyvinvointi-gemma12-gguf -f ollama/Modelfile.gemma12-gguf
+#   .env: LLM_MALLI=hyvinvointi-gemma12-gguf, LLM_AJATTELU_POIS=true
+#   palvelin: OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 OLLAMA_KEEP_ALIVE=-1 \
+#              OLLAMA_NUM_PARALLEL=1 ollama serve   (vain yksi Ollama-palvelin kerrallaan)
 # Puhelun tarkkuus oikeaa mallia vasten (8 skenaariota, ~10-15 min, raportti lokit/arviot/):
-#   uv run python scripts/arvioi_keskustelut.py [skenaario ...]   (LLM_LAMPOTILA=0.3 vertailuun)
+#   PYTHONPATH=. uv run python scripts/arvioi_keskustelut.py [skenaario ...]
 # Testipankki (backend/arviointi/, synteettinen): 400 keskustelupohjaa + 1484 yksittäistä
 # vastausta kannan kysymyksiin; simulaattori improvisoi vanhuksen vastaukset persoonan faktoista.
 #   uv run python -m arviointi.aja generoi --persoonia 400     (vaatii kannan)
@@ -233,7 +235,9 @@ muisti/          edellinen puhelu: saman vanhus_id:n uusin hoitajayhteenveto (MU
                  30 pv) tiivistetään säännöllä (oire + voimakkuus + päivät, ei vakavia huolia,
                  ei litterointia). Liitetään Puhelukontekstiin soiton alkaessa (ei tallenneta
                  tehtävään), agentin ohjeen LOPPUUN (välimuisti säilyy). Triage: sama oire
-                 jatkuu -> keltainen. Hoitajan tapaussivulla "Edellinen puhelu".
+                 jatkuu -> keltainen. Seurantakysymys on backendin kysymyslistassa ja vastaus
+                 tallentuu rakenteisesti (poistunut/lievittynyt/ennallaan/pahentunut/epäselvä).
+                 Hoitajan tapaussivulla "Edellinen puhelu" ja oireen muutos.
 ```
 Sisältö (kysymystekstit, lääkeryhmät): kannassa, muokkaus `backend/sql/kysymyssisalto.sql`.
 Skeema: Alembic (`backend/alembic/`), uusi migraatio mallimuutoksen jälkeen.
@@ -274,9 +278,9 @@ gpt-realtime, Sweden Central) on venytys päivälle 2 VAIN jos suomi testaa hyvi
 
 **LLM puhelussa (Jeren malli, 11.10.):** malli käy keskustelun vapaasti tekstinä; järjestelmä-
 ohje + historia viesteinä, piilo-ohjeet "(Ohje: ...)" / "(Tietopohja: ...)" henkilön viestin
-perässä, LOPETUS ja UUDELLEEN merkkeinä. Malli: **Gemma 4 12B** (`hyvinvointi-gemma12`, valittu
-11.10.: 8B-mallit tulkitsivat vastauksia väärin ja ohittivat ohjeita; 12B ei vielä mitattu tällä
-puhelulla). Aiemmat mallit ja opit:
+perässä, LOPETUS ja UUDELLEEN merkkeinä. Malli: **Gemma 4 12B Q4_K_M / GGUF**
+(`hyvinvointi-gemma12-gguf`, valittu 13.10. paikallisella M2 16 Gt -vertailulla). Aiemmat
+mallit ja opit:
 - Jere kehitti ohjeensa gemma4:e4b:llä. Mitattu e4b (M2, JSON-arvio): vuoro 1,8–5,2 s.
 - Poro 2 8B (suomeen koulutettu Llama 3.1): Jeren mallissa vuoro 2–9 s, mutta tulkinnat ja
   ohjeiden noudattaminen heikkoja (kolme kysymystä kerralla, "jes" luettu väärin).
@@ -285,6 +289,11 @@ puhelulla). Aiemmat mallit ja opit:
 - Gemma 4 12B mitattu 11.10. (M2 16 Gt, Ollama 0.40, mlx-ajuri, nvfp4 7,7 Gt): lämmin vuoro
   3–5 s; järjestelmäohjeen (~2840 tok) käsittely tyhjästä 41–48 s (~60 tok/s). Muisti on
   pullonkaula: ajuri 15 Gt (painot + välimuistit) + Dockerin VM 8 Gt -> swap 16,8 Gt.
+- Gemma 4 12B GGUF Q4_K_M valittu 13.10.: kaksi kahdeksan skenaarion ajoa sai 24/24
+  sisältöodotusta, painotettu mallivuoro 5,9–6,0 s ja kokonaisaika 112–159 s. NVFP4:n
+  q8-KV/Flash-versio sai 24/24, mutta painotettu vuoro oli 8,4 s ja kokonaisaika 300 s;
+  alkuperäinen NVFP4 oli 17,5 s / 367 s. GGUF:n ensimmäisessä ajossa yksi vastaus sisälsi
+  kaksi kysymysmerkkiä, toisessa ei yhtään. Raportit `lokit/arviot/20261013_*.md`.
 - Välimuisti (mlx, mitattu 11.10.): ajuri käyttää uudelleen vain tallettamiaan tiloja eikä kelaa
   mielivaltaisesti taaksepäin (avauksen vaihto 40 tok lopussa -> palasi 2693:een). Haarakohdat
   se oppii: kun kaksi puhelua on eronnut samassa kohdassa, seuraava käyttää sen. Siksi
@@ -335,8 +344,10 @@ puhelulla). Aiemmat mallit ja opit:
   Ajattelu pois puhelussa (Gemma 12B: 121 s/vuoro) ja oletuksena myös analyysissa
   (LLM_ANALYYSI_AJATTELU): Ollama palvelee yhtä pyyntöä kerrallaan, joten analyysi odottaa,
   kunnes puheluita ei ole käynnissä. Muutokset mitataan testipankilla ennen käyttöönottoa.
-- llama.cpp/GGUF-ajuri ei ollut nopeampi (mitattu 11.10.), joten pysytään mlx:ssä.
-- `reasoning_effort: "none"` (gemma "ajattelee" muuten); mlx-ajurilla ei structured outputia.
+- Vanhempi llama.cpp/GGUF-koe 11.10. ei ollut MLX:ää nopeampi, mutta sama Gemma 4 12B
+  Q4_K_M oli 13.10. toistetussa vertailussa selvästi nopeampi ja on siksi nyt oletus.
+- `reasoning_effort: "none"` estää Gemman hitaan ajattelun. MLX-varamallilla ei ole
+  structured outputia; analyysi osaa yrittää uudelleen vapaana JSONina.
 - Säännöillä tulkitseminen ilman asiayhteyttä rikkoi puheluita ("lopetin sen" vastauksena
   kysymykseen lopettamisesta): säännöt vain turvallisuuteen ja kiinteisiin vastauksiin.
 

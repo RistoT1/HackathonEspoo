@@ -537,12 +537,12 @@ def _milloin(paivia_sitten: int) -> str:
 
 
 def edellisen_puhelun_ohje(edellinen: EdellinenPuhelu) -> str:
-    """Muisti agentille. Vain oire ja aika; agentti kysyy, hoitaja arvioi muutoksen."""
+    """Muisti agentille. Varsinainen seurantakysymys on backendin kysymyslistassa."""
     asiat = " ja ".join(edellinen.kuvaukset)
     return f"""EDELLINEN PUHELU
 Soitit tälle henkilölle {_milloin(edellinen.paivia_sitten)}. Hän kertoi silloin: {asiat}.
-Kun kuulumiset on kuultu, kysy kerran luontevasti, miten tämä asia on nyt. Älä kerro
-muuta edellisestä puhelusta äläkä päättele siitä mitään: hoitaja arvioi muutoksen."""
+Kysy asiasta vain TÄMÄN PUHELUN TIEDOISSA olevalla seurantakysymyksellä. Älä kysy
+sitä uudelleen, älä kerro muuta edellisestä puhelusta äläkä päättele siitä mitään."""
 
 
 @lru_cache

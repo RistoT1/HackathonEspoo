@@ -1,4 +1,4 @@
-# VARAMALLI (ei käytössä 11.10. alkaen, käytössä Modelfile.gemma12): gemma4:e4b, jolla Jere
+# VARAMALLI (oletus 13.10. alkaen Modelfile.gemma12-gguf): gemma4:e4b, jolla Jere
 # kehitti ohjeensa. Nopeampi mutta ymmärtää heikommin kuin 12B.
 # Luonti:   ollama create hyvinvointi-gemma -f ollama/Modelfile
 # Käyttö:   LLM_MALLI=hyvinvointi-gemma (.env)

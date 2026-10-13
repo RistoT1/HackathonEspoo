@@ -197,14 +197,15 @@ Valinnaiset `.env`-asetukset: `DEMO_PUHELINNUMERO` (Twilioon vahvistettu numero
 soittotiedoille), `TUNNISTUS_VALI_MINUUTIT` (ajastettu tunnistus, oletus 15, 0 = pois),
 `LLM_BASE_URL` ja `LLM_MALLI` (puhelun paikallinen LLM). Kaikki: `.env.example`.
 
-Puhelun malli (Ollama natiivisti; ajuri vie välimuisteineen ~15 Gt, joten 16 Gt Macilla sulje
-raskaat ohjelmat ja pienennä Docker Desktopin muistia):
+Puhelun malli (Ollama natiivisti; 16 Gt Macilla sulje raskaat ohjelmat, pienennä Docker
+Desktopin muistia ja aja vain yhtä Ollama-palvelinta):
 
 ```bash
-ollama pull gemma4:12b
-ollama create hyvinvointi-gemma12 -f ollama/Modelfile.gemma12
-OLLAMA_KEEP_ALIVE=-1 ollama serve   # malli ja välimuisti pysyvät muistissa
-# .env: LLM_MALLI=hyvinvointi-gemma12, LLM_AJATTELU_POIS=true, LLM_VUORON_AIKARAJA_S=120
+ollama pull gemma4:12b-it-q4_K_M
+ollama create hyvinvointi-gemma12-gguf -f ollama/Modelfile.gemma12-gguf
+OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 OLLAMA_KEEP_ALIVE=-1 \
+  OLLAMA_NUM_PARALLEL=1 ollama serve
+# .env: LLM_MALLI=hyvinvointi-gemma12-gguf, LLM_AJATTELU_POIS=true
 ```
 
 ---

@@ -59,6 +59,8 @@ class LlmAgentti:
         transport: httpx.AsyncBaseTransport | None = None,
         lampotila: float = 0.6,
         pida_muistissa: bool = False,
+        vastauksen_max_tokenit: int = 120,
+        lammitys_aikaraja_s: float = 300.0,
     ) -> None:
         self._url = f"{base_url.rstrip('/')}/chat/completions"
         self._malli = malli
@@ -68,6 +70,8 @@ class LlmAgentti:
         self._transport = transport
         self._lampotila = lampotila
         self._pida_muistissa = pida_muistissa
+        self._vastauksen_max_tokenit = vastauksen_max_tokenit
+        self._lammitys_aikaraja_s = lammitys_aikaraja_s
 
     def _runko(self, viestit: Viestit, max_tokens: int) -> dict[str, object]:
         runko: dict[str, object] = {
@@ -82,7 +86,7 @@ class LlmAgentti:
             runko["keep_alive"] = -1  # Ollama: malli ja välimuisti pysyvät ladattuina
         return runko
 
-    async def lammita_ja_mittaa(self, viestit: Viestit, aikaraja_s: float = 120) -> float:
+    async def lammita_ja_mittaa(self, viestit: Viestit, aikaraja_s: float | None = None) -> float:
         """Keskustelun TÄSMÄLLEEN SAMA alku kuin ensimmäisessä vuorossa (järjestelmäohje +
         avaus): Ollama käyttää välimuistia vain, kun edellinen pyyntö on uuden alkuosa.
         Mitattu 11.10. Gemma 12B: alku "ohje + Hei" -> ensimmäinen vuoro 21,3 s, alku
@@ -90,7 +94,8 @@ class LlmAgentti:
         riippuu vain viestien tokeneista, ei näytteistyksen asetuksista.
         Palauttaa keston sekunteina; httpx.HTTPError, jos malli ei vastaa."""
         alku = time.perf_counter()
-        async with httpx.AsyncClient(timeout=aikaraja_s, transport=self._transport) as client:
+        aikaraja = aikaraja_s if aikaraja_s is not None else self._lammitys_aikaraja_s
+        async with httpx.AsyncClient(timeout=aikaraja, transport=self._transport) as client:
             vastaus = await client.post(
                 self._url, json=self._runko(viestit, 1), headers=self._otsakkeet
             )
@@ -108,7 +113,9 @@ class LlmAgentti:
     async def vastaa(self, viestit: Viestit) -> str | None:
         async with httpx.AsyncClient(timeout=self._aikaraja_s, transport=self._transport) as client:
             vastaus = await client.post(
-                self._url, json=self._runko(viestit, 200), headers=self._otsakkeet
+                self._url,
+                json=self._runko(viestit, self._vastauksen_max_tokenit),
+                headers=self._otsakkeet,
             )
         vastaus.raise_for_status()
         return vastaus.json()["choices"][0]["message"]["content"] or ""
@@ -142,4 +149,6 @@ def llm_agentti(asetukset: Settings) -> LlmAgentti:
         ajattelu_pois=asetukset.llm_ajattelu_pois,
         lampotila=asetukset.llm_lampotila,
         pida_muistissa=asetukset.llm_pida_muistissa,
+        vastauksen_max_tokenit=asetukset.llm_vastauksen_max_tokenit,
+        lammitys_aikaraja_s=asetukset.llm_lammitys_aikaraja_s,
     )

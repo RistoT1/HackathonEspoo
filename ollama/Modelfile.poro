@@ -1,4 +1,4 @@
-# VARAMALLI (ei käytössä 11.10. alkaen, käytössä Modelfile.gemma12): LumiOpen Poro 2 8B Instruct (Llama 3.1 -pohja, suomeen koulutettu).
+# VARAMALLI (oletus 13.10. alkaen Modelfile.gemma12-gguf): LumiOpen Poro 2 8B Instruct (Llama 3.1 -pohja, suomeen koulutettu).
 # Lähde: huggingface.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF, Llama-Poro-2-8B-Instruct.Q4_K_M.gguf
 # Luonti: lataa GGUF, vaihda FROM-polku siihen ja aja
 #   ollama create hyvinvointi-poro -f ollama/Modelfile.poro

@@ -1,7 +1,9 @@
-"""Muisti edellisestä puhelusta: tiivistys, haku kannasta, agentin ohje ja triage."""
+"""Muisti edellisestä puhelusta: tiivistys, haku, oireseuranta, agentin ohje ja triage."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -9,6 +11,8 @@ from app.mallit import (
     EdellinenPuhelu,
     Kiireellisyys,
     Kysymys,
+    OireenSeurannanTila,
+    Oireseuranta,
     OireYhteenvedossa,
     Puhelukonteksti,
     PuhelunLoppu,
@@ -16,10 +20,15 @@ from app.mallit import (
     Yhteenveto,
 )
 from app.muisti.muisti import hae_edellinen_puhelu, tiivista
-from app.puhelu.keskustelu import Puheluistunto
+from app.muisti.seuranta import luo_seurantakysymys, luokittele_seuranta
+from app.puhelu.agentti import KiinteaAgentti
+from app.puhelu.istunto import Vaihe, huolestuttava
+from app.puhelu.keskustelu import Puheluistunto, kasittele
+from app.puhelu.kysymyslista import varakysymys
 from app.puhelu.tietopohja import Tietopohjahavainto, jarjestelmaohje
 from app.puhelutehtavat.palvelu import hae_soittotiedot
 from app.tietokanta import PuhelunTulosRivi, PuhelutehtavaRivi, hae_sessio
+from app.triage.analyysi import analyysin_viestit
 from app.triage.saannot import saantoloydokset
 
 NYT = datetime(2026, 10, 13, 9, 0, tzinfo=UTC)
@@ -83,7 +92,11 @@ def test_tiivistys_oireesta_ja_ajasta():
     edellinen = tiivista(_yhteenveto(), NYT - timedelta(days=7, hours=1), NYT)
 
     assert edellinen == EdellinenPuhelu(
-        paivia_sitten=7, taso="keltainen", oireet=["huimaus"], kuvaukset=["huimaus (kohtalainen)"]
+        paivia_sitten=7,
+        taso="keltainen",
+        oireet=["huimaus"],
+        kuvaukset=["huimaus (kohtalainen)"],
+        voimakkuudet={"huimaus": "kohtalainen"},
     )
 
 
@@ -168,7 +181,11 @@ def test_ennen_rajaa_tehtavan_oman_puhelun(sessio):
 # --- agentin ohje ---
 
 _EDELLINEN = EdellinenPuhelu(
-    paivia_sitten=7, taso="keltainen", oireet=["huimaus"], kuvaukset=["huimaus (kohtalainen)"]
+    paivia_sitten=7,
+    taso="keltainen",
+    oireet=["huimaus"],
+    kuvaukset=["huimaus (kohtalainen)"],
+    voimakkuudet={"huimaus": "kohtalainen"},
 )
 
 
@@ -205,6 +222,80 @@ def _istunto(edellinen: EdellinenPuhelu | None) -> Puheluistunto:
 def test_istunnon_ohje_kayttaa_muistia():
     assert "EDELLINEN PUHELU" in _istunto(_EDELLINEN).ohje()
     assert "EDELLINEN PUHELU" not in _istunto(None).ohje()
+
+
+def test_istunto_lisaa_muistin_ensimmaiseksi_listakysymykseksi():
+    istunto = _istunto(_EDELLINEN)
+
+    assert [kysymys.tunniste for kysymys in istunto.kysymykset] == ["muisti:huimaus", "vointi"]
+    assert "huimaus (kohtalainen)" in istunto.kysymykset[0].teksti
+
+
+def test_seurantakysymys_kysytaan_vain_kerran_ja_vastaus_liitetaan_oireeseen():
+    istunto = _istunto(_EDELLINEN)
+    istunto.vaihe = Vaihe.KESKUSTELU
+
+    ensimmainen = varakysymys(istunto)
+    seuraava = asyncio.run(kasittele(istunto, "Se on vähän parempi", 0.9, KiinteaAgentti()))
+
+    assert "Viime puhelussa" in " ".join(ensimmainen.sanottavat)
+    assert "Miten voit?" in " ".join(seuraava.sanottavat)
+    assert sum("Viime puhelussa" in viesti["content"] for viesti in istunto.historia) == 1
+    assert istunto.oireseurannat[0].tila == OireenSeurannanTila.LIEVITTYNYT
+
+
+def test_mallin_uudelleen_muotoilema_seurantakysymys_tunnistetaan():
+    class Malli:
+        async def lammita(self, viestit):
+            return None
+
+        async def vastaa(self, viestit):
+            return "Kiitos. Miten huimauksesi on nyt?"
+
+    istunto = _istunto(_EDELLINEN)
+    istunto.vaihe = Vaihe.KESKUSTELU
+
+    kysymys = asyncio.run(kasittele(istunto, "Ihan hyvin", 0.9, Malli()))
+    seuraava = asyncio.run(kasittele(istunto, "Se on ennallaan", 0.9, KiinteaAgentti()))
+
+    assert "Miten huimauksesi on nyt?" in " ".join(kysymys.sanottavat)
+    assert "Miten voit?" in " ".join(seuraava.sanottavat)
+    assert istunto.oireseurannat[0].tila == OireenSeurannanTila.ENNALLAAN
+
+
+def test_seurantakysymys_ei_sisalla_toisen_henkilon_tietoa(sessio):
+    _lisaa_puhelu(sessio, "oma", "v1", NYT - timedelta(days=3), _yhteenveto(("huimaus",)))
+    _lisaa_puhelu(sessio, "toinen", "v2", NYT - timedelta(days=1), _yhteenveto(("yskä",)))
+
+    edellinen = hae_edellinen_puhelu(sessio, "v1", nyt=NYT, paivat=30)
+    kysymys = luo_seurantakysymys(edellinen)
+
+    assert kysymys is not None
+    assert "huimaus" in kysymys.teksti
+    assert "yskä" not in kysymys.teksti
+
+
+@pytest.mark.parametrize(
+    ("vastaus", "tila", "voimakkuus"),
+    [
+        ("Ei enää huimaa", OireenSeurannanTila.POISTUNUT, "ei tiedossa"),
+        ("Se on vähän parempi", OireenSeurannanTila.LIEVITTYNYT, "lievä"),
+        ("Se on ihan samanlaista", OireenSeurannanTila.ENNALLAAN, "ei tiedossa"),
+        ("Nyt se on paljon pahempaa", OireenSeurannanTila.PAHENTUNUT, "ei tiedossa"),
+        ("Ei se ole yhtään parempi", OireenSeurannanTila.ENNALLAAN, "ei tiedossa"),
+        ("Ei se ole pahempi", OireenSeurannanTila.ENNALLAAN, "ei tiedossa"),
+        ("En oikein osaa sanoa", OireenSeurannanTila.EPASELVA, "ei tiedossa"),
+    ],
+)
+def test_oireseurannan_luokittelu(vastaus, tila, voimakkuus):
+    kysymys = luo_seurantakysymys(_EDELLINEN)
+
+    assert kysymys is not None
+    seuranta = luokittele_seuranta(kysymys, vastaus, _EDELLINEN)
+
+    assert seuranta.tila == tila
+    assert seuranta.aiempi_voimakkuus == "kohtalainen"
+    assert seuranta.nykyinen_voimakkuus == voimakkuus
 
 
 # --- triage ---
@@ -244,6 +335,75 @@ def test_istunnon_tulos_vertaa_edelliseen():
     assert tulos.yhteenveto.taso == Kiireellisyys.KELTAINEN
 
 
+@pytest.mark.parametrize(
+    ("tila", "odotettu_taso", "toistuva"),
+    [
+        (OireenSeurannanTila.POISTUNUT, Kiireellisyys.VIHREA, False),
+        (OireenSeurannanTila.LIEVITTYNYT, Kiireellisyys.VIHREA, False),
+        (OireenSeurannanTila.ENNALLAAN, Kiireellisyys.KELTAINEN, True),
+        (OireenSeurannanTila.PAHENTUNUT, Kiireellisyys.KELTAINEN, True),
+        (OireenSeurannanTila.EPASELVA, Kiireellisyys.KELTAINEN, False),
+    ],
+)
+def test_oireseuranta_ohjaa_triagea(tila, odotettu_taso, toistuva):
+    seuranta = Oireseuranta(oire="huimaus", tila=tila)
+
+    loydokset = saantoloydokset(
+        [],
+        [],
+        PuhelunLoppu.VALMIS,
+        None,
+        None,
+        {},
+        edelliset_oireet=["huimaus"],
+        oireseurannat=[seuranta],
+    )
+
+    assert loydokset.taso == odotettu_taso
+    assert ("huimaus" in loydokset.toistuvat_oireet) is toistuva
+    assert loydokset.oireseurannat == [seuranta]
+
+
+def test_lievittynyt_tunnistettu_oire_ei_yksin_nosta_triagea():
+    seuranta = Oireseuranta(oire="huimaus", tila=OireenSeurannanTila.LIEVITTYNYT)
+
+    loydokset = saantoloydokset(
+        [Tietopohjahavainto(oireet=["huimaus"])],
+        [],
+        PuhelunLoppu.VALMIS,
+        None,
+        None,
+        {},
+        edelliset_oireet=["huimaus"],
+        oireseurannat=[seuranta],
+    )
+
+    assert loydokset.taso == Kiireellisyys.VIHREA
+    assert loydokset.toistuvat_oireet == []
+
+
+def test_jatkuva_oire_valitsee_hoitajan_soiton_lopetusviestin():
+    istunto = _istunto(_EDELLINEN)
+    istunto.oireseurannat.append(Oireseuranta(oire="huimaus", tila=OireenSeurannanTila.ENNALLAAN))
+
+    assert huolestuttava(istunto)
+
+
+def test_jalkianalyysi_saa_rakenteisen_oireseurannan():
+    seuranta = Oireseuranta(
+        oire="huimaus",
+        aiempi_voimakkuus="kohtalainen",
+        nykyinen_voimakkuus="lievä",
+        tila=OireenSeurannanTila.LIEVITTYNYT,
+    )
+    saanto = Saantoloydokset(taso=Kiireellisyys.VIHREA, oireseurannat=[seuranta])
+
+    viestit = analyysin_viestit("Avustaja: Miten se on nyt?\nHenkilö: Vähän parempi.", saanto)
+
+    assert '"oireseurannat"' in viestit[1]["content"]
+    assert '"tila": "lievittynyt"' in viestit[1]["content"]
+
+
 # --- kytkennät: soittotiedot ja hoitajan näkymä ---
 
 
@@ -281,9 +441,18 @@ def test_soittotiedot_sisaltavat_edellisen_puhelun(sessio):
 
 def test_hoitajan_tapaussivu_nayttaa_edellisen_puhelun(sessiotehdas):
     nyt = datetime.now(UTC)
+    nykyinen = _yhteenveto()
+    nykyinen.saanto.oireseurannat = [
+        Oireseuranta(
+            oire="huimaus",
+            aiempi_voimakkuus="kohtalainen",
+            nykyinen_voimakkuus="lievä",
+            tila=OireenSeurannanTila.LIEVITTYNYT,
+        )
+    ]
     with sessiotehdas() as sessio:
         _lisaa_puhelu(sessio, "eka", "v1", nyt - timedelta(days=4), _yhteenveto())
-        _lisaa_puhelu(sessio, "toka", "v1", nyt - timedelta(hours=1), _yhteenveto())
+        _lisaa_puhelu(sessio, "toka", "v1", nyt - timedelta(hours=1), nykyinen)
 
     def sessio_override():
         with sessiotehdas() as sessio:
@@ -298,6 +467,9 @@ def test_hoitajan_tapaussivu_nayttaa_edellisen_puhelun(sessiotehdas):
     assert sivu.status_code == 200
     assert "Edellinen puhelu" in sivu.text
     assert "4 päivää sitten" in sivu.text
+    sisalto = " ".join(sivu.text.split())
+    assert "kohtalainen → lievä" in sisalto
+    assert "tila lievittynyt" in sisalto
 
 
 def test_ensimmaisen_puhelun_sivulla_ei_edellista(sessiotehdas):
