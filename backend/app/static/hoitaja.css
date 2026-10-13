@@ -1,19 +1,19 @@
 :root {
   color-scheme: light;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
-  color: #1d3037;
-  background: #f5f7f8;
+  color: #141414;
+  background: #f4f4f5;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --ink: #1d3037;
-  --muted: #697b81;
-  --line: #e2e8e9;
+  --ink: #141414;
+  --muted: #6b6b70;
+  --line: #e4e4e7;
   --surface: #fff;
-  --canvas: #f5f7f8;
-  --teal: #176b66;
-  --teal-dark: #125650;
-  --sidebar: #173a3d;
-  --sidebar-muted: #adc0bd;
+  --canvas: #f4f4f5;
+  --accent: #141414;
+  --accent-dark: #000;
+  --sidebar: #18181b;
+  --sidebar-muted: #a1a1aa;
 }
 
 * {
@@ -54,11 +54,10 @@ textarea {
 
 .brandi {
   width: 100%;
-  min-height: 128px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 30px;
+  margin-bottom: 26px;
   padding: 5px 0;
   overflow: hidden;
 }
@@ -66,22 +65,34 @@ textarea {
 .brandi-logo {
   display: block;
   width: 100%;
-  max-width: 224px;
-  max-height: 120px;
+  max-width: 260px;
+  max-height: 150px;
   object-fit: contain;
-  filter: brightness(1.8);
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .navigaatio-otsikko {
   padding: 0 12px;
-  color: #92aaa6;
+  color: #8a8a92;
   font-size: 0.66rem;
   font-weight: 750;
   letter-spacing: 0.14em;
 }
 
+.navigaatio-otsikko-ala {
+  margin-top: 22px;
+}
+
 .paavalikko {
   margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.paavalikko-ala {
+  margin-top: 8px;
 }
 
 .valikko-linkki {
@@ -89,14 +100,46 @@ textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 12px;
+  padding: 9px 12px;
   color: var(--sidebar-muted);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 9px;
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
   transition: background 150ms ease, color 150ms ease;
+}
+
+.valikko-ikoni {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: inherit;
+  background: rgb(255 255 255 / 6%);
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.valikko-teksti {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.valikko-nimi {
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.valikko-kuvaus {
+  color: #71717a;
+  font-size: 0.68rem;
+  font-weight: 500;
+  transition: color 150ms ease;
 }
 
 .valikko-linkki svg,
@@ -115,22 +158,50 @@ textarea {
   stroke-width: 1.7;
 }
 
-.valikko-linkki:hover,
-.valikko-linkki-aktiivinen {
+.valikko-ikoni svg {
+  width: 17px;
+  height: 17px;
+}
+
+.valikko-linkki:hover {
   color: #fff;
-  background: #245253;
+  background: #27272a;
+}
+
+.valikko-linkki:hover .valikko-ikoni {
+  background: rgb(255 255 255 / 12%);
+}
+
+.valikko-linkki:hover .valikko-kuvaus {
+  color: #a1a1aa;
 }
 
 .valikko-linkki-aktiivinen {
+  color: #fff;
+  background: #27272a;
   border-color: rgb(255 255 255 / 8%);
-  box-shadow: inset 3px 0 #82c4aa;
+}
+
+.valikko-linkki-aktiivinen .valikko-ikoni {
+  color: #18181b;
+  background: #fff;
+}
+
+.valikko-linkki-aktiivinen .valikko-kuvaus {
+  color: #a1a1aa;
+}
+
+.sivupalkin-alaosa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
 }
 
 .sivupalkin-alatunniste {
   display: flex;
   align-items: center;
   gap: 11px;
-  margin-top: auto;
   padding: 14px 10px;
   background: rgb(255 255 255 / 6%);
   border: 1px solid rgb(255 255 255 / 8%);
@@ -143,8 +214,8 @@ textarea {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  color: #bce2cf;
-  background: rgb(150 213 181 / 12%);
+  color: #d4d4d8;
+  background: rgb(255 255 255 / 10%);
   border-radius: 8px;
 }
 
@@ -169,13 +240,20 @@ textarea {
 }
 
 .sivupalkin-alatunniste div span {
-  color: #b3c5c2;
+  color: #b4b4bb;
   font-size: 0.7rem;
 }
 
 .paaalue {
   min-height: 100vh;
   margin-left: 256px;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 96px;
+}
+
+.sisalto {
+  flex: 1 0 auto;
 }
 
 .ylapalkki {
@@ -197,19 +275,19 @@ textarea {
 }
 
 .sijainti {
-  color: #53666c;
+  color: #52525b;
   font-size: 0.82rem;
 }
 
 .sijainti-ylateksti {
-  color: #78888d;
+  color: #71717a;
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.09em;
 }
 
 .sijainti-erotin {
-  color: #bdc8ca;
+  color: #c4c4c8;
 }
 
 .ylapalkin-oikea {
@@ -221,9 +299,9 @@ textarea {
   align-items: center;
   gap: 7px;
   padding: 6px 9px;
-  color: #5d6d64;
-  background: #f1f5f1;
-  border: 1px solid #e2e9e2;
+  color: #52525b;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
   border-radius: 999px;
   font-size: 0.63rem;
   font-weight: 750;
@@ -233,12 +311,12 @@ textarea {
 .ymparisto-piste {
   width: 7px;
   height: 7px;
-  background: #77a887;
+  background: #71717a;
   border-radius: 50%;
 }
 
 .roolimerkinta {
-  color: #53666c;
+  color: #52525b;
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -271,7 +349,7 @@ p {
 
 h1 {
   margin-bottom: 7px;
-  color: #1b3034;
+  color: #0a0a0a;
   font-size: clamp(1.85rem, 2.7vw, 2.35rem);
   font-weight: 690;
   letter-spacing: -0.045em;
@@ -280,19 +358,19 @@ h1 {
 
 h2 {
   margin-bottom: 6px;
-  color: #263b40;
+  color: #18181b;
   font-size: 1.05rem;
   font-weight: 680;
   letter-spacing: -0.015em;
 }
 
 h3 {
-  color: #263b40;
+  color: #18181b;
 }
 
 .ylateksti {
   margin-bottom: 8px;
-  color: #718185;
+  color: #71717a;
   font-size: 0.66rem;
   font-weight: 750;
   letter-spacing: 0.12em;
@@ -343,28 +421,28 @@ h3 {
 a:focus-visible,
 button:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #6aa9a0;
+  outline: 3px solid #a1a1aa;
   outline-offset: 3px;
 }
 
 .painike-ensisijainen {
   color: #fff;
-  background: var(--teal);
+  background: var(--accent);
 }
 
 .painike-ensisijainen:hover {
-  background: var(--teal-dark);
+  background: var(--accent-dark);
 }
 
 .painike-toissijainen {
-  color: #344a4d;
+  color: #18181b;
   background: #fff;
-  border-color: #d7e0e1;
+  border-color: #d4d4d8;
 }
 
 .painike-toissijainen:hover {
-  background: #f6f9f9;
-  border-color: #b9c9ca;
+  background: #f4f4f5;
+  border-color: #a1a1aa;
 }
 
 .mittaririvi {
@@ -379,7 +457,7 @@ textarea:focus-visible {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgb(24 48 52 / 3%);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 3%);
 }
 
 .mittari {
@@ -407,23 +485,23 @@ textarea:focus-visible {
 }
 
 .mittari-ikoni-avoin {
-  color: #4d7580;
-  background: #edf4f5;
+  color: #3f3f46;
+  background: #f4f4f5;
 }
 
 .mittari-ikoni-kiireellinen {
-  color: #a15d42;
-  background: #faf1ec;
+  color: #3f3f46;
+  background: #ececee;
 }
 
 .mittari-ikoni-valmis {
-  color: #58806a;
-  background: #eef5f0;
+  color: #3f3f46;
+  background: #f4f4f5;
 }
 
 .mittari-ikoni-halytys {
-  color: #785400;
-  background: #fff4d6;
+  color: #18181b;
+  background: #e4e4e7;
 }
 
 .mittari-sisalto {
@@ -434,13 +512,13 @@ textarea:focus-visible {
 }
 
 .mittari-nimi {
-  color: #66787d;
+  color: #52525b;
   font-size: 0.78rem;
   font-weight: 600;
 }
 
 .mittari strong {
-  color: #233a3f;
+  color: #0a0a0a;
   font-size: 1.45rem;
   font-weight: 680;
   line-height: 1;
@@ -449,7 +527,7 @@ textarea:focus-visible {
 .mittari-kuvaus {
   align-self: end;
   margin-top: 6px;
-  color: #8a989b;
+  color: #8a8a92;
   font-size: 0.68rem;
 }
 
@@ -464,8 +542,8 @@ textarea:focus-visible {
 
 .tapausmaara {
   padding: 6px 9px;
-  color: #5c6d71;
-  background: #f3f6f6;
+  color: #52525b;
+  background: #f4f4f5;
   border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 650;
@@ -485,7 +563,7 @@ table {
 th,
 td {
   padding: 14px 13px;
-  border-top: 1px solid #edf0f0;
+  border-top: 1px solid #eeeeef;
   vertical-align: middle;
 }
 
@@ -500,8 +578,8 @@ td:last-child {
 }
 
 th {
-  color: #7b898c;
-  background: #fafbfb;
+  color: #71717a;
+  background: #fafafa;
   font-size: 0.64rem;
   font-weight: 730;
   letter-spacing: 0.075em;
@@ -510,7 +588,7 @@ th {
 }
 
 td {
-  color: #465b60;
+  color: #3f3f46;
   font-size: 0.78rem;
 }
 
@@ -519,7 +597,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background: #fbfcfc;
+  background: #fafafa;
 }
 
 .merkki {
@@ -544,21 +622,21 @@ tbody tr:hover {
 }
 
 .merkki-punainen {
-  color: #9c4837;
-  background: #fbefec;
-  border-color: #f1d8d2;
+  color: #9c2a2a;
+  background: #fcebec;
+  border-color: #f3c9cc;
 }
 
 .merkki-keltainen {
-  color: #886a20;
-  background: #fbf6e8;
-  border-color: #eee3bd;
+  color: #8a6300;
+  background: #fdf4e0;
+  border-color: #f0dca6;
 }
 
 .merkki-vihreä {
-  color: #4d765d;
-  background: #edf5ef;
-  border-color: #d9e9dc;
+  color: #1f7a4d;
+  background: #e9f6ee;
+  border-color: #c3e6d2;
 }
 
 .tunniste,
@@ -569,7 +647,7 @@ tbody tr:hover {
 }
 
 .tunniste {
-  color: #29454a;
+  color: #18181b;
   font-size: 0.77rem;
   font-weight: 720;
   white-space: nowrap;
@@ -577,27 +655,27 @@ tbody tr:hover {
 
 .tunniste-ala {
   margin-top: 4px;
-  color: #929da0;
+  color: #8a8a92;
   font-size: 0.64rem;
   white-space: nowrap;
 }
 
 .yhteenveto-otsikko {
   margin-bottom: 4px;
-  color: #2d4246;
+  color: #27272a;
   font-size: 0.78rem;
   font-weight: 680;
 }
 
 .yhteenveto-kuvaus {
   max-width: 470px;
-  color: #718084;
+  color: #71717a;
   font-size: 0.72rem;
   line-height: 1.5;
 }
 
 .aikaleima {
-  color: #53676b;
+  color: #52525b;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -614,33 +692,33 @@ tbody tr:hover {
 }
 
 .tilamerkki-avoin {
-  color: #68766e;
-  background: #f0f3f0;
+  color: #3f3f46;
+  background: #f4f4f5;
 }
 
 .tilamerkki-valmis {
-  color: #4a7259;
-  background: #edf5ef;
+  color: #1f7a4d;
+  background: #e9f6ee;
 }
 
 .tilamerkki-odottaa {
-  color: #7d6323;
-  background: #faf5e8;
+  color: #8a6300;
+  background: #fdf4e0;
 }
 
 .tilamerkki-kaynnissa {
-  color: #346b70;
-  background: #eaf3f4;
+  color: #1d5fb0;
+  background: #e7f0fb;
 }
 
 .tilamerkki-ei-vastannut {
-  color: #765d45;
-  background: #f5f0e9;
+  color: #a1572a;
+  background: #fbeee2;
 }
 
 .tilamerkki-peruttu {
-  color: #737d7f;
-  background: #eff1f1;
+  color: #71717a;
+  background: #f4f4f5;
 }
 
 .prioriteetti {
@@ -649,8 +727,8 @@ tbody tr:hover {
   align-items: center;
   justify-content: center;
   padding: 5px 7px;
-  color: #315e5b;
-  background: #edf4f2;
+  color: #18181b;
+  background: #ececee;
   border-radius: 5px;
   font-size: 0.75rem;
   font-weight: 750;
@@ -666,7 +744,7 @@ tbody tr:hover {
 
 .suodatinrivi label {
   margin: 0 3px 0 0;
-  color: #647579;
+  color: #52525b;
   font-size: 0.75rem;
 }
 
@@ -674,16 +752,16 @@ tbody tr:hover {
   min-height: 38px;
   min-width: 190px;
   padding: 7px 30px 7px 10px;
-  color: #34494d;
+  color: #27272a;
   background: #fff;
-  border: 1px solid #d7e0e1;
+  border: 1px solid #d4d4d8;
   border-radius: 7px;
   font: inherit;
   font-size: 0.78rem;
 }
 
 .suodatinrivi select:focus-visible {
-  outline: 3px solid #6aa9a0;
+  outline: 3px solid #a1a1aa;
   outline-offset: 2px;
 }
 
@@ -696,7 +774,7 @@ tbody tr:hover {
   gap: 9px;
   margin: 0 0 18px;
   padding-left: 20px;
-  color: #50656a;
+  color: #3f3f46;
   font-size: 0.8rem;
   line-height: 1.5;
 }
@@ -704,8 +782,8 @@ tbody tr:hover {
 .tietojen-aikaleima {
   margin: auto 0 0;
   padding-top: 10px;
-  color: #8a9799;
-  border-top: 1px solid #edf0f0;
+  color: #8a8a92;
+  border-top: 1px solid #eeeeef;
   font-size: 0.7rem;
 }
 
@@ -715,14 +793,14 @@ tbody tr:hover {
 }
 
 .muutoslista {
-  border-top: 1px solid #edf0f0;
+  border-top: 1px solid #eeeeef;
 }
 
 .muutosrivi {
   display: flex;
   gap: 13px;
   padding: 15px 0;
-  border-bottom: 1px solid #edf0f0;
+  border-bottom: 1px solid #eeeeef;
 }
 
 .muutosrivi:last-child {
@@ -736,8 +814,8 @@ tbody tr:hover {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  color: #637a5c;
-  background: #f0f4ec;
+  color: #3f3f46;
+  background: #f4f4f5;
   border-radius: 8px;
 }
 
@@ -761,14 +839,14 @@ tbody tr:hover {
   align-items: center;
   gap: 8px;
   margin: 1px 0 5px;
-  color: #30484c;
+  color: #27272a;
   font-size: 0.81rem;
 }
 
 .muutostyyppi {
   padding: 4px 7px;
-  color: #627276;
-  background: #f2f5f5;
+  color: #52525b;
+  background: #f4f4f5;
   border-radius: 4px;
   font-size: 0.64rem;
   font-weight: 650;
@@ -776,13 +854,13 @@ tbody tr:hover {
 
 .muutostiedot p {
   margin-bottom: 5px;
-  color: #64767a;
+  color: #52525b;
   font-size: 0.76rem;
   line-height: 1.5;
 }
 
 .muutospaiva {
-  color: #8a9799;
+  color: #8a8a92;
   font-size: 0.68rem;
 }
 
@@ -802,7 +880,7 @@ tbody tr:hover {
   justify-content: space-between;
   gap: 16px;
   padding: 13px 0 13px 38px;
-  border-top: 1px solid #edf0f0;
+  border-top: 1px solid #eeeeef;
   counter-increment: kysymys;
 }
 
@@ -811,29 +889,29 @@ tbody tr:hover {
   position: absolute;
   top: 13px;
   left: 0;
-  color: #7a918c;
+  color: #71717a;
   font-size: 0.69rem;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
 
 .kysymysteksti {
-  color: #40565a;
+  color: #27272a;
   font-size: 0.79rem;
   line-height: 1.5;
 }
 
 .kysymystunniste {
   flex: 0 0 auto;
-  color: #899597;
+  color: #8a8a92;
   font-size: 0.64rem;
 }
 
 .api-huomio {
   margin: 12px 0 0;
   padding: 10px 12px;
-  color: #647477;
-  background: #f6f8f8;
+  color: #52525b;
+  background: #f7f7f8;
   border-radius: 6px;
   font-size: 0.69rem;
   line-height: 1.5;
@@ -849,7 +927,7 @@ tbody tr:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--teal);
+  color: var(--accent);
   font-size: 0.75rem;
   font-weight: 720;
   text-decoration: none;
@@ -857,7 +935,7 @@ tbody tr:hover {
 }
 
 .tekstipainike:hover {
-  color: var(--teal-dark);
+  color: var(--accent-dark);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -874,8 +952,8 @@ tbody tr:hover {
   display: grid;
   place-items: center;
   margin: 0 auto 14px;
-  color: #5e817c;
-  background: #eff5f3;
+  color: #52525b;
+  background: #f4f4f5;
   border-radius: 12px;
 }
 
@@ -891,7 +969,7 @@ tbody tr:hover {
 
 .nakyma-huomio {
   margin: 13px 0 0;
-  color: #879497;
+  color: #8a8a92;
   font-size: 0.7rem;
   text-align: right;
 }
@@ -901,18 +979,18 @@ tbody tr:hover {
   align-items: center;
   gap: 9px;
   margin-bottom: 22px;
-  color: #819094;
+  color: #8a8a92;
   font-size: 0.77rem;
 }
 
 .murupolku a {
-  color: #526c70;
+  color: #52525b;
   font-weight: 640;
   text-decoration: none;
 }
 
 .murupolku a:hover {
-  color: var(--teal);
+  color: var(--accent);
   text-decoration: underline;
 }
 
@@ -926,9 +1004,9 @@ tbody tr:hover {
   gap: 12px;
   margin-bottom: 17px;
   padding: 14px 16px;
-  color: #3f5d5a;
-  background: #edf4f1;
-  border: 1px solid #dce9e2;
+  color: #27272a;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
   border-radius: 8px;
   font-size: 0.79rem;
   line-height: 1.5;
@@ -940,8 +1018,8 @@ tbody tr:hover {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  color: #527c69;
-  background: #deece3;
+  color: #18181b;
+  background: #e4e4e7;
   border-radius: 8px;
 }
 
@@ -982,8 +1060,8 @@ tbody tr:hover {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  color: #4d7779;
-  background: #edf4f3;
+  color: #3f3f46;
+  background: #f4f4f5;
   border-radius: 8px;
 }
 
@@ -994,8 +1072,8 @@ tbody tr:hover {
 }
 
 .tieto-kuvake-puhelu {
-  color: #6c7c56;
-  background: #f1f4eb;
+  color: #3f3f46;
+  background: #ececee;
 }
 
 .tieto h2 {
@@ -1004,7 +1082,7 @@ tbody tr:hover {
 
 .tieto > p:last-child {
   margin-bottom: 0;
-  color: #66797d;
+  color: #52525b;
   font-size: 0.79rem;
   line-height: 1.6;
 }
@@ -1034,7 +1112,7 @@ tbody tr:hover {
 label {
   display: block;
   margin-bottom: 8px;
-  color: #3b5155;
+  color: #27272a;
   font-size: 0.78rem;
   font-weight: 680;
 }
@@ -1045,15 +1123,15 @@ textarea {
   resize: vertical;
   padding: 12px 13px;
   color: var(--ink);
-  background: #fcfdfd;
-  border: 1px solid #d6e0e1;
+  background: #fcfcfc;
+  border: 1px solid #d4d4d8;
   border-radius: 7px;
   font-size: 0.82rem;
   line-height: 1.55;
 }
 
 textarea::placeholder {
-  color: #99a5a7;
+  color: #a1a1aa;
 }
 
 .lomakkeen-alareuna {
@@ -1072,13 +1150,89 @@ textarea::placeholder {
 }
 
 .alatunniste {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 256px;
+  z-index: 2;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 15px clamp(24px, 4vw, 58px) 20px;
-  color: #8a9799;
-  border-top: 1px solid #e8eded;
-  font-size: 0.68rem;
+  gap: 24px;
+  padding: 8px clamp(24px, 4vw, 58px);
+  color: var(--sidebar-muted);
+  background: var(--sidebar);
+  border-top: 1px solid #000;
+  box-shadow: 0 -6px 24px rgb(0 0 0 / 28%);
+  font-size: 0.72rem;
+}
+
+.alatunniste-brandi {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.alatunniste-logo {
+  height: 104px;
+  width: auto;
+  flex: 0 0 auto;
+  margin: -14px 0;
+}
+
+.alatunniste-tekijat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alatunniste-otsikko {
+  color: #8a8a92;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tekijalista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tekijalista li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 10px;
+  color: #f4f4f5;
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 550;
+  line-height: 1;
+}
+
+.tekijalista li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4d4d8;
+}
+
+.alatunniste-huomiot {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: right;
+  color: #8a8a92;
 }
 
 .ilmoitus {
@@ -1089,10 +1243,10 @@ textarea::placeholder {
   max-width: min(420px, calc(100vw - 44px));
   padding: 12px 16px;
   color: #fff;
-  background: #244c49;
+  background: #18181b;
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgb(20 40 42 / 20%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 20%);
   font-size: 0.82rem;
   opacity: 0;
   pointer-events: none;
@@ -1146,7 +1300,7 @@ textarea::placeholder {
 @keyframes uusi-arvio {
   0%,
   35% {
-    background: #fff4d6;
+    background: #fdf4e0;
   }
 
   100% {
@@ -1154,22 +1308,24 @@ textarea::placeholder {
   }
 }
 
+/* Kiireellisyystasot: potilasturvan vuoksi värikoodattu (vihreä/keltainen/punainen).
+   Erottelua tukevat myös reuna ja fontin paino, ei pelkkä väri. */
 .kiireellisyys-vihrea {
-  color: #286044;
-  background: #e8f4ec;
-  border-color: #cde6d5;
+  color: #1f7a4d;
+  background: #e9f6ee;
+  border-color: #c3e6d2;
 }
 
 .kiireellisyys-keltainen {
-  color: #785400;
-  background: #fff4d6;
-  border-color: #f0dda4;
+  color: #8a6300;
+  background: #fdf4e0;
+  border-color: #f0dca6;
 }
 
 .kiireellisyys-punainen {
-  color: #8b302c;
-  background: #fff0ee;
-  border-color: #f2ceca;
+  color: #9c2a2a;
+  background: #fcebec;
+  border-color: #f3c9cc;
 }
 
 .puhelutulos-aika {
@@ -1181,9 +1337,9 @@ textarea::placeholder {
 .analyysi-odottaa {
   margin: 0 0 18px;
   padding: 13px 15px;
-  color: #624d1a;
-  background: #fff8e6;
-  border: 1px solid #efdfb2;
+  color: #27272a;
+  background: #f4f4f5;
+  border: 1px solid #d4d4d8;
   border-radius: 8px;
   font-size: 0.84rem;
   line-height: 1.55;
@@ -1203,7 +1359,7 @@ textarea::placeholder {
 .puhelutulos-osio {
   min-width: 0;
   padding: 15px 16px;
-  background: #f8faf9;
+  background: #fafafa;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
@@ -1216,7 +1372,7 @@ textarea::placeholder {
 .puhelutulos-osio p,
 .puhelutulos-osio ul {
   margin: 0;
-  color: #465a60;
+  color: #3f3f46;
   font-size: 0.84rem;
   line-height: 1.55;
 }
@@ -1236,22 +1392,22 @@ textarea::placeholder {
 }
 
 .puhelutulos-huomio {
-  background: #fff8f6;
-  border-color: #f0d8d3;
+  background: #f4f4f5;
+  border-color: #d4d4d8;
 }
 
 .saantotiedot {
   margin-top: 14px;
   padding: 12px 14px;
-  color: #465a60;
-  background: #f8faf9;
+  color: #3f3f46;
+  background: #fafafa;
   border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 0.82rem;
 }
 
 .saantotiedot summary {
-  color: #30484d;
+  color: #27272a;
   cursor: pointer;
   font-weight: 650;
 }
@@ -1277,6 +1433,10 @@ textarea::placeholder {
 
   .paaalue {
     margin-left: 218px;
+  }
+
+  .alatunniste {
+    left: 218px;
   }
 
   .sisalto {
@@ -1329,6 +1489,7 @@ textarea::placeholder {
   }
 
   .alatunniste {
+    left: 0;
     padding: 14px 20px 18px;
   }
 }
@@ -1426,7 +1587,11 @@ textarea::placeholder {
   .alatunniste {
     align-items: flex-start;
     flex-direction: column;
-    gap: 5px;
+    gap: 18px;
+  }
+
+  .alatunniste-huomiot {
+    text-align: left;
   }
 }
 
