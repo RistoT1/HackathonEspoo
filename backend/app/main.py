@@ -55,6 +55,7 @@ def _nayta_sovelluksen_lokit() -> None:
 async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
     _nayta_sovelluksen_lokit()
     aja_migraatiot()
+    hae_istuntovarasto().aseta_tallennus(_tallenna_tulos_kantaan)
     asetukset = hae_asetukset()
     if asetukset.llm_malli:
         # Puhelun jälkeinen analyysi hoitajalle samalla mallilla (paikallinen/EU).
@@ -67,7 +68,7 @@ async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
         )
         varasto = hae_istuntovarasto()
         varasto.aseta_triage(
-            Triagetyontekija(analysoija, varasto.puheluita_kaynnissa, _tallenna_tulos_kantaan)
+            Triagetyontekija(analysoija, varasto.puheluita_kaynnissa, varasto.tallenna)
         )
     lammin = False
     if asetukset.llm_malli and asetukset.llm_lammita_kaynnistyksessa:

@@ -26,8 +26,8 @@ class Triagetyontekija:
     def __init__(
         self,
         analysoija: Analysoija,
-        puheluita_kaynnissa: Callable[[], bool] = lambda: False,
-        tallenna: Callable[[PuhelunTulos], None] | None = None,
+        puheluita_kaynnissa: Callable[[], bool],
+        tallenna: Callable[[PuhelunTulos], None],
     ) -> None:
         self._analysoija = analysoija
         # Analyysi vasta kun yhtään puhelua ei ole käynnissä: puhelu menee aina edelle.
@@ -61,14 +61,12 @@ class Triagetyontekija:
                     saanto.taso,
                     tulos.yhteenveto.mallin_taso,
                 )
-                if self._tallenna is not None:
-                    try:
-                        self._tallenna(tulos)
-                    except Exception:
-                        logger.exception(
-                            "Triage-yhteenvedon tallennus epäonnistui: istunto=%s",
-                            tulos.istunto_id,
-                        )
+                try:
+                    self._tallenna(tulos)
+                except Exception:
+                    logger.exception(
+                        "Triage-yhteenvedon tallennus epäonnistui: istunto=%s", tulos.istunto_id
+                    )
             except Exception:
                 logger.exception("Triage-analyysi kaatui; sääntötaso jää voimaan")
             finally:

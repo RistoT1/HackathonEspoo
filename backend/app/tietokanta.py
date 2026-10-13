@@ -250,18 +250,12 @@ class LaakeryhmanTarkennusRivi(Base):
 def tallenna_puhelun_tulos(sessio: Session, tulos: PuhelunTulos) -> None:
     """Tallentaa tai päivittää vain triage-yhteenvedon, ei puhelun raakavastauksia."""
     rivi = sessio.get(PuhelunTulosRivi, tulos.istunto_id)
-    yhteenveto = tulos.yhteenveto.model_dump(mode="json") if tulos.yhteenveto is not None else None
     if rivi is None:
-        rivi = PuhelunTulosRivi(
-            istunto_id=tulos.istunto_id,
-            tehtava_id=tulos.tehtava_id,
-            loppu=tulos.loppu.value if tulos.loppu is not None else None,
-            paattyi=tulos.paattyi,
-            yhteenveto=yhteenveto,
-        )
+        rivi = PuhelunTulosRivi(istunto_id=tulos.istunto_id)
         sessio.add(rivi)
-    else:
-        rivi.loppu = tulos.loppu.value if tulos.loppu is not None else None
-        rivi.paattyi = tulos.paattyi
-        rivi.yhteenveto = yhteenveto
+    rivi.tehtava_id = tulos.tehtava_id
+    rivi.loppu = tulos.loppu.value if tulos.loppu is not None else None
+    rivi.paattyi = tulos.paattyi
+    yhteenveto = tulos.yhteenveto
+    rivi.yhteenveto = yhteenveto.model_dump(mode="json") if yhteenveto is not None else None
     sessio.commit()

@@ -53,7 +53,6 @@ from app.puhelutehtavat.palvelu import (
     hae_soittotiedot,
     vaihda_tila,
 )
-from app.tietokanta import tallenna_puhelun_tulos
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +269,7 @@ def _varmuus(kentat: dict[str, str]) -> float | None:
 
 def _paata(istunto: Puheluistunto, istunnot: Istuntovarasto, sessio: Session) -> None:
     """Tulos kantaan ja muistiin, minkä jälkeen jonon tila päivitetään."""
-    if not istunnot.paata(istunto, lambda tulos: tallenna_puhelun_tulos(sessio, tulos)):
+    if not istunnot.paata(istunto):
         return
     logger.info(
         "Puhelu paattyi: istunto=%s loppu=%s hatamerkki=%s vastauksia=%d",
