@@ -2,6 +2,8 @@
 
 SOTE AI Hackathon 2026 · Haaste 3.1 Jatkuva ja ennakoiva omahoidon tuki
 
+Tiimi: Savon Ammattiopisto (Risto, Justus, Jere)
+
 ---
 
 ## Sisällys
