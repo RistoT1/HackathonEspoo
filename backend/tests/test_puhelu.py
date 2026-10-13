@@ -1,5 +1,6 @@
 """Puhelu: repliikit ja TwiML puhtaina funktioina, reitit feikatulla Twiliolla (ei verkkoa)."""
 
+import asyncio
 import json
 
 import pytest
@@ -295,8 +296,12 @@ def test_dev_keskustelu_ei_muuta_jonoa(client, soittaja):
 
 def test_dev_keskustelu_ei_soita_kylmalla_mallilla(client, soittaja):
     client.post("/puhelutehtavat/tunnista", json={})
-    vahti = Lammitysvahti(lambda: 52.7, lambda: False, vali_s=60)
-    vahti.kierros()
+
+    async def kylma() -> float:
+        return 52.7
+
+    vahti = Lammitysvahti(kylma, lambda: False, vali_s=60)
+    asyncio.run(vahti.kierros())
     app.dependency_overrides[hae_lammitysvahti] = lambda: vahti
 
     vastaus = client.post("/dev/puhelu/keskustelu")

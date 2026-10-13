@@ -13,17 +13,14 @@ Mitattu 12.10.: kylmä lämmitys 52,7 s, lämmin 0,4-6 s.
 
 import asyncio
 import logging
-import threading
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 import httpx
 
-from app.config import Settings
 from app.mallit import Kysymys, Muutoskonteksti, MuutosTyyppi, Puhelukonteksti
-from app.puhelu.agentti import Keskusteluagentti
+from app.puhelu.agentti import Keskusteluagentti, LlmAgentti
 from app.puhelu.keskustelu import Puheluistunto, kasittele
-from app.puhelu.tietopohja import teksti
 
 logger = logging.getLogger(__name__)
 
@@ -76,35 +73,15 @@ def esimerkkipuhelut() -> list[Puheluistunto]:
     ]
 
 
-def lammitysviestit(istunto: Puheluistunto) -> list[dict[str, str]]:
-    """Sama alku kuin puhelun lämmityksessä: järjestelmäohje + avaus. Puhelukohtaiset tiedot
-    ovat ohjeen lopussa, joten esimerkkipuhelut lämmittävät yhteisen alun kaikille."""
-    return [
-        {"role": "system", "content": istunto.ohje()},
-        {"role": "assistant", "content": teksti("avauslause", {})},
-    ]
-
-
-def lammita_malli(asetukset: Settings) -> float:
-    """Lämmitys kaikilla esimerkeillä. Palauttaa yhteiskeston sekunteina; httpx.HTTPError,
-    jos malli ei vastaa."""
-    url = f"{asetukset.llm_base_url.rstrip('/')}/chat/completions"
-    otsakkeet = {"Authorization": f"Bearer {asetukset.llm_api_avain}"}
-
-    alku = time.perf_counter()
+async def lammita_malli(agentti: LlmAgentti) -> float:
+    """Lämmitys kaikilla esimerkeillä: puhelukohtaiset tiedot ovat ohjeen lopussa, joten
+    esimerkkipuhelut lämmittävät yhteisen alun kaikille. Palauttaa yhteiskeston sekunteina;
+    httpx.HTTPError, jos malli ei vastaa."""
+    kesto = 0.0
     for istunto in esimerkkipuhelut():
-        runko: dict[str, object] = {
-            "model": asetukset.llm_malli,
-            "messages": lammitysviestit(istunto),
-            "max_tokens": 1,
-        }
-        if asetukset.llm_ajattelu_pois:
-            runko["reasoning_effort"] = "none"
-        if asetukset.llm_pida_muistissa:
-            runko["keep_alive"] = -1
-        vastaus = httpx.post(url, json=runko, headers=otsakkeet, timeout=LAMMITYKSEN_AIKARAJA_S)
-        vastaus.raise_for_status()
-    return time.perf_counter() - alku
+        viestit = istunto.lammitysviestit()
+        kesto += await agentti.lammita_ja_mittaa(viestit, LAMMITYKSEN_AIKARAJA_S)
+    return kesto
 
 
 async def simuloi_puhelu(istunto: Puheluistunto, agentti: Keskusteluagentti) -> float | None:
@@ -122,9 +99,7 @@ async def simuloi_puhelu(istunto: Puheluistunto, agentti: Keskusteluagentti) -> 
 
 
 async def lammita_kaynnistyksessa(
-    asetukset: Settings,
-    agentti: Keskusteluagentti,
-    lammita: Callable[[Settings], float] = lammita_malli,
+    agentti: Keskusteluagentti, lammita: Callable[[], Awaitable[float]]
 ) -> bool:
     """Backendin käynnistys odottaa tätä: lämmitys, kunnes malli vastaa välimuistista, sitten
     simuloidut puhelut. False = malli ei vastannut tai ei lämmennyt (vahti jatkaa yrityksiä,
@@ -132,7 +107,7 @@ async def lammita_kaynnistyksessa(
     logger.info("Mallin lämmitys käynnistyksessä: odotetaan, kunnes malli on lämmin")
     for kierros in range(1, MAX_KAYNNISTYSKIERROKSET + 1):
         try:
-            kesto = await asyncio.to_thread(lammita, asetukset)
+            kesto = await lammita()
         except httpx.HTTPError as virhe:
             logger.warning("Malli ei vastaa (%s): käynnistetään ilman lämmintä mallia", virhe)
             return False
@@ -156,9 +131,11 @@ async def lammita_kaynnistyksessa(
 
 
 class Lammitysvahti:
+    """Tapahtumasilmukan tehtävä (kaynnista/pysayta FastAPIn elinkaaressa)."""
+
     def __init__(
         self,
-        lammita: Callable[[], float],
+        lammita: Callable[[], Awaitable[float]],
         puheluita_kaynnissa: Callable[[], bool],
         vali_s: float,
         lammin: bool = False,
@@ -169,21 +146,24 @@ class Lammitysvahti:
         # Puhelun oma lämmitys ja vuorot menevät edelle: Ollama palvelee yhtä kerrallaan.
         self._puheluita_kaynnissa = puheluita_kaynnissa
         self._vali_s = vali_s
-        self._seis = threading.Event()
-        self._saie = threading.Thread(target=self._aja, name="lammitysvahti", daemon=True)
+        self._tehtava: asyncio.Task[None] | None = None
 
     def kaynnista(self) -> None:
-        self._saie.start()
+        self._tehtava = asyncio.get_running_loop().create_task(self.aja(), name="lammitysvahti")
 
-    def pysayta(self) -> None:
-        self._seis.set()
+    async def pysayta(self) -> None:
+        """Peruu vahdin ja kesken olevan lämmityspyynnön (Ollama keskeyttää perutun)."""
+        if self._tehtava is None:
+            return
+        self._tehtava.cancel()
+        await asyncio.wait([self._tehtava])
 
-    def kierros(self) -> None:
+    async def kierros(self) -> None:
         if self._puheluita_kaynnissa():
             return
         oli_lammin = self.lammin
         try:
-            kesto = self._lammita()
+            kesto = await self._lammita()
         except httpx.HTTPError as virhe:
             self.lammin = False
             logger.warning("Lämmitysvahti: malli ei vastaa: %s", virhe)
@@ -197,14 +177,14 @@ class Lammitysvahti:
         elif not oli_lammin:
             logger.info("Lämmitysvahti: malli lämmin (%.1f s)", kesto)
 
-    def _aja(self) -> None:
+    async def aja(self) -> None:
         # Käynnistyksessä juuri lämmitetty: ensimmäinen tarkistus vasta välin päästä.
         if self.lammin:
-            self._seis.wait(self._vali_s)
-        while not self._seis.is_set():
-            self.kierros()
+            await asyncio.sleep(self._vali_s)
+        while True:
+            await self.kierros()
             odotus = self._vali_s if self.lammin else KYLMAN_UUSINTA_S
-            self._seis.wait(odotus)
+            await asyncio.sleep(odotus)
 
 
 _VAHTI: Lammitysvahti | None = None

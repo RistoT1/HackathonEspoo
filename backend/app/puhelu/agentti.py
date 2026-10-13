@@ -11,6 +11,7 @@ diagnoosia, vain ikäluokka, lääkemuutoksen tyyppi ja ryhmä sekä tämän puh
 """
 
 import logging
+import time
 from collections.abc import Callable
 from typing import Annotated, Protocol
 
@@ -81,14 +82,26 @@ class LlmAgentti:
             runko["keep_alive"] = -1  # Ollama: malli ja välimuisti pysyvät ladattuina
         return runko
 
-    async def lammita(self, viestit: Viestit) -> None:
+    async def lammita_ja_mittaa(self, viestit: Viestit, aikaraja_s: float = 120) -> float:
         """Keskustelun TÄSMÄLLEEN SAMA alku kuin ensimmäisessä vuorossa (järjestelmäohje +
         avaus): Ollama käyttää välimuistia vain, kun edellinen pyyntö on uuden alkuosa.
         Mitattu 11.10. Gemma 12B: alku "ohje + Hei" -> ensimmäinen vuoro 21,3 s, alku
-        "ohje + avaus" -> 3,1 s."""
+        "ohje + avaus" -> 3,1 s. Runko on sama kuin vuoroissa (myös temperature): välimuisti
+        riippuu vain viestien tokeneista, ei näytteistyksen asetuksista.
+        Palauttaa keston sekunteina; httpx.HTTPError, jos malli ei vastaa."""
+        alku = time.perf_counter()
+        async with httpx.AsyncClient(timeout=aikaraja_s, transport=self._transport) as client:
+            vastaus = await client.post(
+                self._url, json=self._runko(viestit, 1), headers=self._otsakkeet
+            )
+        vastaus.raise_for_status()
+        kesto = time.perf_counter() - alku
+        return kesto
+
+    async def lammita(self, viestit: Viestit) -> None:
+        """Soiton aikainen lämmitys: virhe vain lokiin, puhelu jatkuu ilman lämmintä mallia."""
         try:
-            async with httpx.AsyncClient(timeout=120, transport=self._transport) as client:
-                await client.post(self._url, json=self._runko(viestit, 1), headers=self._otsakkeet)
+            await self.lammita_ja_mittaa(viestit)
         except httpx.HTTPError as virhe:
             logger.warning("LLM:n lammitys epaonnistui: %s", virhe)
 
@@ -116,6 +129,11 @@ def hae_agentti(asetukset: Annotated[Settings, Depends(hae_asetukset)]) -> Kesku
     """FastAPI-dependency. LLM_MALLI asetettu -> LLM-agentti, muuten kiinteä."""
     if not asetukset.llm_malli:
         return KiinteaAgentti()
+    return llm_agentti(asetukset)
+
+
+def llm_agentti(asetukset: Settings) -> LlmAgentti:
+    """LLM-agentti asetuksista (myös mallin lämmitys käynnistyksessä ja vahdissa)."""
     return LlmAgentti(
         base_url=asetukset.llm_base_url,
         malli=asetukset.llm_malli,
