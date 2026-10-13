@@ -321,6 +321,16 @@ class PuhelunTulos(BaseModel):
     yhteenveto: Yhteenveto | None = None  # triage; sääntötaso heti, mallin analyysi perässä
 
 
+class TallennettuTulos(BaseModel):
+    """Puhelun tulos kannasta hoitajan näkymälle: vain yhteenveto, ei vastauksia."""
+
+    istunto_id: str
+    tehtava_id: str
+    loppu: PuhelunLoppu | None = None
+    paattyi: datetime | None = None  # None = ei tiedossa, tehtävän tuloksista vanhin
+    yhteenveto: Yhteenveto | None = None  # None = yhteenveto ei vielä saatavilla
+
+
 class KaikuTulos(BaseModel):
     """VAIN DEV: puheentunnistuksen testi. Mita Twilio kuuli ja osuiko hatasana."""
 

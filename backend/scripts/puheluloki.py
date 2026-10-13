@@ -3,6 +3,7 @@
 Kaytto (backend/):
     uv run python scripts/puheluloki.py              # uusin puhelu
     uv run python scripts/puheluloki.py <tiedosto>   # tietty loki (lokit/puhelut/*.jsonl)
+    uv run python scripts/puheluloki.py --teksti     # keskustelu tekstinä (myös <tiedosto>)
     uv run python scripts/puheluloki.py --seuraa     # reaaliajassa: odottaa uutta puhelua
 
 Sarakkeet: aika puhelun alusta (s). Ajoitus kertoo, kauanko AI:n edellisestä vastauksesta
@@ -11,6 +12,7 @@ pieni tai negatiivinen kuunteluaika = henkilö puhui AI:n päälle. Osittaiset t
 näyttävät, milloin puhe alkoi kuulua ja mitä alusta mahdollisesti puuttui.
 """
 
+import argparse
 import json
 import sys
 import time
@@ -18,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 LOKIKANSIO = Path(__file__).resolve().parents[2] / "lokit" / "puhelut"
+HATAMERKKI = "hatamerkki:"
 
 
 def _aika(rivi: dict) -> datetime:
@@ -28,8 +31,63 @@ def _ms(arvo: object) -> str:
     return f"{arvo / 1000:.1f}s" if isinstance(arvo, int | float) else "-"
 
 
+def _lue(polku: Path) -> list[dict]:
+    return [json.loads(rivi) for rivi in polku.read_text(encoding="utf-8").splitlines() if rivi]
+
+
+def keskustelu(rivit: list[dict]) -> str:
+    """Puhelu tekstinä (Avustaja/Henkilö) testisoittojen läpikäyntiin.
+
+    Korvaa puhelun päättyessä kirjoitetun <paiva>_<istunto>.txt:n (12.10.), joka tehtiin
+    istunnon historiasta. Erot siihen: tehtävän tunnistetta ei ole lokissa, eikä loppua,
+    jos puhelu päättyi Twilion tilaan eikä vuoroon. Avustajan rivit ovat sitä, mitä
+    puhelussa sanottiin: välitäytteen jälkeen pois jätetty lyhyt kuittaus ("Kiitos.")
+    puuttuu, ja hiljaisuuden jälkeen toistettu kysymys näkyy.
+    """
+    vuorot = [rivi for rivi in rivit if rivi["tapahtuma"] == "vuoro"]
+    tekstit = [_otsikko(rivit[0]["istunto"], vuorot), ""]
+    kuultu = ""
+    for rivi in rivit:
+        tapahtuma = rivi["tapahtuma"]
+        if tapahtuma in ("kuultu", "vuoro_alusta"):
+            kuultu = rivi.get("kuultu") or ""
+        elif tapahtuma == "vuoro_keskeytetty":
+            # Hätä kesken mallin mietinnän: vuoro perutaan, henkilön puhe jää historiaan.
+            tekstit.extend(_henkilo(kuultu))
+        elif tapahtuma == "vuoro":
+            if rivi.get("vaihe_ennen") not in (None, "ALKU", "LOPPU"):
+                tekstit.extend(_henkilo(rivi.get("kuultu")))
+            sanottu = [osa for osa in rivi.get("sanottu") or [] if osa.strip()]
+            if sanottu:
+                tekstit.append(f"Avustaja: {' '.join(sanottu)}")
+    return "\n".join(tekstit)
+
+
+def _henkilo(kuultu: str | None) -> list[str]:
+    """Alle 2 merkin puhe on hiljaisuus: se ei päädy keskusteluun (keskustelu.kasittele)."""
+    teksti = (kuultu or "").strip()
+    if len(teksti) < 2:
+        return []
+    return [f"Henkilö: {teksti}"]
+
+
+def _otsikko(istunto: str, vuorot: list[dict]) -> str:
+    osat = [f"Puhelu {istunto}"]
+    loput = [vuoro["loppu"] for vuoro in vuorot if vuoro.get("loppu")]
+    if loput:
+        osat.append(f"loppu {loput[0]}")  # ensimmäinen syy jää voimaan (keskustelu.lopeta)
+    hatamerkit = [
+        syy.removeprefix(HATAMERKKI)
+        for vuoro in vuorot
+        for syy in vuoro.get("syyt") or []
+        if syy.startswith(HATAMERKKI)
+    ]
+    osat.append(f"hätämerkki {hatamerkit[0] if hatamerkit else None}")
+    return ", ".join(osat)
+
+
 def tulosta(polku: Path) -> None:
-    rivit = [json.loads(rivi) for rivi in polku.read_text(encoding="utf-8").splitlines() if rivi]
+    rivit = _lue(polku)
     if not rivit:
         print("Tyhjä loki.")
         return
@@ -166,20 +224,25 @@ def _seuraa_tiedostoa(polku: Path) -> None:
 
 
 def main() -> None:
-    if sys.argv[1:] == ["--seuraa"]:
+    jasennin = argparse.ArgumentParser(description="VAIN DEV: puhelulokin aikajana.")
+    jasennin.add_argument("tiedosto", nargs="?", type=Path, help="loki (oletus: uusin)")
+    jasennin.add_argument("--teksti", action="store_true", help="keskustelu tekstinä")
+    jasennin.add_argument("--seuraa", action="store_true", help="odottaa uutta puhelua")
+    argumentit = jasennin.parse_args()
+    if argumentit.seuraa:
         try:
             seuraa()
         except KeyboardInterrupt:
             pass
         return
-    if len(sys.argv) > 1:
-        polku = Path(sys.argv[1])
-    else:
-        lokit = sorted(LOKIKANSIO.glob("*.jsonl"), key=lambda p: p.stat().st_mtime)
-        if not lokit:
-            sys.exit(f"Ei lokeja kansiossa {LOKIKANSIO} (PUHELU_LOKI=true ja DEV_TILA=true?)")
-        polku = lokit[-1]
-    tulosta(polku)
+    polku = argumentit.tiedosto or _uusin()
+    if polku is None:
+        sys.exit(f"Ei lokeja kansiossa {LOKIKANSIO} (PUHELU_LOKI=true ja DEV_TILA=true?)")
+    if not argumentit.teksti:
+        tulosta(polku)
+        return
+    rivit = _lue(polku)
+    print(keskustelu(rivit) if rivit else "Tyhjä loki.")
 
 
 if __name__ == "__main__":

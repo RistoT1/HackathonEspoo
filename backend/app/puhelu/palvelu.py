@@ -14,7 +14,7 @@ from dataclasses import replace
 
 from sqlalchemy.orm import Session
 
-from app.config import Settings, hae_asetukset
+from app.config import Settings
 from app.mallit import (
     Kysymys,
     Puhelukonteksti,
@@ -26,16 +26,15 @@ from app.mallit import (
 from app.muisti.muisti import konteksti_muistilla
 from app.puhelu.agentti import Keskusteluagentti
 from app.puhelu.istunnot import Istuntovarasto
+from app.puhelu.kaiku import kaiun_vuoro
 from app.puhelu.keskustelu import (
     Puheluistunto,
     Rajat,
     Vuoro,
-    kaiun_vuoro,
     kasittele,
     lopeta,
 )
 from app.puhelu.kielentarkistus import Tarkistin
-from app.puhelu.loki import hae_puheluloki
 from app.puhelu.puhe import (
     AVAUS,
     Kuuntelu,
@@ -55,7 +54,6 @@ from app.puhelutehtavat.palvelu import (
     hae_tehtava,
     vaihda_tila,
 )
-from app.tietokanta import tallenna_puhelun_tulos
 
 logger = logging.getLogger(__name__)
 
@@ -274,7 +272,7 @@ def _varmuus(kentat: dict[str, str]) -> float | None:
 
 def _paata(istunto: Puheluistunto, istunnot: Istuntovarasto, sessio: Session) -> None:
     """Tulos kantaan ja muistiin, minkä jälkeen jonon tila päivitetään."""
-    if not istunnot.paata(istunto, lambda tulos: tallenna_puhelun_tulos(sessio, tulos)):
+    if not istunnot.paata(istunto):
         return
     logger.info(
         "Puhelu paattyi: istunto=%s loppu=%s hatamerkki=%s vastauksia=%d",
@@ -283,13 +281,6 @@ def _paata(istunto: Puheluistunto, istunnot: Istuntovarasto, sessio: Session) ->
         istunto.hatamerkki,
         len(istunto.vastaukset),
     )
-    loki = hae_puheluloki(hae_asetukset())
-    if loki is not None:
-        otsikko = (
-            f"Puhelu {istunto.istunto_id}, tehtävä {istunto.tehtava_id}, "
-            f"loppu {istunto.loppu}, hätämerkki {istunto.hatamerkki}"
-        )
-        loki.kirjaa_keskustelu(istunto.istunto_id, otsikko, istunto.litterointi())
     if not istunto.paivita_jono:
         return
 

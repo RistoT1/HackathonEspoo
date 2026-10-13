@@ -213,7 +213,9 @@ def test_istunnon_ohje_kayttaa_muistia():
 def test_sama_oire_jatkuu_nostaa_keltaiseksi():
     havainnot = [Tietopohjahavainto(oireet=["huimaus"])]
 
-    loydokset = saantoloydokset(havainnot, [], PuhelunLoppu.VALMIS, None, None, ["huimaus"])
+    loydokset = saantoloydokset(
+        havainnot, [], PuhelunLoppu.VALMIS, None, None, {}, edelliset_oireet=["huimaus"]
+    )
 
     assert loydokset.taso == Kiireellisyys.KELTAINEN
     assert loydokset.toistuvat_oireet == ["huimaus"]
@@ -223,7 +225,9 @@ def test_sama_oire_jatkuu_nostaa_keltaiseksi():
 def test_uusi_oire_ei_ole_toistuva():
     havainnot = [Tietopohjahavainto(oireet=["yskä"])]
 
-    loydokset = saantoloydokset(havainnot, [], PuhelunLoppu.VALMIS, None, None, ["huimaus"])
+    loydokset = saantoloydokset(
+        havainnot, [], PuhelunLoppu.VALMIS, None, None, {}, edelliset_oireet=["huimaus"]
+    )
 
     assert loydokset.toistuvat_oireet == []
 

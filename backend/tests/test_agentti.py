@@ -62,6 +62,20 @@ def test_lammitys_lahettaa_jarjestelmaohjeen():
     assert runko["max_tokens"] == 1
 
 
+def test_puhelun_lammitysvirhe_ei_kaada_puhelua():
+    alku = VIESTIT[:2]
+
+    asyncio.run(agentti("", tila=500).lammita(alku))
+
+
+def test_mitattu_lammitys_palauttaa_keston_ja_nostaa_virheen():
+    kesto = asyncio.run(agentti("").lammita_ja_mittaa(VIESTIT[:2]))
+
+    assert kesto >= 0
+    with pytest.raises(httpx.HTTPStatusError):
+        asyncio.run(agentti("", tila=500).lammita_ja_mittaa(VIESTIT[:2]))
+
+
 def test_http_virhe_nostetaan_tilakoneelle():
     with pytest.raises(httpx.HTTPStatusError):
         asyncio.run(agentti("", tila=500).vastaa(VIESTIT))

@@ -94,7 +94,7 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 #   koko keskustelu:   curl -X POST http://127.0.0.1:8000/dev/puhelu/keskustelu -> GET /dev/puhelu/tulokset
 #   muistin demo:      curl -X POST "http://127.0.0.1:8000/dev/puhelu/keskustelu?tehtava_id=<id>" kahdesti
 #                      (1. puhelussa kerro oire, 2. puhelu kysyy siitä; tehtava_id tuloksista)
-#   puhelun aikajana (PUHELU_LOKI=true):  uv run python scripts/puheluloki.py
+#   puhelun aikajana (PUHELU_LOKI=true):  uv run python scripts/puheluloki.py [--teksti] [tiedosto]  (--teksti = keskustelu)
 # Dev-reitit (/dev/...): DEV_TILA=true .env:iin. API-dokumentaatio: http://127.0.0.1:8000/docs
 # DEMO: laturi kiinni + caffeinate (Mac nukahti akulla 3 min jouten kesken puhelun, 11.10.)
 #   ja uvicorn ILMAN --reload (reload käynnistää palvelimen uudelleen jokaisesta .py-
@@ -203,8 +203,13 @@ puhelu/          Twilio-puhelu (relay tai <Gather>-webhookit; vaatii JULKINEN_UR
   saannot.py     hatasanat.json (ei tulkitse kieltoa) + tietopohja, hoitajapyyntö,
                  lääkeneuvo, usein kysytyt (fraasit.json: kuka soittaa, mikä lääke)
   agentti.py     LLM: lammita(järjestelmäohje) avauksen aikana, vastaa(viestit) -> teksti
-  keskustelu.py  myös: kysymyslistan kirjanpito (malli saa "kysy seuraavaksi", jumissa ->
-                 kysymys lisätään perään), yksi kysymys kerrallaan, varatoiminta ilman mallia
+  keskustelu.py  tilakone (aloita, kasittele): yksi kysymys kerrallaan, varatoiminta ilman
+                 mallia. Puhelun tila istunto.py:ssä (Puheluistunto, Vuoro, Rajat).
+  kysymyslista.py  kannan kysymysten kirjanpito (malli saa "kysy seuraavaksi", jumissa ->
+                 kysymys lisätään perään), viimeksi_kysytty lääkemuutoksen poikkeamalle
+  lopetus.py     mallin LOPETUKSEN estot yhtenä puhtaana sääntönä (henkilö kysyi, oire
+                 kesken, huono vointi, lista kesken) ja lopetuksen sanat
+  kaiku.py       VAIN DEV: puheentunnistuksen kaikutesti
   kielentarkistus.py  Voikko: mallin suomi vain lokiin (kieli:epavarma), ei estä puhetta;
                  korjaa_kieli + kielikorjaukset.json: mallin toistuvat virheet korjataan
                  ennen puhetta (kieli:korjattu). Taulukko käsin Voikon löydöksistä (Voikon
@@ -222,7 +227,8 @@ triage/          puhelun jälkeen: saannot.py sääntötaso heti (punainen/kelta
                  perusteet), analyysi.py Jeren LLM-analyysi taustasäikeessä (tyontekija.py),
                  taso = korkeampi säännön ja mallin tasosta. Yhteenveto tallentuu
                  puhelun_tulos-tauluun ja päivittyy mallianalyysin valmistuttua
-hoitaja/         soittotehtävänäkymä + tallennettu yhteenveto, katseluloki demo-katsojana
+hoitaja/         soittotehtävänäkymä + tallennettu yhteenveto, katseluloki demo-katsojana;
+                 palvelu.py: tehtävän uusin tulos DTO:na (sama jonolle ja tapaussivulle)
 muisti/          edellinen puhelu: saman vanhus_id:n uusin hoitajayhteenveto (MUISTI_PAIVAT, oletus
                  30 pv) tiivistetään säännöllä (oire + voimakkuus + päivät, ei vakavia huolia,
                  ei litterointia). Liitetään Puhelukontekstiin soiton alkaessa (ei tallenneta

@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Soittojono · Hyvinvointikumppani</title>
+    <link rel="stylesheet" href="/static/hoitaja.css">
+    <script src="/static/hoitaja.js" defer></script>
+  </head>
+  <body>
+    <div class="sovellus">
+      <aside class="sivupalkki">
+        <a class="brandi" href="/hoitaja/" aria-label="Hyvinvointikumppani">
+          <img class="brandi-logo" src="/static/logo.png" alt="Hyvinvointikumppani – Hoitajan Kumppani">
+        </a>
+
+        <div class="navigaatio-otsikko">TYÖTILA</div>
+        <nav class="paavalikko" aria-label="Päänavigaatio">
+          <a class="valikko-linkki valikko-linkki-aktiivinen" href="/hoitaja/" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="7" cy="5.5" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="18.5" r="1"/></svg>
+            <span>Takaisinsoittojono</span>
+          </a>
+        </nav>
+
+        <div class="sivupalkin-alatunniste">
+          <span class="demo-kuvake" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.2c0 4.5 3.1 8.2 7.5 9.8 4.4-1.6 7.5-5.3 7.5-9.8V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
+          <div>
+            <strong>Turvallinen demo</strong>
+            <span>Vain synteettistä dataa</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="paaalue">
+        <header class="ylapalkki">
+          <div class="sijainti">
+            <span class="sijainti-ylateksti">HYVINVOINTIKUMPPANI</span>
+            <span class="sijainti-erotin" aria-hidden="true">/</span>
+            <span>Hoitajan työpöytä</span>
+          </div>
+          <div class="ylapalkin-oikea">
+            <span class="ymparisto"><span class="ymparisto-piste"></span> DEMOYMÄRISTÖ</span>
+            <span class="roolimerkinta">Hoitajan näkymä</span>
+          </div>
+        </header>
+
+        <main class="sisalto">
+          
+<section class="sivun-otsikko">
+  <div class="sivun-otsikko-tekstit">
+    <p class="ylateksti">HOITAJAN TYÖJONO</p>
+    <h1>Soittotehtävät</h1>
+    <p class="toissijainen">Tunnistetut lääkemuutokset ja niihin liittyvät tehtävät.</p>
+  </div>
+  <a class="painike painike-toissijainen" href="/hoitaja/">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 8A6.5 6.5 0 0 0 5 4.5L3.5 6"/><path d="M3.5 2.8V6H6.7M3.5 12A6.5 6.5 0 0 0 15 15.5l1.5-1.5"/><path d="M16.5 17.2V14h-3.2"/></svg>
+    Päivitä jono
+  </a>
+</section>
+
+<section class="mittaririvi" aria-label="Jonon yhteenveto" data-paivittyva="mittarit">
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-halytys" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 4 3 19.5h18L12 4Z"/><path d="M12 10v4M12 17h.01"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Kiireelliset arviot</span>
+      <strong>5</strong>
+    </span>
+    <span class="mittari-kuvaus">punainen tai keltainen: hoitaja soittaa</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-avoin" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5zM8 9h8M8 12h8M8 15h5"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Avoimet tehtävät</span>
+      <strong>2</strong>
+    </span>
+    <span class="mittari-kuvaus">odottaa käsittelyä tai puhelua</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-kiireellinen" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Odottaa soittoa</span>
+      <strong>1</strong>
+    </span>
+    <span class="mittari-kuvaus">backendin soittojonossa</span>
+  </article>
+  <article class="mittari">
+    <span class="mittari-ikoni mittari-ikoni-valmis" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
+    </span>
+    <span class="mittari-sisalto">
+      <span class="mittari-nimi">Päätetyt tehtävät</span>
+      <strong>5</strong>
+    </span>
+    <span class="mittari-kuvaus">valmis tai peruttu</span>
+  </article>
+</section>
+
+<section class="kortti jonokortti">
+  <div class="kortin-otsikko">
+    <div>
+      <h2>Soittojono</h2>
+      <p class="toissijainen">Puhelun kiireellisyyden mukaan (punainen, keltainen, vihreä), sitten soittojärjestyksen mukaan. Päivittyy automaattisesti.</p>
+    </div>
+    <span class="tapausmaara" data-paivittyva="maara">9 tehtävää</span>
+  </div>
+
+  <form class="suodatinrivi" method="get" action="/hoitaja/">
+    <label for="tila">Rajaa tilan mukaan</label>
+    <select id="tila" name="tila">
+      <option value="">Kaikki tilat</option>
+      
+      <option value="ODOTTAA" >
+        Odottaa soittoa
+      </option>
+      
+      <option value="SOITETAAN" >
+        Puhelu käynnissä
+      </option>
+      
+      <option value="VALMIS" >
+        Puhelu valmis
+      </option>
+      
+      <option value="EI_VASTANNUT" >
+        Ei vastannut
+      </option>
+      
+      <option value="PERUTTU" >
+        Peruttu
+      </option>
+      
+    </select>
+    <button class="painike painike-toissijainen" type="submit">Suodata</button>
+  </form>
+
+  <div data-paivittyva="taulukko">
+  
+  <div class="taulukko-sailio">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Kiireellisyys</th>
+          <th scope="col">Soittojärjestys</th>
+          <th scope="col">Tehtävä / pseudonyymi</th>
+          <th scope="col">Tunnistetut lääkemuutokset</th>
+          <th scope="col">Luotu</th>
+          <th scope="col">Tila</th>
+          <th scope="col"><span class="sr-only">Toiminto</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        
+        <tr data-tehtava="t3-analyysi-valmis" data-taso="punainen">
+          <td>
+            
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-punainen">
+              Punainen
+            </span>
+            
+            
+          </td>
+          <td><span class="prioriteetti">70</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t3-analy</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t3-analyysi-valmis</span>
+          </td>
+          <td>
+            
+            
+            
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            
+          </td>
+          <td class="aikaleima">12.10.2026 09:10</td>
+          <td>
+            <span class="tilamerkki tilamerkki-valmis">
+              Puhelu valmis
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t3-analyysi-valmis">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t2-saantoarvio" data-taso="keltainen">
+          <td>
+            
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-keltainen">
+              Keltainen
+            </span>
+            <span class="tunniste-ala">sääntöarvio, analyysi kesken</span>
+            
+          </td>
+          <td><span class="prioriteetti">80</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t2-saant</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t2-saantoarvio</span>
+          </td>
+          <td>
+            
+            <span class="yhteenveto-otsikko">annosmuutos</span>
+            <span class="yhteenveto-kuvaus">Esimerkkivalmiste D</span>
+            
+            
+            
+          </td>
+          <td class="aikaleima">12.10.2026 09:20</td>
+          <td>
+            <span class="tilamerkki tilamerkki-valmis">
+              Puhelu valmis
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t2-saantoarvio">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t4-varayhteenveto" data-taso="keltainen">
+          <td>
+            
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-keltainen">
+              Keltainen
+            </span>
+            
+            
+          </td>
+          <td><span class="prioriteetti">60</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t4-varay</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t4-varayhteenveto</span>
+          </td>
+          <td>
+            
+            
+            
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            
+          </td>
+          <td class="aikaleima">12.10.2026 09:00</td>
+          <td>
+            <span class="tilamerkki tilamerkki-valmis">
+              Puhelu valmis
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t4-varayhteenveto">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t5-kaksi-tulosta" data-taso="keltainen">
+          <td>
+            
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-keltainen">
+              Keltainen
+            </span>
+            <span class="tunniste-ala">sääntöarvio, analyysi kesken</span>
+            
+          </td>
+          <td><span class="prioriteetti">50</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t5-kaksi</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t5-kaksi-tulosta</span>
+          </td>
+          <td>
+            
+            
+            
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            
+          </td>
+          <td class="aikaleima">12.10.2026 08:50</td>
+          <td>
+            <span class="tilamerkki tilamerkki-ei-vastannut">
+              Ei vastannut
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t5-kaksi-tulosta">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t8-aika-tuntematon" data-taso="keltainen">
+          <td>
+            
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-keltainen">
+              Keltainen
+            </span>
+            <span class="tunniste-ala">sääntöarvio, analyysi kesken</span>
+            
+          </td>
+          <td><span class="prioriteetti">20</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t8-aika-</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t8-aika-tuntematon</span>
+          </td>
+          <td>
+            
+            
+            
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            
+          </td>
+          <td class="aikaleima">12.10.2026 08:20</td>
+          <td>
+            <span class="tilamerkki tilamerkki-kaynnissa">
+              Puhelu käynnissä
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t8-aika-tuntematon">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t7-paattyi-null" data-taso="vihreä">
+          <td>
+            
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-vihrea">
+              Vihreä
+            </span>
+            
+            
+          </td>
+          <td><span class="prioriteetti">30</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t7-paatt</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t7-paattyi-null</span>
+          </td>
+          <td>
+            
+            
+            
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            
+          </td>
+          <td class="aikaleima">12.10.2026 08:30</td>
+          <td>
+            <span class="tilamerkki tilamerkki-valmis">
+              Puhelu valmis
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t7-paattyi-null">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t1-ei-tulosta" data-taso="">
+          <td>
+            
+            <span class="tunniste-ala">Ei arviota</span>
+            
+          </td>
+          <td><span class="prioriteetti">90</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t1-ei-tu</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t1-ei-tulosta</span>
+          </td>
+          <td>
+            
+            <span class="yhteenveto-otsikko">uusi laake</span>
+            <span class="yhteenveto-kuvaus">Esimerkkivalmiste A</span>
+            
+            <span class="yhteenveto-otsikko">lopetettu laake</span>
+            <span class="yhteenveto-kuvaus">Esimerkkivalmiste B</span>
+            
+            
+            <span class="yhteenveto-kuvaus">+ 1 muuta muutosta</span>
+            
+            
+          </td>
+          <td class="aikaleima">12.10.2026 09:30</td>
+          <td>
+            <span class="tilamerkki tilamerkki-odottaa">
+              Odottaa soittoa
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t1-ei-tulosta">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t6-json-null" data-taso="">
+          <td>
+            
+            <span class="tunniste-ala">Ei arviota</span>
+            
+          </td>
+          <td><span class="prioriteetti">40</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t6-json-</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t6-json-null</span>
+          </td>
+          <td>
+            
+            
+            
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            
+          </td>
+          <td class="aikaleima">12.10.2026 08:40</td>
+          <td>
+            <span class="tilamerkki tilamerkki-ei-vastannut">
+              Ei vastannut
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t6-json-null">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+        
+        <tr data-tehtava="t9-peruttu" data-taso="">
+          <td>
+            
+            <span class="tunniste-ala">Ei arviota</span>
+            
+          </td>
+          <td><span class="prioriteetti">10</span><span class="tunniste-ala">pistettä</span></td>
+          <td>
+            <span class="tunniste">t9-perut</span>
+            <span class="tunniste-ala">Pseudonyymi vanhus-t9-peruttu</span>
+          </td>
+          <td>
+            
+            
+            
+            <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
+            
+          </td>
+          <td class="aikaleima">12.10.2026 08:10</td>
+          <td>
+            <span class="tilamerkki tilamerkki-peruttu">
+              Peruttu
+            </span>
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/tapaukset/t9-peruttu">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+  
+  </div>
+</section>
+<p class="nakyma-huomio">Soittoprioriteetti määrittää järjestystä, eikä ole triage- tai kiireellisyysluokitus.</p>
+
+        </main>
+        <footer class="alatunniste">
+          <span>Demotiedot ovat synteettisiä</span>
+          <span>Hoitaja arvioi tilanteen ja tekee päätökset</span>
+        </footer>
+      </div>
+    </div>
+    <div class="ilmoitus" role="status" aria-live="polite" data-ilmoitus></div>
+  </body>
+</html>

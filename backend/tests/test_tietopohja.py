@@ -6,6 +6,7 @@ virhe ei palaa, kun sääntöjä muokataan.
 
 import pytest
 
+from app.mallit import MuutosTyyppi
 from app.puhelu import tietopohja as t
 
 
@@ -350,7 +351,8 @@ def test_sydantuntemus_on_huolestuttava_oire_ja_kysyy_rintakivusta():
     havainto = tunnista("Mulla on tosi paha olo ja ne tuntuu sydämessä")
 
     assert "sydäntuntemukset" in havainto.huolestuttavat
-    assert any("rintakipu" in k for k in t.oireen_jatkokysymykset("sydäntuntemukset"))
+    jatkokysymykset = t.oireen_jatkokysymykset("sydäntuntemukset", t.muutoksen_jalkeen([]))
+    assert any("rintakipu" in k for k in jatkokysymykset)
 
 
 def test_sattuu_paahan_on_paansarky():
@@ -444,11 +446,23 @@ def test_uneliaisuus_ja_hyva_uni_eivat_ole_unettomuutta(teksti):
 @pytest.mark.parametrize(
     ("tyypit", "odotettu"),
     [
-        (["LYHYT_KUURI"], "Onko päänsärky alkanut lääkekuurin aikana tai sen jälkeen?"),
-        (["LOPETETTU_LAAKE"], "Onko päänsärky alkanut lääkkeen lopettamisen jälkeen?"),
-        (["UUSI_LAAKE"], "Onko päänsärky alkanut uuden lääkkeen aloittamisen jälkeen?"),
-        (["ANNOSMUUTOS"], "Onko päänsärky alkanut annoksen muuttamisen jälkeen?"),
-        (["UUSI_LAAKE", "ANNOSMUUTOS"], "Onko päänsärky alkanut lääkemuutoksen jälkeen?"),
+        (
+            [MuutosTyyppi.LYHYT_KUURI],
+            "Onko päänsärky alkanut lääkekuurin aikana tai sen jälkeen?",
+        ),
+        (
+            [MuutosTyyppi.LOPETETTU_LAAKE],
+            "Onko päänsärky alkanut lääkkeen lopettamisen jälkeen?",
+        ),
+        (
+            [MuutosTyyppi.UUSI_LAAKE],
+            "Onko päänsärky alkanut uuden lääkkeen aloittamisen jälkeen?",
+        ),
+        ([MuutosTyyppi.ANNOSMUUTOS], "Onko päänsärky alkanut annoksen muuttamisen jälkeen?"),
+        (
+            [MuutosTyyppi.UUSI_LAAKE, MuutosTyyppi.ANNOSMUUTOS],
+            "Onko päänsärky alkanut lääkemuutoksen jälkeen?",
+        ),
         ([], "Onko päänsärky alkanut lääkemuutoksen jälkeen?"),
     ],
 )
@@ -458,9 +472,16 @@ def test_ajoituskysymys_muutoksen_tyypin_mukaan(tyypit, odotettu):
     assert kysymykset[0] == odotettu
 
 
+def test_jokaisella_muutostyypilla_on_ajoituksen_sanamuoto():
+    oletus = t.muutoksen_jalkeen([])
+
+    for tyyppi in MuutosTyyppi:
+        assert t.muutoksen_jalkeen([tyyppi]) != oletus
+
+
 def test_jatkokysymyksissa_ei_tayttamatonta_eika_kiinteaa_aloitusta():
     for nimi in t.oireet():
-        for kysymys in t.oireen_jatkokysymykset(nimi):
+        for kysymys in t.oireen_jatkokysymykset(nimi, t.muutoksen_jalkeen([])):
             assert "{" not in kysymys
             assert "aloittamisen" not in kysymys
 
@@ -482,7 +503,7 @@ def test_ajoitus_kerrottu(teksti, kerrottu):
 
 def test_kerrottu_ajoitus_jaa_pois_vihjeesta():
     vihje = t.oireohje_kotihoidolla(
-        ["päänsärky"], t.muutoksen_jalkeen(["LYHYT_KUURI"]), "sen jälkeen kun lopetin"
+        ["päänsärky"], t.muutoksen_jalkeen([MuutosTyyppi.LYHYT_KUURI]), "sen jälkeen kun lopetin"
     )
 
     assert "Onko päänsärky alkanut" not in vihje

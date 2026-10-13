@@ -1,6 +1,7 @@
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from functools import partial
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -14,7 +15,7 @@ from app.dev.reitit import router as dev_router
 from app.hoitaja.reitit import reititin as hoitaja_reititin
 from app.mallit import PuhelunTulos
 from app.muutokset.reitit import router as muutokset_router
-from app.puhelu.agentti import hae_agentti
+from app.puhelu.agentti import llm_agentti
 from app.puhelu.istunnot import hae_istuntovarasto
 from app.puhelu.lammitys import (
     Lammitysvahti,
@@ -55,6 +56,7 @@ def _nayta_sovelluksen_lokit() -> None:
 async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
     _nayta_sovelluksen_lokit()
     aja_migraatiot()
+    hae_istuntovarasto().aseta_tallennus(_tallenna_tulos_kantaan)
     asetukset = hae_asetukset()
     if asetukset.llm_malli:
         # Puhelun jälkeinen analyysi hoitajalle samalla mallilla (paikallinen/EU).
@@ -67,15 +69,17 @@ async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
         )
         varasto = hae_istuntovarasto()
         varasto.aseta_triage(
-            Triagetyontekija(analysoija, varasto.puheluita_kaynnissa, _tallenna_tulos_kantaan)
+            Triagetyontekija(analysoija, varasto.puheluita_kaynnissa, varasto.tallenna)
         )
+    agentti = llm_agentti(asetukset)  # käytössä vain, kun LLM_MALLI on asetettu
+    lammita = partial(lammita_malli, agentti)
     lammin = False
     if asetukset.llm_malli and asetukset.llm_lammita_kaynnistyksessa:
-        lammin = await lammita_kaynnistyksessa(asetukset, hae_agentti(asetukset))
+        lammin = await lammita_kaynnistyksessa(agentti, lammita)
     vahti = None
     if asetukset.llm_malli and asetukset.llm_lammitysvali_s > 0:
         vahti = Lammitysvahti(
-            lambda: lammita_malli(asetukset),
+            lammita,
             hae_istuntovarasto().puheluita_kaynnissa,
             asetukset.llm_lammitysvali_s,
             lammin=lammin,
@@ -88,7 +92,7 @@ async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
     if ajastin is not None:
         ajastin.shutdown(wait=False)
     if vahti is not None:
-        vahti.pysayta()
+        await vahti.pysayta()
 
 
 app = FastAPI(title="Hyvinvointikumppani", lifespan=elinkaari)
