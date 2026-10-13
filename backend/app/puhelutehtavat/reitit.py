@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, hae_asetukset
 from app.data.adapteri import Datalahde, hae_datalahde
+from app.dev.henkilotiedot import tayta_puuttuvat
 from app.mallit import (
     Puhelutehtava,
     PuhelutehtavanTila,
@@ -37,16 +38,23 @@ SessioDep = Annotated[Session, Depends(hae_sessio)]
 
 @router.post("/tunnista", response_model=TunnistuksenTulos)
 def tunnista(
-    pyynto: TunnistusPyynto, datalahde: DatalahdeDep, sessio: SessioDep
+    pyynto: TunnistusPyynto,
+    datalahde: DatalahdeDep,
+    sessio: SessioDep,
+    asetukset: Annotated[Settings, Depends(hae_asetukset)],
 ) -> TunnistuksenTulos:
     """Ajaa lääkemuutosten tunnistuksen ja vie uudet muutokset soittojonoon."""
     viitepaiva = ratkaise_viitepaiva(pyynto.viitepaiva, datalahde)
     try:
-        return tunnista_ja_jonouta(
+        tulos = tunnista_ja_jonouta(
             datalahde, sessio, viitepaiva, pyynto.ikkuna_paivia, pyynto.min_ika
         )
     except TunnistusKaynnissa as virhe:
         raise HTTPException(status_code=409, detail=str(virhe)) from virhe
+    if asetukset.dev_tila:
+        # VAIN DEV: uusille jonossa oleville synteettinen nimi (dev/henkilotiedot.py).
+        tayta_puuttuvat(sessio)
+    return tulos
 
 
 @router.get("", response_model=list[Puhelutehtava])

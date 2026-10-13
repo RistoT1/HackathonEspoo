@@ -29,13 +29,32 @@ SUKUPUOLET = {"F": "nainen", "M": "mies"}
 AVOIMET = (PuhelutehtavanTila.ODOTTAA, PuhelutehtavanTila.SOITETAAN)
 
 
+Tunnistetiedot = dict[str, tuple[str | None, str | None]]  # vanhus_id -> (nimi, hetu)
+
+
+def tunnistetiedot(sessio: Session, vanhus_idt: list[str]) -> Tunnistetiedot:
+    """Nimet ja henkilötunnukset erillisestä taulusta (vanhuksen_henkilotieto)."""
+    rivit = varasto.hae_henkilotiedot(sessio, vanhus_idt)
+    return {
+        vanhus_id: (koko_nimi(rivi.etunimi, rivi.sukunimi), rivi.hetu)
+        for vanhus_id, rivi in rivit.items()
+    }
+
+
+def koko_nimi(etunimi: str | None, sukunimi: str | None) -> str | None:
+    nimi = " ".join(osa for osa in (etunimi, sukunimi) if osa)
+    return nimi or None
+
+
 def kaikki_tehtavat(sessio: Session) -> list[Puhelutehtava]:
     """Kaikki soittotehtävät potilaslistaa varten."""
     return [varasto.dto(rivi) for rivi in sessio.scalars(select(PuhelutehtavaRivi))]
 
 
 def potilasrivit(
-    tehtavat: list[Puhelutehtava], tulokset: list[TallennettuTulos]
+    tehtavat: list[Puhelutehtava],
+    tulokset: list[TallennettuTulos],
+    tunnisteet: Tunnistetiedot | None = None,
 ) -> list[Potilasrivi]:
     """Puhdas funktio. Yksi rivi per henkilö, jolla on soittotehtäviä; tuorein tapahtuma
     (puhelu tai uusi tehtävä) ensin."""
@@ -57,8 +76,11 @@ def potilasrivit(
         arvioidut = [tulos for tulos in puhelut if tulos.yhteenveto is not None]
         viimeisin_puhelu = puhelut[-1].paattyi if puhelut else None
         tuorein = max(uusin_tehtava.luotu, viimeisin_puhelu or uusin_tehtava.luotu)
+        nimi, hetu = (tunnisteet or {}).get(vanhus_id, (None, None))
         rivi = Potilasrivi(
             vanhus_id=vanhus_id,
+            nimi=nimi,
+            hetu=hetu,
             ika=uusin_tehtava.ika,
             tehtavia=len(omat),
             avoimia=sum(tehtava.tila in AVOIMET for tehtava in omat),
@@ -85,11 +107,15 @@ def potilastiedot(
     vanhus: Vanhus | None,
     jaksot: list[Laakejakso] | None,
     viitepaiva: datetime | None,
+    nimi: str | None = None,
+    hetu: str | None = None,
 ) -> Potilastiedot:
     """Puhdas funktio. vanhus/jaksot None = terveysdata ei saatavilla (sivu näyttää silti
     tehtävät ja puhelut). Lääke näytetään kerran: uusinnat ovat datassa omia rivejään."""
     if vanhus is None or jaksot is None or viitepaiva is None:
-        return Potilastiedot(vanhus_id=vanhus_id, terveysdata_saatavilla=False)
+        return Potilastiedot(
+            vanhus_id=vanhus_id, nimi=nimi, hetu=hetu, terveysdata_saatavilla=False
+        )
 
     kaytossa = [laake for laake in laakkeet_viitepaivana(jaksot, viitepaiva) if laake.kaytossa]
     uusimmat: dict[str, Laake] = {}
@@ -98,6 +124,8 @@ def potilastiedot(
 
     return Potilastiedot(
         vanhus_id=vanhus_id,
+        nimi=nimi,
+        hetu=hetu,
         ika=laske_ika(vanhus.syntymapaiva, viitepaiva.date()),
         sukupuoli=SUKUPUOLET.get(vanhus.sukupuoli, vanhus.sukupuoli),
         viitepaiva=viitepaiva,

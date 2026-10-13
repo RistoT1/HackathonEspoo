@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.data.adapteri import DataEiSaatavilla, hae_datalahde
+from app.dev.henkilotiedot import tayta_puuttuvat
 from app.hoitaja.potilas import potilasrivit, potilastiedot
 from app.main import app
 from app.mallit import (
@@ -23,6 +24,7 @@ from app.mallit import (
     Vanhus,
     Yhteenveto,
 )
+from app.puhelutehtavat import varasto
 from app.tietokanta import KatseluLokiRivi, PuhelunTulosRivi, PuhelutehtavaRivi, hae_sessio
 
 VIITE = datetime(2020, 4, 1, tzinfo=UTC)
@@ -252,3 +254,51 @@ def test_potilassivulla_soittohistoria(asiakas):
     assert "SOITTOHISTORIA" in vastaus.text
     assert "huimaus · lievä" in vastaus.text  # "pyörryttää" yhtenäistetty
     assert 'href="/hoitaja/tapaukset/t-1">Tehtävä' in vastaus.text
+
+
+# --- Nimet (vanhuksen_henkilotieto) ---
+
+
+def test_nimi_korvaa_pseudonyymin_potilaslistalla_ja_sivulla(asiakas, sessiotehdas):
+    client, _ = asiakas
+    with sessiotehdas() as sessio:
+        varasto.tallenna_henkilotieto(sessio, "vanhus-1", "Aino", "Virtanen", "010150-999X")
+
+    lista = client.get("/hoitaja/potilaat/").text
+    sivu = client.get("/hoitaja/potilaat/vanhus-1").text
+
+    assert "Aino Virtanen" in lista
+    assert "<h1>Aino Virtanen</h1>" in sivu
+    assert "Henkilötunnus: 010150-999X" in sivu
+    assert "Pseudonyymi" not in lista + sivu
+
+
+def test_demotaytto_tayttaa_vain_puuttuvat(sessiotehdas):
+    with sessiotehdas() as sessio:
+        for tehtava_id, vanhus_id in (("t-a", "vanhus-a"), ("t-b", "vanhus-b")):
+            sessio.add(
+                PuhelutehtavaRivi(
+                    id=tehtava_id,
+                    vanhus_id=vanhus_id,
+                    tila="ODOTTAA",
+                    prioriteetti=1,
+                    perusteet=[],
+                    ika=80,
+                    aktiivisia_laakkeita=1,
+                    viitepaiva=VIITE,
+                    yritykset=0,
+                    kysymykset=[],
+                    konteksti=Puhelukonteksti(
+                        ika=80, aktiivisia_laakkeita=1, muutokset=[]
+                    ).model_dump(mode="json"),
+                )
+            )
+        sessio.commit()
+        varasto.tallenna_henkilotieto(sessio, "vanhus-a", "Käsin", "Asetettu", None)
+
+        taytetty = tayta_puuttuvat(sessio)
+        tiedot = varasto.hae_henkilotiedot(sessio, ["vanhus-a", "vanhus-b"])
+
+    assert taytetty == 1
+    assert tiedot["vanhus-a"].etunimi == "Käsin"  # käsin asetettu säilyy
+    assert tiedot["vanhus-b"].etunimi  # synteettinen nimi täytetty

@@ -107,3 +107,15 @@ def tayta_henkilotiedot(sessio: Session) -> HenkilotietojenTaytto:
         etunimi, sukunimi, hetu = synteettinen_henkilotieto(vanhus_id)
         varasto.tallenna_henkilotieto(sessio, vanhus_id, etunimi, sukunimi, hetu)
     return HenkilotietojenTaytto(taytettyja=len(vanhus_idt))
+
+
+def tayta_puuttuvat(sessio: Session) -> int:
+    """Demotilassa jonoon tulleille synteettinen nimi heti, ettei hoitajan näkymässä näy
+    "Nimi puuttuu". Vain puuttuvat: käsin asetettu nimi (PUT) säilyy. Palauttaa määrän."""
+    jonossa = varasto.vanhus_idt_jonossa(sessio)
+    olemassa = varasto.hae_henkilotiedot(sessio, jonossa)
+    puuttuvat = [vanhus_id for vanhus_id in jonossa if vanhus_id not in olemassa]
+    for vanhus_id in puuttuvat:
+        etunimi, sukunimi, hetu = synteettinen_henkilotieto(vanhus_id)
+        varasto.tallenna_henkilotieto(sessio, vanhus_id, etunimi, sukunimi, hetu)
+    return len(puuttuvat)

@@ -170,7 +170,9 @@ def nayta_tapaus(
 @reititin.get("/hoitaja/potilaat/", response_class=HTMLResponse)
 def nayta_potilaat(pyynto: Request, sessio: SessioDep) -> HTMLResponse:
     """Potilaslista: henkilöt, joilla on soittotehtäviä. Rivistä potilaan sivulle."""
-    rivit = potilas.potilasrivit(potilas.kaikki_tehtavat(sessio), palvelu.kaikki_tulokset(sessio))
+    tehtavat = potilas.kaikki_tehtavat(sessio)
+    tunnisteet = potilas.tunnistetiedot(sessio, [tehtava.vanhus_id for tehtava in tehtavat])
+    rivit = potilas.potilasrivit(tehtavat, palvelu.kaikki_tulokset(sessio), tunnisteet)
     return mallipohjat.TemplateResponse(
         request=pyynto, name="potilaat.html", context={"potilaat": rivit}
     )
@@ -201,6 +203,7 @@ def nayta_potilas(
         raise HTTPException(status_code=404, detail="Potilasta ei löydy")
 
     palvelu.kirjaa_potilaan_katselu(sessio, vanhus_id)
+    nimi, hetu = potilas.tunnistetiedot(sessio, [vanhus_id]).get(vanhus_id, (None, None))
     tulokset = palvelu.vanhuksen_tulokset(sessio, vanhus_id)
     oirehistoria = historia.oirehistoria(tulokset)
     arviot = jono.hae_arviot(sessio, [tehtava.id for tehtava in tehtavat])
@@ -209,7 +212,7 @@ def nayta_potilas(
         request=pyynto,
         name="potilas.html",
         context={
-            "tiedot": potilas.potilastiedot(vanhus_id, vanhus, jaksot, viitepaiva),
+            "tiedot": potilas.potilastiedot(vanhus_id, vanhus, jaksot, viitepaiva, nimi, hetu),
             "tehtavat": tehtavat,
             "arviot": arviot,
             "tilan_nimet": TILAN_NIMET,

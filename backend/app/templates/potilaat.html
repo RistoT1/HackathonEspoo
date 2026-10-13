@@ -39,8 +39,8 @@
         {% for potilas in potilaat %}
         <tr>
           <td>
-            <span class="tunniste">{{ potilas.vanhus_id[:8] }}</span>
-            <span class="tunniste-ala">Pseudonyymi</span>
+            <span class="tunniste">{{ potilas.nimi or "Nimi puuttuu" }}</span>
+            <span class="tunniste-ala">{{ potilas.hetu or "Henkilötunnus puuttuu" }}</span>
           </td>
           <td>{{ potilas.ika ~ " v" if potilas.ika is not none else "–" }}</td>
           <td>

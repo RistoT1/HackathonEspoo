@@ -5,7 +5,9 @@ from datetime import UTC, datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from app.config import hae_asetukset
 from app.data.adapteri import DataEiSaatavilla, hae_datalahde
+from app.dev.henkilotiedot import tayta_puuttuvat
 from app.puhelutehtavat.palvelu import TunnistusKaynnissa, tunnista_ja_jonouta
 from app.tietokanta import hae_sessiotehdas
 
@@ -28,6 +30,9 @@ def aja_tunnistus() -> None:
         except TunnistusKaynnissa:
             logger.warning("Tunnistus ohitettiin: rinnakkainen ajo")
             return
+        if hae_asetukset().dev_tila:
+            # VAIN DEV: uusille jonossa oleville synteettinen nimi (dev/henkilotiedot.py).
+            tayta_puuttuvat(sessio)
     # Vain lukumaarat lokiin, ei tunnisteita (datan minimointi).
     logger.info(
         "Tunnistus valmis: luotuja=%d paivitettyja=%d uusia_muutoksia=%d",

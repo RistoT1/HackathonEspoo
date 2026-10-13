@@ -465,9 +465,12 @@ class Oirehistoria(BaseModel):
 
 
 class Potilastiedot(BaseModel):
-    """Potilassivun perustiedot adapterista. Pseudonyymi: ei nimeä eikä henkilötunnusta."""
+    """Potilassivun perustiedot: ikä, sukupuoli ja lääkitys adapterista, nimi ja henkilötunnus
+    erillisestä tunnistetietotaulusta (pseudonymisointi). Nämä eivät kulje puheluun."""
 
     vanhus_id: str
+    nimi: str | None = None
+    hetu: str | None = None
     ika: int | None = None  # viitepäivänä
     sukupuoli: str | None = None
     viitepaiva: datetime | None = None
@@ -479,6 +482,8 @@ class Potilasrivi(BaseModel):
     """Potilaslistan rivi: henkilö, jolla on soittotehtäviä. Pseudonyymi, ei nimeä."""
 
     vanhus_id: str
+    nimi: str | None = None  # vanhuksen_henkilotieto-taulusta; None = ei liitetty
+    hetu: str | None = None
     ika: int | None = None  # uusimman tehtävän viitepäivänä
     tehtavia: int = 0
     avoimia: int = 0  # odottaa soittoa tai soitetaan

@@ -1,20 +1,20 @@
 {% extends "perus.html" %}
 {% set aktiivinen = "potilaat" %}
 
-{% block title %}Potilas {{ tiedot.vanhus_id[:8] }}{% endblock %}
+{% block title %}{{ tiedot.nimi or "Potilas" }}{% endblock %}
 
 {% block content %}
 <nav class="murupolku" aria-label="Murupolku">
   <a href="/hoitaja/potilaat/">Potilaat</a>
   <span aria-hidden="true">/</span>
-  <span aria-current="page">Potilas {{ tiedot.vanhus_id[:8] }}</span>
+  <span aria-current="page">{{ tiedot.nimi or "Nimi puuttuu" }}</span>
 </nav>
 
 <section class="sivun-otsikko tapaus-otsikko">
   <div>
     <p class="ylateksti">POTILAS</p>
-    <h1>{{ tiedot.vanhus_id[:8] }}</h1>
-    <p class="toissijainen">Pseudonyymi tunniste: {{ tiedot.vanhus_id }}</p>
+    <h1>{{ tiedot.nimi or "Nimi puuttuu" }}</h1>
+    <p class="toissijainen">Henkilötunnus: {{ tiedot.hetu or "ei tiedossa" }}</p>
   </div>
 </section>
 
