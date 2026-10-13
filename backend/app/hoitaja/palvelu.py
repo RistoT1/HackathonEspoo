@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.mallit import PuhelunLoppu, TallennettuTulos, Yhteenveto
-from app.tietokanta import KatseluLokiRivi, PuhelunTulosRivi
+from app.tietokanta import KatseluLokiRivi, PuhelunTulosRivi, PuhelutehtavaRivi
 
 # Hackathonissa ei ole kirjautumista: katsojaa ei tunnisteta (tuotannossa Entra ID).
 KATSOJA = "hackathon-demo (kirjautumaton)"
@@ -58,7 +58,29 @@ def uusimmat_tulokset(sessio: Session, tehtava_idt: list[str]) -> dict[str, Tall
     return uusimmat
 
 
+def vanhuksen_tulokset(sessio: Session, vanhus_id: str) -> list[TallennettuTulos]:
+    """Saman henkilön kaikkien tehtävien tallennetut tulokset (tapaussivun oirehistoria)."""
+    rivit = sessio.scalars(
+        select(PuhelunTulosRivi)
+        .join(PuhelutehtavaRivi, PuhelutehtavaRivi.id == PuhelunTulosRivi.tehtava_id)
+        .where(PuhelutehtavaRivi.vanhus_id == vanhus_id)
+    ).all()
+    return sorted(map(_tulos, rivit), key=_paattymisaika)
+
+
+def kaikki_tulokset(sessio: Session) -> list[TallennettuTulos]:
+    """Kaikki tallennetut puhelun tulokset (potilaslista), vanhin ensin."""
+    rivit = sessio.scalars(select(PuhelunTulosRivi)).all()
+    return sorted(map(_tulos, rivit), key=_paattymisaika)
+
+
 def kirjaa_katselu(sessio: Session, tehtava_id: str) -> None:
     """Audit-loki tehtävänäkymän katselusta (SAANTELY.md: tietoturva)."""
     sessio.add(KatseluLokiRivi(tehtava_id=tehtava_id, katsoja=KATSOJA, toiminto="katselu"))
+    sessio.commit()
+
+
+def kirjaa_potilaan_katselu(sessio: Session, vanhus_id: str) -> None:
+    """Audit-loki potilassivun katselusta: henkilön kaikki tehtävät ja puhelut näkyvät."""
+    sessio.add(KatseluLokiRivi(vanhus_id=vanhus_id, katsoja=KATSOJA, toiminto="potilassivu"))
     sessio.commit()

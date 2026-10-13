@@ -7,8 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, hae_asetukset
 from app.data.adapteri import Datalahde, Testikirjoittaja, hae_datalahde, hae_testikirjoittaja
+from app.dev.henkilotiedot import tayta_henkilotiedot
 from app.dev.palvelu import TestimuutosVirhe, tee_testimuutos
 from app.mallit import (
+    Henkilotieto,
+    HenkilotietojenTaytto,
     KaikuTulos,
     PotilaanLaakemuutokset,
     PuhelunAloitus,
@@ -36,7 +39,7 @@ from app.puhelu.reitit import twiml_vastaus
 from app.puhelu.soittaja import Soittaja, hae_soittaja
 from app.puhelu.twilio_tarkistus import julkinen_url, twilion_lomake
 from app.puhelutehtavat import varasto
-from app.puhelutehtavat.palvelu import aseta_yhteystieto
+from app.puhelutehtavat.palvelu import TehtavaaEiLoydy, aseta_yhteystieto
 from app.tietokanta import hae_sessio
 
 
@@ -97,6 +100,28 @@ def aseta_puhelinnumero(
     return yhteystieto
 
 
+@router.post("/henkilotiedot/tayta", response_model=HenkilotietojenTaytto)
+def tayta_demon_henkilotiedot(
+    sessio: Annotated[Session, Depends(hae_sessio)],
+) -> HenkilotietojenTaytto:
+    """Tayttaa jonon vanhuksille synteettiset nimet ja hetun hoitajan nakyman demoa varten.
+    Idempotentti ja deterministinen (sama vanhus_id -> sama nimi). Ei oikeita henkilotietoja."""
+    return tayta_henkilotiedot(sessio)
+
+
+@router.put("/henkilotiedot/{vanhus_id}", response_model=Henkilotieto)
+def aseta_henkilotieto(
+    vanhus_id: str,
+    henkilotieto: Henkilotieto,
+    sessio: Annotated[Session, Depends(hae_sessio)],
+) -> Henkilotieto:
+    """Asettaa vanhukselle nimen ja henkilotunnuksen hoitajan nakymaan. Demossa synteettisia."""
+    varasto.tallenna_henkilotieto(
+        sessio, vanhus_id, henkilotieto.etunimi, henkilotieto.sukunimi, henkilotieto.hetu
+    )
+    return henkilotieto
+
+
 SessioDep = Annotated[Session, Depends(hae_sessio)]
 SoittajaDep = Annotated[Soittaja, Depends(hae_soittaja)]
 AsetuksetDep = Annotated[Settings, Depends(hae_asetukset)]
@@ -133,28 +158,34 @@ def testikeskustelu(
     agentti: Annotated[Keskusteluagentti, Depends(hae_agentti)],
     taustatyot: BackgroundTasks,
     vahti: Annotated[Lammitysvahti | None, Depends(hae_lammitysvahti)],
+    tehtava_id: str | None = None,
 ) -> PuhelunAloitus:
     """Koko keskustelu DEMO_PUHELINNUMEROON satunnaisen tehtavan kysymyksilla: kuuntelee
     vastaukset ja tunnistaa hatasanat. Ei muuta jonoa. Vaatii ngrokin (JULKINEN_URL).
-    Tulos: GET /dev/puhelu/tulokset."""
+    Tulos: GET /dev/puhelu/tulokset. ?tehtava_id=... soittaa saman tehtävän uudelleen:
+    toinen puhelu muistaa ensimmäisessä kerrotun oireen (muistin demo)."""
     if vahti is not None and not vahti.lammin:
         # 12.10.: kylmällä mallilla puhelu kulki varatoiminnalla ilman lisäkysymyksiä.
         raise HTTPException(status_code=503, detail=_kylman_mallin_viesti(vahti))
     numero = _demonumero(asetukset)
     perus_url = julkinen_url(asetukset)
-    tulos = aloita_testikeskustelu(
-        sessio,
-        soittaja,
-        istunnot,
-        numero,
-        perus_url,
-        rajat_asetuksista(asetukset),
-        relay=relay_asetuksista(asetukset),
-        # Järjestelmäohje mallin välimuistiin sillä aikaa kun puhelin soi.
-        lammitys=lambda viestit, valmis: taustatyot.add_task(
-            lammita_ja_merkitse, agentti, viestit, valmis
-        ),
-    )
+    try:
+        tulos = aloita_testikeskustelu(
+            sessio,
+            soittaja,
+            istunnot,
+            numero,
+            perus_url,
+            rajat_asetuksista(asetukset),
+            relay=relay_asetuksista(asetukset),
+            # Järjestelmäohje mallin välimuistiin sillä aikaa kun puhelin soi.
+            lammitys=lambda viestit, valmis: taustatyot.add_task(
+                lammita_ja_merkitse, agentti, viestit, valmis
+            ),
+            tehtava_id=tehtava_id,
+        )
+    except TehtavaaEiLoydy as virhe:
+        raise HTTPException(status_code=404, detail="Soittotehtävää ei löydy") from virhe
     if tulos is None:
         raise HTTPException(status_code=409, detail=_JONO_TYHJA)
     return tulos

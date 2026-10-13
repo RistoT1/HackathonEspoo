@@ -130,6 +130,17 @@ class Muutoskonteksti(BaseModel):
     paivia_sitten: int
 
 
+class EdellinenPuhelu(BaseModel):
+    """Muisti: tiivistelmä saman henkilön edellisestä puhelusta (app/muisti). Lähde on
+    tallennettu hoitajayhteenveto, ei litterointi. Ei lääkkeen nimeä eikä vakavia huolia."""
+
+    paivia_sitten: int
+    taso: str  # edellisen puhelun Kiireellisyys-arvo, esim. "keltainen"
+    oireet: list[str] = Field(default_factory=list)  # sääntöjen oireavaimet (triagen vertailu)
+    kuvaukset: list[str] = Field(default_factory=list)  # agentille, esim. "huimaus (kohtalainen)"
+    voimakkuudet: dict[str, str] = Field(default_factory=dict)  # oireavain -> voimakkuus
+
+
 class Puhelukonteksti(BaseModel):
     """LLM:lle annettava tausta henkilosta. Datan minimointi: ei nimea, ei laakkeen nimea,
     ei diagnoosia; vain mita kysymysten ymmartaminen vaatii."""
@@ -137,6 +148,8 @@ class Puhelukonteksti(BaseModel):
     ika: int | None
     aktiivisia_laakkeita: int
     muutokset: list[Muutoskonteksti]  # uusin ensin
+    # Liitetään soiton alkaessa (ei tallenneta tehtävään): ks. muisti.konteksti_muistilla.
+    edellinen_puhelu: EdellinenPuhelu | None = None
 
 
 # --- Puhelutehtavat (soittojono) ---
@@ -170,6 +183,11 @@ class Puhelutehtava(BaseModel):
     konteksti: Puhelukonteksti  # LLM:lle
     luotu: datetime
     paivitetty: datetime
+    # Tunnistetiedot hoitajan nakymaan (vanhuksen_henkilotieto-taulusta vanhus_id:lla).
+    # None = ei liitettya tunnistetietoa. Nama EIVAT kulje puheluun eika LLM:lle.
+    etunimi: str | None = None
+    sukunimi: str | None = None
+    hetu: str | None = None
 
 
 class Soittotiedot(BaseModel):
@@ -257,6 +275,23 @@ class OireYhteenvedossa(BaseModel):
     varmuus: str = "epäselvä"  # selvä | epäselvä
 
 
+class OireenSeurannanTila(StrEnum):
+    POISTUNUT = "poistunut"
+    LIEVITTYNYT = "lievittynyt"
+    ENNALLAAN = "ennallaan"
+    PAHENTUNUT = "pahentunut"
+    EPASELVA = "epäselvä"
+
+
+class Oireseuranta(BaseModel):
+    """Edellisestä puhelusta kysytyn oireen rakenteinen muutos."""
+
+    oire: str
+    aiempi_voimakkuus: str = "ei tiedossa"
+    nykyinen_voimakkuus: str = "ei tiedossa"
+    tila: OireenSeurannanTila
+
+
 class Saantoloydokset(BaseModel):
     """Mitä säännöt tunnistivat puhelusta (deterministinen, ei LLM:ää)."""
 
@@ -269,6 +304,8 @@ class Saantoloydokset(BaseModel):
     huomiosanat: list[str] = Field(default_factory=list)
     tunnistetut_oireet: list[str] = Field(default_factory=list)
     huolestuttavat_oireet: list[str] = Field(default_factory=list)
+    toistuvat_oireet: list[str] = Field(default_factory=list)  # myös edellisessä puhelussa
+    oireseurannat: list[Oireseuranta] = Field(default_factory=list)
     loukkaavia_puheenvuoroja: int = 0
     uhkauksia: int = 0
 
@@ -334,6 +371,23 @@ class Yhteystieto(BaseModel):
     )
 
 
+class Henkilotieto(BaseModel):
+    """Hoitajan nakymaan naytettavat tunnistetiedot. Linkki vain vanhus_id:lla, erillaan
+    terveystiedoista. Demossa synteettisia; EI oikeita henkilotietoja (saannot)."""
+
+    etunimi: str | None = Field(None, max_length=64)
+    sukunimi: str | None = Field(None, max_length=64)
+    hetu: str | None = Field(None, max_length=20, description="Suomalainen henkilotunnus")
+
+
+class HenkilotietojenTaytto(BaseModel):
+    """VAIN DEV: montako henkilotietoriviä täytettiin synteettisillä nimillä."""
+
+    __test__ = False
+
+    taytettyja: int
+
+
 class TunnistusPyynto(BaseModel):
     viitepaiva: datetime | None = Field(None, description="Oletus: datan uusin paiva")
     ikkuna_paivia: int = Field(90, ge=1, le=3650)
@@ -353,3 +407,86 @@ class TilanMuutos(BaseModel):
 
 class PuhelutehtavienNollaus(BaseModel):
     poistettuja_puhelutehtavia: int
+
+
+# --- Hoitajan tapaussivu: henkilön oireet puheluittain (hoitaja/historia.py) ---
+
+
+class Oiremerkinta(BaseModel):
+    """Yksi oire yhdessä puhelussa. Tallennetusta yhteenvedosta, ei litteroinnista."""
+
+    oire: str  # tietopohjan oire (esim. "päänsärky") tai mallin sanoin, jos ei tunnistunut
+    voimakkuus: str  # lievä | kohtalainen | voimakas | poistunut | ei tiedossa
+    kuvaukset: list[str] = Field(default_factory=list)  # yhteenvedon sanamuodot
+    alkoi_laakkeen_jalkeen: str = "ei tiedossa"
+
+
+class OirehistorianPuhelu(BaseModel):
+    nimi: str  # x-akselille, esim. "12.10. klo 20.38"
+    paattyi: datetime
+    taso: Kiireellisyys | None  # None = yhteenveto ei saatavilla
+    tavoitettu: bool  # ei: ei vastannut tai ei sanonut mitään
+    tehtava_id: str = ""
+    loppu: PuhelunLoppu | None = None
+    tama_tehtava: bool = False
+    oireet: list[Oiremerkinta] = Field(default_factory=list)
+
+
+class Oiresivu(BaseModel):
+    """Kuukauden sisäinen sivu (enintään SIVUN_KOKO puhelua), vanhin ensin."""
+
+    alku: int  # puhelun järjestysnumero kuukaudessa, 1 = kuun ensimmäinen
+    loppu: int
+    puhelut: list[OirehistorianPuhelu]
+    oireet: list[str]  # rivit: sivulla mainitut, koko historian yleisin ensin
+
+
+class Oirekuukausi(BaseModel):
+    """Taulukon sivu: yhden kalenterikuukauden puhelut (vanhin ensin) ja niissä kerrotut oireet."""
+
+    avain: str  # "2026-10"
+    nimi: str  # "Lokakuu 2026"
+    puhelut: list[OirehistorianPuhelu]
+    oireet: list[str]  # rivit: kuukaudessa mainitut, koko historian yleisin ensin
+    sivut: list[Oiresivu] = Field(default_factory=list)  # yli SIVUN_KOKO puhelua -> useampi
+
+
+class Oirehistoria(BaseModel):
+    """Saman henkilön (vanhus_id) kaikkien tehtävien puhelut, vanhin ensin."""
+
+    puhelut: list[OirehistorianPuhelu]
+    oireet: list[str]  # kaavion rivit: useimmin mainittu ensin
+    mainintoja: dict[str, int]  # oire -> monessako puhelussa (poistunut ei lasketa)
+    tavoitettu: int = 0
+    viimeisin_taso: Kiireellisyys | None = None
+    viimeisin_aika: datetime | None = None
+    toistuvin_tila: str = ""  # yleisimmän oireen tilanne, esim. "poistunut 9.10."
+    kuukaudet: list[Oirekuukausi] = Field(default_factory=list)  # vanhin ensin
+
+
+class Potilastiedot(BaseModel):
+    """Potilassivun perustiedot: ikä, sukupuoli ja lääkitys adapterista, nimi ja henkilötunnus
+    erillisestä tunnistetietotaulusta (pseudonymisointi). Nämä eivät kulje puheluun."""
+
+    vanhus_id: str
+    nimi: str | None = None
+    hetu: str | None = None
+    ika: int | None = None  # viitepäivänä
+    sukupuoli: str | None = None
+    viitepaiva: datetime | None = None
+    aktiiviset_laakkeet: list[Laake] = Field(default_factory=list)  # yksi rivi per lääke
+    terveysdata_saatavilla: bool = True
+
+
+class Potilasrivi(BaseModel):
+    """Potilaslistan rivi: henkilö, jolla on soittotehtäviä. Pseudonyymi, ei nimeä."""
+
+    vanhus_id: str
+    nimi: str | None = None  # vanhuksen_henkilotieto-taulusta; None = ei liitetty
+    hetu: str | None = None
+    ika: int | None = None  # uusimman tehtävän viitepäivänä
+    tehtavia: int = 0
+    avoimia: int = 0  # odottaa soittoa tai soitetaan
+    puheluita: int = 0
+    viimeisin_puhelu: datetime | None = None
+    viimeisin_taso: Kiireellisyys | None = None

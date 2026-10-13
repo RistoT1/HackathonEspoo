@@ -1,5 +1,5 @@
-# Puhelun LLM: Gemma 4 12B (Google, Apache 2.0). Isompi kuin Poro 2 8B: parempi ymmärrys,
-# hitaampi. Mahtuu 16 Gt Maciin vain, kun raskaat ohjelmat ovat kiinni (malli ~8 Gt).
+# VARAMALLI: Gemma 4 12B NVFP4 / MLX. Oletus 13.10. alkaen on nopeampi
+# Modelfile.gemma12-gguf; tämä säilytetään vertailua ja varalle vaihtamista varten.
 # Luonti:  ollama pull gemma4:12b && ollama create hyvinvointi-gemma12 -f ollama/Modelfile.gemma12
 # Käyttö:  LLM_MALLI=hyvinvointi-gemma12 (LLM_AJATTELU_POIS=true: gemma "ajattelee" muuten)
 
@@ -10,4 +10,4 @@ PARAMETER top_p 0.95
 PARAMETER top_k 64
 # Jeren järjestelmäohje + 10 vuoroparia historiaa (4096 ei riitä).
 PARAMETER num_ctx 8192
-PARAMETER num_predict 350
+PARAMETER num_predict 120

@@ -20,6 +20,7 @@ from app.mallit import (
     Soittotiedot,
     TunnistuksenTulos,
 )
+from app.muisti.muisti import konteksti_muistilla
 from app.muutokset.palvelu import hae_kaikki_laakemuutokset
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.priorisointi import laske_prioriteetti
@@ -164,7 +165,8 @@ def hae_tehtava(sessio: Session, tehtava_id: str) -> Puhelutehtava:
     rivi = varasto.hae_rivi(sessio, tehtava_id)
     if rivi is None:
         raise TehtavaaEiLoydy(tehtava_id)
-    return varasto.dto(rivi)
+    henkilotieto = varasto.hae_henkilotieto(sessio, rivi.vanhus_id)
+    return varasto.dto(rivi, henkilotieto)
 
 
 def ota_seuraava(sessio: Session) -> Puhelutehtava | None:
@@ -214,7 +216,7 @@ def hae_soittotiedot(sessio: Session, tehtava_id: str, oletusnumero: str | None)
         tehtava_id=tehtava.id,
         puhelinnumero=puhelinnumero,
         kysymykset=tehtava.kysymykset,
-        konteksti=tehtava.konteksti,
+        konteksti=konteksti_muistilla(sessio, tehtava),
     )
 
 

@@ -136,14 +136,16 @@ class PuhelunTulosRivi(Base):
 
 
 class KatseluLokiRivi(Base):
-    """Tehtävänäkymän katselutapahtuma; hackathonissa katsojan tunnistautumista ei ole."""
+    """Hoitajan katselutapahtuma: tehtävänäkymä (tehtava_id) tai potilassivu (vanhus_id).
+    Hackathonissa katsojan tunnistautumista ei ole."""
 
     __tablename__ = "katseluloki"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tehtava_id: Mapped[str] = mapped_column(
-        ForeignKey("puhelutehtava.id", ondelete="CASCADE"), index=True
+    tehtava_id: Mapped[str | None] = mapped_column(
+        ForeignKey("puhelutehtava.id", ondelete="CASCADE"), index=True, nullable=True
     )
+    vanhus_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     katsoja: Mapped[str] = mapped_column(String(100))
     aika: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_nyt)
     toiminto: Mapped[str] = mapped_column(
@@ -158,6 +160,21 @@ class VanhuksenYhteystietoRivi(Base):
 
     vanhus_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     puhelinnumero: Mapped[str] = mapped_column(String(32))
+    paivitetty: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_nyt, onupdate=_nyt
+    )
+
+
+class VanhuksenHenkilotietoRivi(Base):
+    """Pseudonymisointi: tunnistetiedot (nimi, hetu) erillaan terveystiedoista, linkki vain
+    vanhus_id:lla. Nama naytetaan hoitajalle, mutta ne eivat kulje puheluun eika LLM:lle."""
+
+    __tablename__ = "vanhuksen_henkilotieto"
+
+    vanhus_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    etunimi: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    sukunimi: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    hetu: Mapped[str | None] = mapped_column(String(20), nullable=True)
     paivitetty: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_nyt, onupdate=_nyt
     )

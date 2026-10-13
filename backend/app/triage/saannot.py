@@ -3,11 +3,19 @@
 Pohja on Jeren tietopohja.kiireellisyys() (hätä ja vakavat huolet punainen; huoli,
 huolestuttava oire, huomiosana, uhkaus tai toistuva epäselvyys keltainen). Lisäksi
 puhelun tapahtumat nostavat: tukitila punaiseksi, hoitajapyyntö, lääkeneuvon kysyminen,
-lääkemuutoksen poikkeama (huomiosanana), epävarma vastaus ja kesken katkennut puhelu
-keltaiseksi. Sääntö on alaraja: malli ja hoitaja voivat vain nostaa tasoa.
+lääkemuutoksen poikkeama (huomiosanana), epävarma vastaus, kesken katkennut puhelu
+ja edellisessä puhelussa kerrottu, yhä jatkuva oire (muisti) keltaiseksi. Sääntö on
+alaraja: malli ja hoitaja voivat vain nostaa tasoa.
 """
 
-from app.mallit import Kiireellisyys, KysymyksenVastaus, PuhelunLoppu, Saantoloydokset
+from app.mallit import (
+    Kiireellisyys,
+    KysymyksenVastaus,
+    OireenSeurannanTila,
+    Oireseuranta,
+    PuhelunLoppu,
+    Saantoloydokset,
+)
 from app.puhelu.tietopohja import (
     SELKONIMET,
     Tietopohjahavainto,
@@ -46,6 +54,8 @@ def saantoloydokset(
     hatamerkki: str | None,
     tukitila: str | None,
     laakepoikkeamat: dict[int, str],
+    edelliset_oireet: list[str] | tuple[str, ...] = (),
+    oireseurannat: list[Oireseuranta] | tuple[Oireseuranta, ...] = (),
 ) -> Saantoloydokset:
     """laakepoikkeamat: havainnot-indeksi (vuoro) -> peruste, kun henkilö kertoi, ettei
     lääkemuutosta noudateta (keskustelu._tunnista_laakepoikkeama)."""
@@ -71,6 +81,33 @@ def saantoloydokset(
         nosta("punainen", f"puhelu jäi tukitilaan: {tukitila}")
     for oire in _keraa(havainnot, "huolestuttavat"):
         nosta("keltainen", f"huolestuttava oire: {oire}")
+    # Oireen tunnistus ohittaa kieltomuodon ("ei enää huimaa"), joten tämä on jatkuva oire.
+    tunnistetut = _keraa(havainnot, "oireet")
+    helpottaneet = {
+        seuranta.oire
+        for seuranta in oireseurannat
+        if seuranta.tila in (OireenSeurannanTila.POISTUNUT, OireenSeurannanTila.LIEVITTYNYT)
+    }
+    toistuvat = [
+        oire for oire in tunnistetut if oire in edelliset_oireet and oire not in helpottaneet
+    ]
+    for seuranta in oireseurannat:
+        if (
+            seuranta.tila
+            in (
+                OireenSeurannanTila.ENNALLAAN,
+                OireenSeurannanTila.PAHENTUNUT,
+            )
+            and seuranta.oire not in toistuvat
+        ):
+            toistuvat.append(seuranta.oire)
+    for oire in toistuvat:
+        nosta("keltainen", f"sama oire jatkuu edellisestä puhelusta: {oire}")
+    for seuranta in oireseurannat:
+        if seuranta.tila == OireenSeurannanTila.PAHENTUNUT:
+            nosta("keltainen", f"oire pahentunut edellisestä puhelusta: {seuranta.oire}")
+        elif seuranta.tila == OireenSeurannanTila.EPASELVA:
+            nosta("keltainen", f"oireen muutos jäi epäselväksi: {seuranta.oire}")
     if _keraa(havainnot, "huoli"):
         nosta("keltainen", "henkilö ilmaisi huolta tai pelkoa")
     for sana in huomiosanat:
@@ -99,8 +136,10 @@ def saantoloydokset(
         vakavat_huolet=vakavat,
         huolen_ilmaukset=_keraa(havainnot, "huoli"),
         huomiosanat=huomiosanat,
-        tunnistetut_oireet=_keraa(havainnot, "oireet"),
+        tunnistetut_oireet=tunnistetut,
         huolestuttavat_oireet=_keraa(havainnot, "huolestuttavat"),
+        toistuvat_oireet=toistuvat,
+        oireseurannat=list(oireseurannat),
         loukkaavia_puheenvuoroja=loukkauksia,
         uhkauksia=uhkauksia,
     )

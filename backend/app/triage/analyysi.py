@@ -33,6 +33,8 @@ Oireiksi kirjataan vain tuntemukset ja vaivat. Turvallisuuteen liittyvät asiat 
 huono kohtelu, itsetuhoiset ajatukset, liian suuri lääkemäärä, outoja aistimuksia,
 toivottomuus) kirjataan kenttään turvallisuushuolet, ei oireisiin.
 Lopussa on sääntöjen tunnistamat asiat: tarkista ne keskustelusta ja huomioi ne.
+Mahdollinen oireseurannat-lista on backendin rakenteinen vertailu edelliseen puheluun:
+huomioi muutoksen suunta yhteenvedossa, älä muuta tai arvaa sitä.
 Palauta pelkkä JSON tässä muodossa:
 {"yleisvointi": "lyhyt kuvaus henkilön omin sanoin kertomasta voinnista",
  "oireet": [{"oire": "...", "voimakkuus": "lievä|kohtalainen|voimakas|ei tiedossa",

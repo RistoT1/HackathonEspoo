@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
-from app.mallit import MuutosTyyppi
+from app.mallit import EdellinenPuhelu, MuutosTyyppi
 
 _KANSIO = Path(__file__).with_name("tieto")
 
@@ -511,12 +511,38 @@ _FAKTAT = """FAKTAT (vastaa näillä, kun henkilö kysyy; älä keksi muuta):
 - Puhelua ei äänitetä. Hoitajalle välitetään lyhyt yhteenveto. Hoitaja soittaa tarvittaessa."""
 
 
-def jarjestelmaohje(ika: int | None, muutokset: list[str], kysymykset: list[str]) -> str:
+def jarjestelmaohje(
+    ika: int | None,
+    muutokset: list[str],
+    kysymykset: list[str],
+    edellinen: EdellinenPuhelu | None = None,
+) -> str:
     """Jeren tekstit sanatarkasti, mutta puhelukohtainen osa (ikäluokan puhetapa,
     lääkemuutos, kysymykset) LOPUSSA: Ollama käyttää välimuistia vain samaan alkuun asti.
     Mitattu 11.10. Gemma 12B: ikäluokka alussa -> eri ikäisen puhelun lämmitys 47,6 s
     (välimuistista 4/2818 tokenia); sama alku -> 5,6 s."""
-    return f"{_yhteinen_ohje()}\n\n{_puhelun_tiedot(ika, muutokset, kysymykset)}"
+    ohje = f"{_yhteinen_ohje()}\n\n{_puhelun_tiedot(ika, muutokset, kysymykset)}"
+    if edellinen is None:
+        return ohje
+    # Lopussa, jotta välimuistin yhteinen alku säilyy (ks. yllä).
+    return f"{ohje}\n\n{edellisen_puhelun_ohje(edellinen)}"
+
+
+def _milloin(paivia_sitten: int) -> str:
+    if paivia_sitten == 0:
+        return "aiemmin tänään"
+    if paivia_sitten == 1:
+        return "eilen"
+    return f"{paivia_sitten} päivää sitten"
+
+
+def edellisen_puhelun_ohje(edellinen: EdellinenPuhelu) -> str:
+    """Muisti agentille. Varsinainen seurantakysymys on backendin kysymyslistassa."""
+    asiat = " ja ".join(edellinen.kuvaukset)
+    return f"""EDELLINEN PUHELU
+Soitit tälle henkilölle {_milloin(edellinen.paivia_sitten)}. Hän kertoi silloin: {asiat}.
+Kysy asiasta vain TÄMÄN PUHELUN TIEDOISSA olevalla seurantakysymyksellä. Älä kysy
+sitä uudelleen, älä kerro muuta edellisestä puhelusta äläkä päättele siitä mitään."""
 
 
 @lru_cache

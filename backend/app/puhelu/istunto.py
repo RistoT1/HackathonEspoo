@@ -12,10 +12,13 @@ from app.mallit import (
     KysymyksenVastaus,
     Kysymys,
     MuutosTyyppi,
+    OireenSeurannanTila,
+    Oireseuranta,
     Puhelukonteksti,
     PuhelunLoppu,
     PuhelunTulos,
 )
+from app.muisti.seuranta import MUISTIKYSYMYS_ETULIITE, luo_seurantakysymys
 from app.puhelu.tietopohja import (
     Tietopohjahavainto,
     huolet,
@@ -75,6 +78,7 @@ class Puheluistunto:
     tietohavainnot: list[Tietopohjahavainto] = field(default_factory=list)
     # Lääkemuutoksen poikkeama (ei noudateta) triageen: tietohavainnot-indeksi -> peruste.
     laakepoikkeamat: dict[int, str] = field(default_factory=dict)
+    oireseurannat: list[Oireseuranta] = field(default_factory=list)
     versiot: dict[str, str] = field(default_factory=dict)  # kiinteiden repliikkien vaihtelu
     vuoro: int = 0
     hiljaisia: int = 0
@@ -118,6 +122,15 @@ class Puheluistunto:
     hatamerkki: str | None = None
     paattyi: datetime | None = None
 
+    def __post_init__(self) -> None:
+        """Edellisen oireen seuranta on oikea listakysymys, ei vain mallille annettu toive."""
+        seurantakysymys = luo_seurantakysymys(self.konteksti.edellinen_puhelu)
+        jo_listalla = any(
+            kysymys.tunniste.startswith(MUISTIKYSYMYS_ETULIITE) for kysymys in self.kysymykset
+        )
+        if seurantakysymys is not None and not jo_listalla:
+            self.kysymykset = [seurantakysymys, *self.kysymykset]
+
     def merkitse_malli_lammin(self) -> None:
         self.malli_lammin = True
 
@@ -145,10 +158,13 @@ class Puheluistunto:
             for muutos in self.konteksti.muutokset
         ]
         kysymykset = [kysymys.teksti for kysymys in self.kysymykset]
-        return jarjestelmaohje(self.konteksti.ika, muutokset, kysymykset)
+        return jarjestelmaohje(
+            self.konteksti.ika, muutokset, kysymykset, self.konteksti.edellinen_puhelu
+        )
 
     def tulos(self) -> PuhelunTulos:
         """Tulos ja sääntöjen triage heti (LLM-analyysi päivittää yhteenvedon myöhemmin)."""
+        edellinen = self.konteksti.edellinen_puhelu
         saanto = saantoloydokset(
             self.tietohavainnot,
             self.vastaukset,
@@ -156,6 +172,8 @@ class Puheluistunto:
             self.hatamerkki,
             self.tukitila,
             self.laakepoikkeamat,
+            edelliset_oireet=edellinen.oireet if edellinen else (),
+            oireseurannat=self.oireseurannat,
         )
         return PuhelunTulos(
             istunto_id=self.istunto_id,
@@ -210,7 +228,16 @@ def lopetusvuoro(istunto: Puheluistunto, loppu: PuhelunLoppu, sanottavat: list[s
 def huolestuttava(istunto: Puheluistunto) -> bool:
     """Puhelussa on huolestuttava löydös: lopetusviesti lupaa hoitajan soiton tänään."""
     loydetyt = huolet(istunto.tietohavainnot, istunto.epaselvia)
-    return bool(loydetyt or istunto.laakepoikkeamat)
+    seuranta_vaatii_hoitajan = any(
+        seuranta.tila
+        in (
+            OireenSeurannanTila.ENNALLAAN,
+            OireenSeurannanTila.PAHENTUNUT,
+            OireenSeurannanTila.EPASELVA,
+        )
+        for seuranta in istunto.oireseurannat
+    )
+    return bool(loydetyt or istunto.laakepoikkeamat or seuranta_vaatii_hoitajan)
 
 
 def lopetuslause(istunto: Puheluistunto) -> str:

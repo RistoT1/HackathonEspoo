@@ -8,9 +8,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import hae_asetukset
 from app.data.adapteri import DataEiSaatavilla
+from app.dev.henkilotiedot import tayta_puuttuvat
 from app.dev.reitit import router as dev_router
 from app.hoitaja.reitit import reititin as hoitaja_reititin
 from app.mallit import PuhelunTulos
@@ -52,12 +54,27 @@ def _nayta_sovelluksen_lokit() -> None:
     sovellus.propagate = False
 
 
+def _nimea_demojono() -> None:
+    """VAIN DEV: jonossa oleville synteettinen nimi käynnistyksessä (dev/henkilotiedot.py).
+    Kanta voi olla tavoittamattomissa: sovellus käynnistyy silti."""
+    try:
+        with hae_sessiotehdas()() as sessio:
+            taytetty = tayta_puuttuvat(sessio)
+    except SQLAlchemyError:
+        logging.getLogger("app").warning("Demonimien täyttö ohitettiin", exc_info=True)
+        return
+    if taytetty:
+        logging.getLogger("app").info("Demotila: %d henkilölle synteettinen nimi", taytetty)
+
+
 @asynccontextmanager
 async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
     _nayta_sovelluksen_lokit()
     aja_migraatiot()
     hae_istuntovarasto().aseta_tallennus(_tallenna_tulos_kantaan)
     asetukset = hae_asetukset()
+    if asetukset.dev_tila:
+        _nimea_demojono()
     if asetukset.llm_malli:
         # Puhelun jälkeinen analyysi hoitajalle samalla mallilla (paikallinen/EU).
         analysoija = LlmAnalysoija(

@@ -67,6 +67,12 @@ class Settings(BaseSettings):
     # Puhelun lämpötila (Jere 0,6). Matalampi = johdonmukaisempi, vertaa arviointityökalulla
     # (scripts/arvioi_keskustelut.py).
     llm_lampotila: float = 0.6
+    # Puheluvastaus luetaan ääneen ja on enintään muutama lause. Pieni raja estää mallia
+    # jatkamasta turhaan sekä lyhentää pahimpia vuoroviiveitä 16 Gt:n demokoneella.
+    llm_vastauksen_max_tokenit: int = 120
+    # Kylmä 12B-malli voi 16 Gt:n koneella tarvita yli kaksi minuuttia ensimmäisen pitkän
+    # järjestelmäohjeen käsittelyyn. Vuorojen aikaraja on erikseen paljon lyhyempi.
+    llm_lammitys_aikaraja_s: float = 300.0
     # Puhelun jälkeisen analyysin ajattelu: tarkempi, mutta varaa mallin minuuteiksi (Gemma 12B
     # M2:lla puhelun vuorossa 121 s), jolloin seuraavan puhelun vuorot jonottavat. Pois oletuksena.
     llm_analyysi_ajattelu: bool = False
@@ -109,6 +115,10 @@ class Settings(BaseSettings):
     # Macilla brew install libvoikko -> /opt/homebrew/lib. None = järjestelmän oletus.
     # Ilman Voikkoa tarkistetaan vain tyyli (sinuttelu), ks. kielentarkistus.py.
     voikko_kirjasto: str | None = "/opt/homebrew/lib"
+
+    # Muisti: agentti kysyy edellisessä puhelussa kerrotusta oireesta, jos puhelu päättyi
+    # enintään näin monta päivää sitten (säilytysraja, datan minimointi). 0 = pois.
+    muisti_paivat: int = 30
 
     # VAIN DEV: puhelun vuorokohtainen loki (sisaltaa litteroinnin). Vaatii myos DEV_TILA=true.
     puhelu_loki: bool = False

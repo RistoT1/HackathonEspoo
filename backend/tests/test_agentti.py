@@ -46,6 +46,7 @@ def test_pyynto_on_openai_muotoinen_ja_vastaus_tekstia():
     assert runko["model"] == "testimalli"
     assert runko["messages"] == VIESTIT
     assert runko["reasoning_effort"] == "none"
+    assert runko["max_tokens"] == 120
 
 
 def test_lammitys_lahettaa_jarjestelmaohjeen():

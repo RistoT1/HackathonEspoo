@@ -1,0 +1,147 @@
+/* Tapaussivun ja potilassivun "Oireet puheluissa" -osio. Oma tiedosto, jotta hoitaja.css
+   (sivun teema) pysyy koskemattomana. Väri vain kaavioissa; muu tulee sivun omista luokista. */
+
+.oirehistoriakortti {
+  margin-bottom: 22px;
+}
+
+.oirehistoria-mittarit {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 6px 0 26px;
+}
+
+.oirehistoria-ruudukko {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 32px;
+}
+
+.oirehistoria-kaavio {
+  margin: 0;
+}
+
+.oirehistoria-kaavio h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.oirehistoria-kaavio .toissijainen {
+  margin: 0 0 10px;
+}
+
+[data-oirekaavio] {
+  width: 100%;
+  min-height: 120px;
+}
+
+/* Oireet puheluittain: kuukausisivut. Taulukko käyttää sivun omia taulukkotyylejä; tässä vain
+   sivutus, vieritys ja paikallaan pysyvä oire-sarake. */
+
+.oirehistoria-sivut {
+  margin-top: 28px;
+}
+
+.oirehistoria-sivut-otsake {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.oirehistoria-sivut-otsake h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.oirehistoria-sivut-otsake .toissijainen {
+  margin: 0;
+}
+
+.oirehistoria-sivutukset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.oirehistoria-sivutus[hidden] {
+  display: none;
+}
+
+.oirehistoria-sivu-tieto {
+  min-width: 132px;
+  color: #64748b;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.oirehistoria-sivutus {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.oirehistoria-sivutus .painike {
+  min-width: 40px;
+  justify-content: center;
+}
+
+.oirehistoria-sivutus .painike:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.oirehistoria-sivu-nimi {
+  min-width: 132px;
+  margin: 0 0 8px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.oirehistoria-sivutus .oirehistoria-sivu-nimi {
+  margin: 0;
+}
+
+.oirehistoria-taulukko {
+  overflow-x: auto;
+}
+
+.oirehistoria-taulukko th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.oirehistoria-taulukko td {
+  white-space: nowrap;
+}
+
+/* Tekstiarvo (oireen nimi) pienempänä kuin luvut, ettei pitkä nimi työnny ruudun yli. */
+.oirehistoria-mittarit .oirehistoria-mittari-teksti {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+/* Kaaviot allekkain, kun sisältöalue on kapea (lämpökartan solut eivät mahdu). */
+@media (max-width: 1280px) {
+  .oirehistoria-ruudukko {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Kaksi luku-ruutua rinnakkain, oireen nimi koko leveydelle. */
+  .oirehistoria-mittarit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oirehistoria-mittarit .mittari:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1050px) {
+  .oirehistoria-mittarit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

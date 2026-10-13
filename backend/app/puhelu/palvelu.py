@@ -23,6 +23,7 @@ from app.mallit import (
     Puhelutehtava,
     PuhelutehtavanTila,
 )
+from app.muisti.muisti import konteksti_muistilla
 from app.puhelu.agentti import Keskusteluagentti
 from app.puhelu.istunnot import Istuntovarasto
 from app.puhelu.kaiku import kaiun_vuoro
@@ -50,6 +51,7 @@ from app.puhelutehtavat.palvelu import (
     TehtavaaEiLoydy,
     TilasiirtymaVirhe,
     hae_soittotiedot,
+    hae_tehtava,
     vaihda_tila,
 )
 
@@ -217,9 +219,11 @@ def aloita_testikeskustelu(
     valitse: Valitsin = random.choice,
     relay: Relay | None = None,
     lammitys: Lammitys | None = None,
+    tehtava_id: str | None = None,
 ) -> PuhelunAloitus | None:
-    """VAIN DEV: keskustelupuhelu satunnaisen tehtavan kysymyksilla. Ei muuta jonoa."""
-    tehtava = _arvo_tehtava(sessio, valitse)
+    """VAIN DEV: keskustelupuhelu satunnaisen (tai annetun) tehtavan kysymyksilla. Ei muuta
+    jonoa. Sama tehtava_id kahdesti -> toinen puhelu muistaa ensimmaisen (demo)."""
+    tehtava = hae_tehtava(sessio, tehtava_id) if tehtava_id else _arvo_tehtava(sessio, valitse)
     if tehtava is None:
         return None
     return _kaynnista_keskustelu(
@@ -229,7 +233,7 @@ def aloita_testikeskustelu(
         perus_url,
         tehtava.id,
         tehtava.kysymykset,
-        tehtava.konteksti,
+        konteksti_muistilla(sessio, tehtava),
         paivita_jono=False,
         rajat=rajat,
         relay=relay,

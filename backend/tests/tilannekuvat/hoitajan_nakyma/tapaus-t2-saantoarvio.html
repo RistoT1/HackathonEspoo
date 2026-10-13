@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
     <title>Soittotehtävä t2-saant · Hyvinvointikumppani</title>
-    <link rel="stylesheet" href="/static/hoitaja.css">
+    <link rel="stylesheet" href="/static/hoitaja.css?v=20261013b">
     <script src="/static/hoitaja.js" defer></script>
   </head>
   <body>
@@ -15,22 +15,52 @@
           <img class="brandi-logo" src="/static/logo.png" alt="Hyvinvointikumppani – Hoitajan Kumppani">
         </a>
 
+        
+        
         <div class="navigaatio-otsikko">TYÖTILA</div>
         <nav class="paavalikko" aria-label="Päänavigaatio">
           <a class="valikko-linkki valikko-linkki-aktiivinen" href="/hoitaja/" aria-current="page">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="7" cy="5.5" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="18.5" r="1"/></svg>
-            <span>Takaisinsoittojono</span>
+            <span class="valikko-ikoni" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="7" cy="5.5" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="18.5" r="1"/></svg>
+            </span>
+            <span class="valikko-teksti">
+              <span class="valikko-nimi">Takaisinsoittojono</span>
+              <span class="valikko-kuvaus">Soitot ja arviot</span>
+            </span>
+          </a>
+          <a class="valikko-linkki" href="/hoitaja/potilaat/">
+            <span class="valikko-ikoni" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="16.5" cy="9" r="2.4"/><path d="M15.5 14.4c2.4-.2 4.3 1.3 5 4.1"/></svg>
+            </span>
+            <span class="valikko-teksti">
+              <span class="valikko-nimi">Potilaat</span>
+              <span class="valikko-kuvaus">Historia ja oireet</span>
+            </span>
           </a>
         </nav>
 
-        <div class="sivupalkin-alatunniste">
-          <span class="demo-kuvake" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.2c0 4.5 3.1 8.2 7.5 9.8 4.4-1.6 7.5-5.3 7.5-9.8V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>
-          </span>
-          <div>
-            <strong>Turvallinen demo</strong>
-            <span>Vain synteettistä dataa</span>
+        <div class="sivupalkin-alaosa">
+          <div class="sivupalkin-alatunniste">
+            <span class="demo-kuvake" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.2c0 4.5 3.1 8.2 7.5 9.8 4.4-1.6 7.5-5.3 7.5-9.8V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <div>
+              <strong>Turvallinen demo</strong>
+              <span>Vain synteettistä dataa</span>
+            </div>
           </div>
+
+          <nav class="paavalikko paavalikko-ala" aria-label="Järjestelmänavigaatio">
+            <a class="valikko-linkki" href="/docs" target="_blank" rel="noopener">
+              <span class="valikko-ikoni" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 4h7l4 4v12H7z"/><path d="M14 4v4h4M9.5 13h5M9.5 16h3"/></svg>
+              </span>
+              <span class="valikko-teksti">
+                <span class="valikko-nimi">API-rajapinta</span>
+                <span class="valikko-kuvaus">Swagger-dokumentaatio</span>
+              </span>
+            </a>
+          </nav>
         </div>
       </aside>
 
@@ -58,8 +88,9 @@
 <section class="sivun-otsikko tapaus-otsikko">
   <div>
     <p class="ylateksti">SOITTOTEHTÄVÄ</p>
-    <h1>t2-saant</h1>
-    <p class="toissijainen">Pseudonyymi tunniste: vanhus-t2-saantoarvio</p>
+    <h1>Nimi puuttuu</h1>
+    <p class="toissijainen">Henkilötunnus: ei tiedossa</p>
+    <p class="toissijainen"><a class="tekstipainike" href="/hoitaja/potilaat/vanhus-t2-saantoarvio">Avaa potilaan sivu <span aria-hidden="true">→</span></a></p>
   </div>
   <span class="tilamerkki tilamerkki-valmis">Puhelu valmis</span>
 </section>
@@ -124,8 +155,8 @@
       </span>
       <p class="ylateksti">TEHTÄVÄN AJANKOHTA</p>
     </div>
-    <h2>Luotu 12.10.2026 klo 09:20</h2>
-    <p>Viimeksi päivitetty 12.10.2026 klo 10:20.</p>
+    <h2>Luotu 12.10.2026 klo 12:20</h2>
+    <p>Viimeksi päivitetty 12.10.2026 klo 13:20.</p>
   </article>
 </section>
 
@@ -198,9 +229,11 @@
   <p class="toissijainen">Sanatarkkoja puheluvastauksia tai litterointia ei tallenneta.</p>
 
   
+
+  
   
   <p class="puhelutulos-aika">
-    Puhelu päättyi 12.10.2026 klo 14:05.
+    Puhelu päättyi 12.10.2026 klo 17:05.
     Tulos: valmis.
   </p>
 
@@ -262,6 +295,124 @@
   <p class="api-huomio">Tämä on hoitajan päätöksenteon tuki, ei diagnoosi. Raakavastauksia tai litterointia ei näytetä.</p>
 </section>
 
+
+
+
+<section class="kortti oirehistoriakortti" aria-labelledby="oirehistoria-otsikko">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">OIREET PUHELUISSA</p>
+      <h2 id="oirehistoria-otsikko">Mistä henkilö on kertonut</h2>
+    </div>
+    <span class="tapausmaara">1 puhelua</span>
+  </div>
+
+  <div class="mittaririvi oirehistoria-mittarit" aria-label="Puhelujen tunnusluvut">
+    <article class="mittari">
+      <span class="mittari-ikoni mittari-ikoni-avoin" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M7.2 4.5h-2A1.7 1.7 0 0 0 3.5 6.2c0 7.9 6.4 14.3 14.3 14.3a1.7 1.7 0 0 0 1.7-1.7v-2l-4.1-1.4-1.1 2a14.3 14.3 0 0 1-7.5-7.5l2-1.1-1.6-4.3Z"/></svg>
+      </span>
+      <span class="mittari-sisalto">
+        <span class="mittari-nimi">Puheluita</span>
+        <strong>1</strong>
+      </span>
+      <span class="mittari-kuvaus">joista tavoitettu 1</span>
+    </article>
+    <article class="mittari">
+      <span class="mittari-ikoni mittari-ikoni-kiireellinen" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3.5 21 20H3L12 3.5Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
+      </span>
+      <span class="mittari-sisalto">
+        <span class="mittari-nimi">Viimeisin arvio</span>
+        
+        <strong><span class="kiireellisyysmerkki kiireellisyys-keltainen">Keltainen</span></strong>
+        
+      </span>
+      <span class="mittari-kuvaus">12.10.2026 klo 17:05</span>
+    </article>
+    <article class="mittari">
+      <span class="mittari-ikoni mittari-ikoni-valmis" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 12h3l2-5 4 10 2-5h5"/></svg>
+      </span>
+      <span class="mittari-sisalto">
+        <span class="mittari-nimi">Toistuvin oire</span>
+        <strong class="oirehistoria-mittari-teksti">Huimaus</strong>
+      </span>
+      <span class="mittari-kuvaus">1 puhelussa · viimeksi 12.10.</span>
+    </article>
+  </div>
+
+  
+  <div class="oirehistoria-ruudukko">
+    <figure class="oirehistoria-kaavio">
+      <h3>Useimmin kerrotut oireet</h3>
+      <p class="toissijainen">Monessako puhelussa henkilö mainitsi oireen.</p>
+      <div data-oirekaavio="yleisyys" role="img"
+           aria-label="Useimmin kerrotut oireet: huimaus 1"></div>
+    </figure>
+    <figure class="oirehistoria-kaavio">
+      <h3>Voimakkuus puheluittain</h3>
+      <p class="toissijainen">Viimeisimmät puhelut, joissa henkilö tavoitettiin. Uusin oikealla.</p>
+      <div data-oirekaavio="voimakkuus" role="img" aria-label="Oireiden voimakkuus viimeisimmissä puheluissa"></div>
+    </figure>
+  </div>
+  <div class="oirehistoria-sivut" data-kuukausisivut>
+    <div class="oirehistoria-sivut-otsake">
+      <div>
+        <h3>Oireet puheluittain</h3>
+        <p class="toissijainen">Kalenterikuukausittain, uusin puhelu oikealla. Yli 10 puhelun kuukausi jaetaan sivuihin; uusimmat avautuvat ensin.</p>
+      </div>
+      <div class="oirehistoria-sivutukset">
+        
+        <div class="oirehistoria-sivutus" role="group" aria-label="Puhelut kuukauden sisällä" data-sisasivutus hidden>
+          <button class="painike painike-toissijainen" type="button" data-sivu-siirto="-1" aria-label="Vanhemmat puhelut">‹</button>
+          <span class="oirehistoria-sivu-tieto" data-sivu-nimi aria-live="polite"></span>
+          <button class="painike painike-toissijainen" type="button" data-sivu-siirto="1" aria-label="Uudemmat puhelut" disabled>›</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="oirehistoria-kuukausi" data-kuukausi="2026-10" data-nimi="Lokakuu 2026">
+      <p class="oirehistoria-sivu-nimi">Lokakuu 2026</p>
+      
+      <div data-kuukausisivu data-nimi="Puhelut 1–1 / 1">
+        
+        <div class="oirehistoria-taulukko">
+          <table>
+            <caption class="sr-only">Oireet puheluittain, Lokakuu 2026, puhelut 1–1</caption>
+            <thead>
+              <tr>
+                <th scope="col">Oire</th>
+                <th scope="col">12.10. klo 17.05</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <th scope="row">huimaus</th>
+                
+                
+                <td>ei tiedossa</td>
+                
+              </tr>
+              
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+      
+    </div>
+    
+  </div>
+  
+</section>
+<link rel="stylesheet" href="/static/oirehistoria.css">
+<script type="application/json" id="oirehistoria-data">{"kuukaudet": [{"avain": "2026-10", "nimi": "Lokakuu 2026", "oireet": ["huimaus"], "puhelut": [{"loppu": "VALMIS", "nimi": "12.10. klo 17.05", "oireet": [{"alkoi_laakkeen_jalkeen": "ei tiedossa", "kuvaukset": ["huimaus"], "oire": "huimaus", "voimakkuus": "ei tiedossa"}], "paattyi": "2026-10-12T14:05:00Z", "tama_tehtava": true, "taso": "keltainen", "tavoitettu": true, "tehtava_id": "t2-saantoarvio"}], "sivut": [{"alku": 1, "loppu": 1, "oireet": ["huimaus"], "puhelut": [{"loppu": "VALMIS", "nimi": "12.10. klo 17.05", "oireet": [{"alkoi_laakkeen_jalkeen": "ei tiedossa", "kuvaukset": ["huimaus"], "oire": "huimaus", "voimakkuus": "ei tiedossa"}], "paattyi": "2026-10-12T14:05:00Z", "tama_tehtava": true, "taso": "keltainen", "tavoitettu": true, "tehtava_id": "t2-saantoarvio"}]}]}], "mainintoja": {"huimaus": 1}, "oireet": ["huimaus"], "puhelut": [{"loppu": "VALMIS", "nimi": "12.10. klo 17.05", "oireet": [{"alkoi_laakkeen_jalkeen": "ei tiedossa", "kuvaukset": ["huimaus"], "oire": "huimaus", "voimakkuus": "ei tiedossa"}], "paattyi": "2026-10-12T14:05:00Z", "tama_tehtava": true, "taso": "keltainen", "tavoitettu": true, "tehtava_id": "t2-saantoarvio"}], "tavoitettu": 1, "toistuvin_tila": "viimeksi 12.10.", "viimeisin_aika": "2026-10-12T14:05:00Z", "viimeisin_taso": "keltainen"}</script>
+<script src="/static/vendor/echarts-5.5.1.min.js" defer></script>
+<script src="/static/oirehistoria.js" defer></script>
+
+
 <section class="kortti kasittelykortti">
   <div class="kortin-otsikko">
     <div class="kasittelyotsikko">
@@ -281,8 +432,21 @@
 
         </main>
         <footer class="alatunniste">
-          <span>Demotiedot ovat synteettisiä</span>
-          <span>Hoitaja arvioi tilanteen ja tekee päätökset</span>
+          <div class="alatunniste-brandi">
+            <img class="alatunniste-logo" src="/static/slogo.png" alt="Savon ammattiopisto">
+          </div>
+          <div class="alatunniste-tekijat">
+            <span class="alatunniste-otsikko">Tekijät</span>
+            <ul class="tekijalista">
+              <li>Risto</li>
+              <li>Justus</li>
+              <li>Jere</li>
+            </ul>
+          </div>
+          <div class="alatunniste-huomiot">
+            <span>Demotiedot ovat synteettisiä</span>
+            <span>Hoitaja arvioi tilanteen ja tekee päätökset</span>
+          </div>
         </footer>
       </div>
     </div>
