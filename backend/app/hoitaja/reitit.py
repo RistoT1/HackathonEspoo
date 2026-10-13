@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.hoitaja import jono
 from app.mallit import Puhelutehtava, PuhelutehtavanTila, TilanMuutos
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.palvelu import (
@@ -80,11 +81,13 @@ def nayta_jono(
     tila: PuhelutehtavanTila | None = None,
 ) -> HTMLResponse:
     kaikki_tapaukset = varasto.listaa(sessio, tila=None, raja=1000)
-    tapaukset = (
+    tasot = jono.hae_tasot(sessio, [tapaus.id for tapaus in kaikki_tapaukset])
+    rajatut = (
         [tapaus for tapaus in kaikki_tapaukset if tapaus.tila == tila]
         if tila is not None
         else kaikki_tapaukset
     )
+    tapaukset = jono.jarjesta(rajatut, tasot)
     avoimet = sum(
         tapaus.tila in (PuhelutehtavanTila.ODOTTAA, PuhelutehtavanTila.SOITETAAN)
         for tapaus in kaikki_tapaukset
@@ -100,6 +103,7 @@ def nayta_jono(
         name="takaisinsoittojono.html",
         context={
             "tapaukset": tapaukset,
+            "tasot": tasot,
             "valittu_tila": tila,
             "tilat": list(PuhelutehtavanTila),
             "tilan_nimet": TILAN_NIMET,
@@ -108,6 +112,7 @@ def nayta_jono(
                 "avoimet": avoimet,
                 "odottavat": odottavat,
                 "kasitellyt": kasitellyt,
+                "hoitaja_soittaa": jono.hoitaja_soittaa(tasot),
             },
         },
     )

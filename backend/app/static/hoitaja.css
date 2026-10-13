@@ -369,7 +369,7 @@ textarea:focus-visible {
 
 .mittaririvi {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 22px;
 }
@@ -419,6 +419,11 @@ textarea:focus-visible {
 .mittari-ikoni-valmis {
   color: #58806a;
   background: #eef5f0;
+}
+
+.mittari-ikoni-halytys {
+  color: #785400;
+  background: #fff4d6;
 }
 
 .mittari-sisalto {
@@ -1126,6 +1131,29 @@ textarea::placeholder {
   text-transform: capitalize;
 }
 
+.kiireellisyysmerkki-pieni {
+  min-height: 24px;
+  padding: 3px 9px;
+  font-size: 0.67rem;
+  white-space: nowrap;
+}
+
+/* Jonon automaattinen päivitys: rivi, jonka arvio ilmestyi tai muuttui. */
+.rivi-uusi-arvio {
+  animation: uusi-arvio 3.5s ease-out;
+}
+
+@keyframes uusi-arvio {
+  0%,
+  35% {
+    background: #fff4d6;
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
 .kiireellisyys-vihrea {
   color: #286044;
   background: #e8f4ec;
@@ -1241,6 +1269,10 @@ textarea::placeholder {
 @media (max-width: 1050px) {
   .sivupalkki {
     width: 218px;
+  }
+
+  .mittaririvi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .paaalue {
@@ -1404,5 +1436,6 @@ textarea::placeholder {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
