@@ -405,3 +405,87 @@ def test_kuin_kumoaa_kiellon(teksti, oire, hata):
         assert oire in havainto.oireet
     if hata:
         assert hata in havainto.hata
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        # 13.10. puhelu: "nukuttua" kuului "nukuttaa", ja malli tulkitsi sen heikkoudeksi.
+        "Ei ole. Tuli nukuttaa vähän heikosti.",
+        "tuli nukuttua huonosti",
+        "oon nukkunu huonosti",
+        "nukkunut levottomasti",
+        "uni on ollut katkonaista",
+        "yöunet on jääneet lyhyiksi",
+        "huonot yöt on ollu",
+        "on vaikea nukahtaa",
+        "en oo saanu nukuttua",
+        "unta ei tule",
+    ],
+)
+def test_univaikeudet_tunnistetaan(teksti):
+    assert "unettomuus" in tunnista(teksti).oireet
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        "nukuttaa vähän",
+        "nukuttaa päivisin",
+        "nukun hyvin",
+        "uni on hyvää",
+        "en oo nukkunu huonosti",
+    ],
+)
+def test_uneliaisuus_ja_hyva_uni_eivat_ole_unettomuutta(teksti):
+    assert "unettomuus" not in tunnista(teksti).oireet
+
+
+@pytest.mark.parametrize(
+    ("tyypit", "odotettu"),
+    [
+        (["LYHYT_KUURI"], "Onko päänsärky alkanut lääkekuurin aikana tai sen jälkeen?"),
+        (["LOPETETTU_LAAKE"], "Onko päänsärky alkanut lääkkeen lopettamisen jälkeen?"),
+        (["UUSI_LAAKE"], "Onko päänsärky alkanut uuden lääkkeen aloittamisen jälkeen?"),
+        (["ANNOSMUUTOS"], "Onko päänsärky alkanut annoksen muuttamisen jälkeen?"),
+        (["UUSI_LAAKE", "ANNOSMUUTOS"], "Onko päänsärky alkanut lääkemuutoksen jälkeen?"),
+        ([], "Onko päänsärky alkanut lääkemuutoksen jälkeen?"),
+    ],
+)
+def test_ajoituskysymys_muutoksen_tyypin_mukaan(tyypit, odotettu):
+    kysymykset = t.oireen_jatkokysymykset("päänsärky", t.muutoksen_jalkeen(tyypit))
+
+    assert kysymykset[0] == odotettu
+
+
+def test_jatkokysymyksissa_ei_tayttamatonta_eika_kiinteaa_aloitusta():
+    for nimi in t.oireet():
+        for kysymys in t.oireen_jatkokysymykset(nimi):
+            assert "{" not in kysymys
+            assert "aloittamisen" not in kysymys
+
+
+@pytest.mark.parametrize(
+    ("teksti", "kerrottu"),
+    [
+        ("tuli päänsärkyä jossain vaiheessa sen jälkeen kun lopetin", True),
+        ("pää on ollut kipeä siitä asti kun aloitin", True),
+        ("väsymys alkoi viime viikolla", True),
+        ("päänsärkyä on ollut", False),
+        # "alkoholi" ei ole "alkoi".
+        ("alkoholia en juo mutta päänsärkyä on", False),
+    ],
+)
+def test_ajoitus_kerrottu(teksti, kerrottu):
+    assert t.ajoitus_kerrottu(teksti) is kerrottu
+
+
+def test_kerrottu_ajoitus_jaa_pois_vihjeesta():
+    vihje = t.oireohje_kotihoidolla(
+        ["päänsärky"], t.muutoksen_jalkeen(["LYHYT_KUURI"]), "sen jälkeen kun lopetin"
+    )
+
+    assert "Onko päänsärky alkanut" not in vihje
+    assert "Kuinka usein päänsärkyä on?" in vihje
+    # Yksi rivi ilman sisäkkäisiä sulkeita: keskustelu ja siisti_vastaus olettavat sen.
+    assert "\n" not in vihje.strip() and vihje.count(")") == 1

@@ -262,8 +262,43 @@ def on_myontava(teksti_: str) -> bool:
 # --- Oireiden tieto puhelulle ja mallille ---
 
 
-def oireen_jatkokysymykset(oire: str) -> list[str]:
-    return list(oireet().get(oire, {}).get("lisakysymykset", []))
+AJOITUS = "{muutoksen_jalkeen}"
+
+
+def muutoksen_jalkeen(tyypit: list[str]) -> str:
+    """Ajoituskysymyksen sanamuoto lääkemuutoksen tyypin mukaan ("lääkkeen lopettamisen
+    jälkeen"). Useampi erityyppinen muutos tai tuntematon tyyppi -> yleinen muoto."""
+    sanamuodot = oireohjeet()["muutoksen_jalkeen"]
+    erilaiset = set(tyypit)
+    if len(erilaiset) != 1:
+        return sanamuodot["oletus"]
+    return sanamuodot.get(erilaiset.pop(), sanamuodot["oletus"])
+
+
+@lru_cache
+def _ajoituskuviot() -> list[re.Pattern]:
+    return _kaanna(oireohjeet()["ajoitus_kerrottu"])
+
+
+def ajoitus_kerrottu(teksti_: str) -> bool:
+    """Kertoiko henkilö jo, milloin oire alkoi ("sen jälkeen kun lopetin")."""
+    normalisoitu = normalisoi(teksti_)
+    return any(kuvio.search(normalisoitu) for kuvio in _ajoituskuviot())
+
+
+def oireen_jatkokysymykset(
+    oire: str, muutoksen_jalkeen: str | None = None, ajoitus_tiedossa: bool = False
+) -> list[str]:
+    """Tietopohjan jatkokysymykset. Ajoituskysymys täytetään muutoksen tyypillä ja jätetään
+    pois, jos henkilö kertoi alkamisen jo (13.10. puhelu: kysyttiin uudelleen ja väärin)."""
+    sanamuoto = muutoksen_jalkeen or oireohjeet()["muutoksen_jalkeen"]["oletus"]
+    kysymykset = []
+    for kysymys in oireet().get(oire, {}).get("lisakysymykset", []):
+        ajoituskysymys = AJOITUS in kysymys
+        if ajoituskysymys and ajoitus_tiedossa:
+            continue
+        kysymykset.append(kysymys.replace(AJOITUS, sanamuoto))
+    return kysymykset
 
 
 def kotihoito_ohje(oire: str) -> str:
@@ -585,20 +620,30 @@ def piilo_ohje(avain: str, **taytot: str) -> str:
     return f"\n(Ohje: {teksti_})" if teksti_ else ""
 
 
-def oireohje_kotihoidolla(oire_lista: list[str]) -> str:
+def oireohje_kotihoidolla(
+    oire_lista: list[str], muutoksen_jalkeen: str | None = None, henkilon_teksti: str = ""
+) -> str:
     """Piilotettu vihje mallille: oireen jatkokysymykset, kotihoito-ohjeet ja milloin
-    hoitajaan yhteys (Jere: tietopohja.oireohje_mallille)."""
+    hoitajaan yhteys (Jere: tietopohja.oireohje_mallille). Yksi rivi ilman sulkeita:
+    keskustelu poimii sen historiaan ja siisti_vastaus poistaa sen sulkeisiin asti."""
+    ajoitus_tiedossa = ajoitus_kerrottu(henkilon_teksti)
     osat = []
     for nimi in oire_lista:
         tieto = oireet().get(nimi)
         if tieto is None:
             continue
+        kysymykset = oireen_jatkokysymykset(nimi, muutoksen_jalkeen, ajoitus_tiedossa)
         osat.append(
-            f"oire '{nimi}'. Jatkokysymyksiä: {' '.join(tieto['lisakysymykset'])} "
+            f"oire '{nimi}'. Jatkokysymyksiä: {' '.join(kysymykset)} "
             f"Kotihoito-ohjeet: {' '.join(tieto['kotihoito'])} "
             f"Hoitajaan yhteys: {tieto['ota_yhteytta']}."
         )
-    return "\n(Tietopohja: henkilö mainitsi " + " | ".join(osat) + ")" if osat else ""
+    if not osat:
+        return ""
+    # 13.10. puhelu: henkilö kertoi päänsäryn alkaneen lopettamisen jälkeen, ja malli kysyi
+    # silti, alkoiko se lääkkeen aloittamisen jälkeen.
+    loppu = " Älä kysy uudelleen sitä, minkä henkilö jo kertoi."
+    return "\n(Tietopohja: henkilö mainitsi " + " | ".join(osat) + loppu + ")"
 
 
 def _vartalot(teksti: str) -> set[str]:

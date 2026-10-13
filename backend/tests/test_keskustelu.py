@@ -5,7 +5,7 @@ import asyncio
 
 import pytest
 
-from app.mallit import Kysymys, Puhelukonteksti, PuhelunLoppu
+from app.mallit import Kysymys, Muutoskonteksti, MuutosTyyppi, Puhelukonteksti, PuhelunLoppu
 from app.puhelu.agentti import KiinteaAgentti
 from app.puhelu.keskustelu import (
     EI_KUULUNUT,
@@ -189,6 +189,45 @@ def test_oireeseen_tietopohjan_jatkokysymykset_ja_kotihoito_piilo_ohjeena():
     viimeinen = malli.viestit[0][-1]["content"]
     assert "(Tietopohja: henkilö mainitsi oire 'huimaus'" in viimeinen
     assert "Kotihoito-ohjeet:" in viimeinen
+
+
+def test_ajoituskysymys_muutoksen_tyypin_mukaan_eika_kerrottua_kysyta():
+    # 13.10. puhelu: kuurin lopettamisen jälkeen alkanutta päänsärkyä kysyttiin "lääkkeen
+    # aloittamisen jälkeen". Nyt sanamuoto tulee muutoksesta, ja kerrottu ajoitus jää pois.
+    tila = istunto()
+    tila.konteksti = Puhelukonteksti(
+        ika=82,
+        aktiivisia_laakkeita=3,
+        muutokset=[
+            Muutoskonteksti(
+                tyyppi=MuutosTyyppi.LYHYT_KUURI, laakeryhma="antibiootti", paivia_sitten=5
+            )
+        ],
+    )
+    malli = Malli("Ikävä kuulla.", "Ymmärrän.")
+    vuoro(tila, None, malli)
+
+    vuoro(tila, "Väsyttää vähän.", malli)
+    vuoro(tila, "Ja päänsärkyä tuli sen jälkeen kun lopetin.", malli)
+
+    vasymys = malli.viestit[0][-1]["content"]
+    paansarky = malli.viestit[1][-1]["content"]
+    assert "Onko väsymys alkanut lääkekuurin aikana tai sen jälkeen?" in vasymys
+    assert "aloittamisen" not in vasymys
+    assert "Kuinka usein päänsärkyä on?" in paansarky
+    assert "Onko päänsärky alkanut" not in paansarky
+    assert "Älä kysy uudelleen sitä, minkä henkilö jo kertoi." in paansarky
+
+
+def test_nukuttu_heikosti_on_unettomuus_eika_jaa_mallin_arvattavaksi():
+    # 13.10. puhelu: "Tuli nukuttaa vähän heikosti" ilman tietopohjaa -> malli: "heikkoutta".
+    tila = istunto()
+    malli = Malli("Ymmärrän.")
+    vuoro(tila, None, malli)
+
+    vuoro(tila, "Ei ole. Tuli nukuttaa vähän heikosti.", malli)
+
+    assert "(Tietopohja: henkilö mainitsi oire 'unettomuus'" in malli.viestit[0][-1]["content"]
 
 
 def test_oireen_jatkokysymysta_ei_korvata_listan_kysymyksella():

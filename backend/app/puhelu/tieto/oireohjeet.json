@@ -4,6 +4,16 @@
     "Älä lopeta lääkettä tai muuta annosta omin päin. Jos mietit sitä, keskustele ensin hoitajan kanssa.",
     "Jos olo huononee nopeasti, soita terveysasemalle tai päivystykseen, hätätilanteessa 112."
   ],
+  "_muutoksen_jalkeen": "{muutoksen_jalkeen} lisäkysymyksissä täytetään puhelun lääkemuutoksen tyypillä (13.10. puhelu: kuurin lopettamisen jälkeen alkanutta päänsärkyä kysyttiin 'lääkkeen aloittamisen jälkeen'). Useampi erityyppinen muutos -> oletus.",
+  "muutoksen_jalkeen": {
+    "UUSI_LAAKE": "uuden lääkkeen aloittamisen jälkeen",
+    "LOPETETTU_LAAKE": "lääkkeen lopettamisen jälkeen",
+    "ANNOSMUUTOS": "annoksen muuttamisen jälkeen",
+    "LYHYT_KUURI": "lääkekuurin aikana tai sen jälkeen",
+    "oletus": "lääkemuutoksen jälkeen"
+  },
+  "_ajoitus_kerrottu": "Jos henkilö kertoi oireen alkamisesta jo samassa vastauksessa, ajoituskysymys jätetään pois ('sen jälkeen kun lopetin' -> ei kysytä, alkoiko se lääkkeen jälkeen).",
+  "ajoitus_kerrottu": ["jälkeen", "alkoi\\b", "alkoivat", "alkanut", "alkanu\\b", "lähtien", "asti\\b", "aloit", "lopet", "ennen kuin"],
   "oireet": [
     {
       "oire": "pahoinvointi",
@@ -48,7 +58,7 @@
     {
       "oire": "päänsärky",
       "tunnisteet": ["päänsär", "pääkip", "päänkip", "pää on kipeä", "päätä särk", "pää on ollut kipeä", "päätä on särkenyt", "(sattuu|sattui|sattu) päähän"],
-      "lisakysymykset": ["Onko päänsärky alkanut lääkkeen aloittamisen jälkeen?", "Kuinka usein päänsärkyä on?"],
+      "lisakysymykset": ["Onko päänsärky alkanut {muutoksen_jalkeen}?", "Kuinka usein päänsärkyä on?"],
       "kotihoito": ["Juo riittävästi vettä.", "Lepää rauhallisessa ja hämärässä paikassa.", "Raitis ilma ja lyhyt kävely voivat helpottaa."],
       "ota_yhteytta": "jos päänsärky on uudenlaista, pahenee tai ei mene ohi",
       "huolestuttava": false
@@ -56,14 +66,15 @@
     {
       "oire": "väsymys",
       "tunnisteet": ["väsy", "uupu", "voimaton", "ei jaksa", "en jaksa", "päivälläkin (pitää |täytyy )?nukku"],
-      "lisakysymykset": ["Onko väsymys alkanut lääkkeen aloittamisen jälkeen?", "Haittaako väsymys arjen askareita?"],
+      "lisakysymykset": ["Onko väsymys alkanut {muutoksen_jalkeen}?", "Haittaako väsymys arjen askareita?"],
       "kotihoito": ["Pidä päivään säännöllinen rytmi ja lyhyitä lepohetkiä.", "Syö säännöllisesti ja juo riittävästi."],
       "ota_yhteytta": "jos väsymys on niin kovaa, ettet pysty hoitamaan arkea",
       "huolestuttava": false
     },
     {
       "oire": "unettomuus",
-      "tunnisteet": ["unettom", "(en|enkä) saa unta", "(nukun|nukuin|nukkunut) (aika |tosi |vähän |todella )?(huonosti|heikosti)", "(huonosti|heikosti) (nukkunut|nukuttu)", "valvo", "uni on huonoa", "herään\\w*( \\w+){0,3} (yöllä|yössä|öisin)"],
+      "_tunnisteet": "13.10. puhelu: 'tuli nukuttaa vähän heikosti' (= nukuttua) jäi tunnistamatta, ja malli tulkitsi sen heikkoudeksi. Pelkkä 'nukuttaa' on väsymystä, siksi laatusana (huonosti, heikosti...) vaaditaan.",
+      "tunnisteet": ["unettom", "(en|enkä) saa unta", "(en|enkä) (ole|oo) (saanut|saanu) (unta|nukuttua)", "unta ei (tule|tullut|meinaa)", "(nuku|nukku)\\w* (aika |tosi |vähän |vähäsen |todella |ihan |kovin |niin |vähä )?(huonosti|heikosti|levottomasti|katkonaisesti)", "(huonosti|heikosti|levottomasti|katkonaisesti) (nuku|nukku)\\w*", "(yö)?(uni|unet) (on |ovat |oli |olivat )?(ollut |olleet |jäänyt |jääneet )?(aika |tosi |vähän |todella |ihan |kovin )?(huono|heikko|katkonai|levoton|levottom|lyhy)", "(huono|huonot|huonoja|levoton|levottomat|levottomia|unettomat) (yö|öitä)", "(vaikea|vaikeaa|hankala|hankalaa) (on )?nukahtaa", "nukahtaminen (on )?(ollut )?(vaikea|hankala)", "valvo", "uni on huonoa", "herään\\w*( \\w+){0,3} (yöllä|yössä|öisin)"],
       "lisakysymykset": ["Onko vaikeaa nukahtaa vai heräätkö yöllä?"],
       "kotihoito": ["Mene nukkumaan ja herää samaan aikaan joka päivä.", "Vältä kahvia iltapäivällä ja illalla.", "Pidä makuuhuone viileänä ja pimeänä."],
       "ota_yhteytta": "jos unettomuus jatkuu pitkään",
@@ -80,7 +91,7 @@
     {
       "oire": "lihaskipu",
       "tunnisteet": ["lihaskip", "lihaks\\w*( on| ovat| on ollut)? (särk|kipe|kolot|sattu|kivist)", "lihasheik", "kolot"],
-      "lisakysymykset": ["Missä lihaksissa kipua on?", "Onko kipu alkanut lääkkeen aloittamisen jälkeen?"],
+      "lisakysymykset": ["Missä lihaksissa kipua on?", "Onko kipu alkanut {muutoksen_jalkeen}?"],
       "kotihoito": ["Kevyt liikkuminen ja venyttely voivat helpottaa.", "Lämpö, esimerkiksi lämmin suihku, voi rentouttaa lihaksia."],
       "ota_yhteytta": "jos lihaskipu on voimakasta tai virtsa on tummaa",
       "huolestuttava": true
@@ -96,7 +107,7 @@
     {
       "oire": "yskä",
       "tunnisteet": ["yskä", "yski", "yskitt"],
-      "lisakysymykset": ["Onko yskä kuivaa vai tuleeko limaa?", "Onko yskä alkanut lääkkeen aloittamisen jälkeen?"],
+      "lisakysymykset": ["Onko yskä kuivaa vai tuleeko limaa?", "Onko yskä alkanut {muutoksen_jalkeen}?"],
       "kotihoito": ["Juo lämmintä juotavaa.", "Huoneilman kostuttaminen voi helpottaa kuivaa yskää."],
       "ota_yhteytta": "jos yskään liittyy kuumetta tai hengitys tuntuu raskaalta",
       "huolestuttava": false
@@ -160,7 +171,7 @@
     {
       "oire": "vapina",
       "tunnisteet": ["vapin", "vapis", "vapise", "täris", "tärinä"],
-      "lisakysymykset": ["Alkoiko vapina lääkemuutoksen jälkeen?", "Haittaako vapina esimerkiksi syömistä tai juomista?"],
+      "lisakysymykset": ["Alkoiko vapina {muutoksen_jalkeen}?", "Haittaako vapina esimerkiksi syömistä tai juomista?"],
       "kotihoito": ["Tue kyynärpäät pöytään, kun syöt tai juot.", "Täytä muki vain puoliksi, niin juominen on helpompaa.", "Runsas kahvi voi lisätä vapinaa, joten sitä kannattaa välttää."],
       "ota_yhteytta": "jos vapina alkoi lääkemuutoksen jälkeen tai pahenee",
       "huolestuttava": true

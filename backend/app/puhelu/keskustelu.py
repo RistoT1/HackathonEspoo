@@ -55,6 +55,7 @@ from app.puhelu.tietopohja import (
     jarkyttava_oire,
     kotihoito_puheeksi,
     laakemuutoksen_poikkeama,
+    muutoksen_jalkeen,
     oireohje_kotihoidolla,
     on_myontava,
     piilo_ohje,
@@ -607,7 +608,8 @@ def _piilo_ohjeet(istunto: Puheluistunto, tieto: Tietopohjahavainto, lopuillaan:
     istunto.kasitellyt_oireet.update(uudet)
     if uudet:
         _syy(istunto, f"tietopohja:{','.join(uudet)}")
-    ohje += oireohje_kotihoidolla(uudet)
+    tyypit = [muutos.tyyppi.value for muutos in istunto.konteksti.muutokset]
+    ohje += oireohje_kotihoidolla(uudet, muutoksen_jalkeen(tyypit), istunto.vastaukset[-1].vastaus)
     if jarkyttava_oire(uudet):
         ohje = piilo_ohje("jarkytys") + ohje
     # Jere: "kysy ensin yksi jatkokysymys, kun tiedät tarpeeksi, kerro kotihoito-ohjeet".
