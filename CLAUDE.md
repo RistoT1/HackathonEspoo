@@ -201,8 +201,13 @@ puhelu/          Twilio-puhelu (relay tai <Gather>-webhookit; vaatii JULKINEN_UR
   saannot.py     hatasanat.json (ei tulkitse kieltoa) + tietopohja, hoitajapyyntö,
                  lääkeneuvo, usein kysytyt (fraasit.json: kuka soittaa, mikä lääke)
   agentti.py     LLM: lammita(järjestelmäohje) avauksen aikana, vastaa(viestit) -> teksti
-  keskustelu.py  myös: kysymyslistan kirjanpito (malli saa "kysy seuraavaksi", jumissa ->
-                 kysymys lisätään perään), yksi kysymys kerrallaan, varatoiminta ilman mallia
+  keskustelu.py  tilakone (aloita, kasittele): yksi kysymys kerrallaan, varatoiminta ilman
+                 mallia. Puhelun tila istunto.py:ssä (Puheluistunto, Vuoro, Rajat).
+  kysymyslista.py  kannan kysymysten kirjanpito (malli saa "kysy seuraavaksi", jumissa ->
+                 kysymys lisätään perään), viimeksi_kysytty lääkemuutoksen poikkeamalle
+  lopetus.py     mallin LOPETUKSEN estot yhtenä puhtaana sääntönä (henkilö kysyi, oire
+                 kesken, huono vointi, lista kesken) ja lopetuksen sanat
+  kaiku.py       VAIN DEV: puheentunnistuksen kaikutesti
   kielentarkistus.py  Voikko: mallin suomi vain lokiin (kieli:epavarma), ei estä puhetta;
                  korjaa_kieli + kielikorjaukset.json: mallin toistuvat virheet korjataan
                  ennen puhetta (kieli:korjattu). Taulukko käsin Voikon löydöksistä (Voikon
@@ -220,7 +225,8 @@ triage/          puhelun jälkeen: saannot.py sääntötaso heti (punainen/kelta
                  perusteet), analyysi.py Jeren LLM-analyysi taustasäikeessä (tyontekija.py),
                  taso = korkeampi säännön ja mallin tasosta. Yhteenveto tallentuu
                  puhelun_tulos-tauluun ja päivittyy mallianalyysin valmistuttua
-hoitaja/         soittotehtävänäkymä + tallennettu yhteenveto, katseluloki demo-katsojana
+hoitaja/         soittotehtävänäkymä + tallennettu yhteenveto, katseluloki demo-katsojana;
+                 palvelu.py: tehtävän uusin tulos DTO:na (sama jonolle ja tapaussivulle)
 ```
 Sisältö (kysymystekstit, lääkeryhmät): kannassa, muokkaus `backend/sql/kysymyssisalto.sql`.
 Skeema: Alembic (`backend/alembic/`), uusi migraatio mallimuutoksen jälkeen.

@@ -121,6 +121,8 @@ async def aja_yksittainen(kohde: dict, agentti) -> dict:
         {"role": "assistant", "content": f"Mukava kuulla. {kohde['kysymys']}"},
     ]
     istunto.seuraava = 1
+    # Lääkemuutoksen poikkeaman tunnistus lukee juuri kysytyn kysymyksen tästä.
+    istunto.viimeksi_kysytty = istunto.kysymykset[0]
     istunto.vuoro = 1
     vuoro = await kasittele(istunto, kohde["vastaus"], 0.9, agentti)
     botti = " ".join(vuoro.sanottavat)
