@@ -1240,6 +1240,10 @@ textarea::placeholder {
   border-color: #f0d8d3;
 }
 
+.edellinen-puhelu {
+  margin: 12px 0;
+}
+
 .saantotiedot {
   margin-top: 14px;
   padding: 12px 14px;

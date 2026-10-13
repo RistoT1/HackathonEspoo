@@ -110,6 +110,10 @@ class Settings(BaseSettings):
     # Ilman Voikkoa tarkistetaan vain tyyli (sinuttelu), ks. kielentarkistus.py.
     voikko_kirjasto: str | None = "/opt/homebrew/lib"
 
+    # Muisti: agentti kysyy edellisessä puhelussa kerrotusta oireesta, jos puhelu päättyi
+    # enintään näin monta päivää sitten (säilytysraja, datan minimointi). 0 = pois.
+    muisti_paivat: int = 30
+
     # VAIN DEV: puhelun vuorokohtainen loki (sisaltaa litteroinnin). Vaatii myos DEV_TILA=true.
     puhelu_loki: bool = False
     puhelu_lokikansio: str = str(_BACKEND.parent / "lokit" / "puhelut")

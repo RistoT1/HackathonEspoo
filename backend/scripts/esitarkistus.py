@@ -13,6 +13,7 @@ eikä kirjoita mitään. VIRHE = korjaa ennen demoa (paluukoodi 1), VAROITUS = r
 reunalta). Tunnelin tarkistus julkisen osoitteen kautta näkee sen, paikallinen ei.
 """
 
+import asyncio
 import json
 import subprocess
 import sys
@@ -25,6 +26,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # backend/: app-paketti
 
 from app.config import hae_asetukset  # noqa: E402
+from app.puhelu.agentti import llm_agentti  # noqa: E402
 from app.puhelu.lammitys import LAMMIN_RAJA_S, lammita_malli  # noqa: E402
 
 BACKEND = "http://127.0.0.1:8000"
@@ -154,7 +156,7 @@ def tarkista_malli(lammita: bool) -> None:
 def _lammita() -> None:
     """Sama lämmitys kuin backendin lämmitysvahdissa (app/puhelu/lammitys.py)."""
     try:
-        kesto = lammita_malli(hae_asetukset())
+        kesto = asyncio.run(lammita_malli(llm_agentti(hae_asetukset())))
     except httpx.HTTPError as poikkeus:
         virhe(f"lämmitys epäonnistui: {poikkeus}")
         return

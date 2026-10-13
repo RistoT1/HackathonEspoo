@@ -4,11 +4,17 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.hoitaja import jono
-from app.mallit import Puhelutehtava, PuhelutehtavanTila, TilanMuutos
+from app.hoitaja import jono, palvelu
+from app.mallit import (
+    EdellinenPuhelu,
+    Puhelutehtava,
+    PuhelutehtavanTila,
+    TallennettuTulos,
+    TilanMuutos,
+)
+from app.muisti.muisti import hae_edellinen_puhelu
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.palvelu import (
     MAX_YRITYKSET,
@@ -17,7 +23,7 @@ from app.puhelutehtavat.palvelu import (
     hae_tehtava,
     vaihda_tila,
 )
-from app.tietokanta import KatseluLokiRivi, PuhelunTulosRivi, hae_sessio
+from app.tietokanta import hae_sessio
 
 reititin = APIRouter()
 _app_hakemisto = Path(__file__).resolve().parent.parent
@@ -58,7 +64,9 @@ def _tilan_css_luokka(tila: PuhelutehtavanTila) -> str:
 
 
 def _tehtavan_nakyma(
-    tapaus: Puhelutehtava, puhelutulos: PuhelunTulosRivi | None
+    tapaus: Puhelutehtava,
+    puhelutulos: TallennettuTulos | None,
+    edellinen_puhelu: EdellinenPuhelu | None = None,
 ) -> dict[str, object]:
     sallittuja = list(SALLITUT_TOIMINNOT[tapaus.tila])
     if tapaus.tila == PuhelutehtavanTila.EI_VASTANNUT and tapaus.yritykset >= MAX_YRITYKSET:
@@ -71,6 +79,7 @@ def _tehtavan_nakyma(
         "sallitut_toiminnot": sallittuja,
         "toimintojen_nimet": TILAN_NIMET,
         "puhelutulos": puhelutulos,
+        "edellinen_puhelu": edellinen_puhelu,
     }
 
 
@@ -81,13 +90,13 @@ def nayta_jono(
     tila: PuhelutehtavanTila | None = None,
 ) -> HTMLResponse:
     kaikki_tapaukset = varasto.listaa(sessio, tila=None, raja=1000)
-    tasot = jono.hae_tasot(sessio, [tapaus.id for tapaus in kaikki_tapaukset])
+    arviot = jono.hae_arviot(sessio, [tapaus.id for tapaus in kaikki_tapaukset])
     rajatut = (
         [tapaus for tapaus in kaikki_tapaukset if tapaus.tila == tila]
         if tila is not None
         else kaikki_tapaukset
     )
-    tapaukset = jono.jarjesta(rajatut, tasot)
+    tapaukset = jono.jarjesta(rajatut, arviot)
     avoimet = sum(
         tapaus.tila in (PuhelutehtavanTila.ODOTTAA, PuhelutehtavanTila.SOITETAAN)
         for tapaus in kaikki_tapaukset
@@ -103,7 +112,7 @@ def nayta_jono(
         name="takaisinsoittojono.html",
         context={
             "tapaukset": tapaukset,
-            "tasot": tasot,
+            "arviot": arviot,
             "valittu_tila": tila,
             "tilat": list(PuhelutehtavanTila),
             "tilan_nimet": TILAN_NIMET,
@@ -112,7 +121,7 @@ def nayta_jono(
                 "avoimet": avoimet,
                 "odottavat": odottavat,
                 "kasitellyt": kasitellyt,
-                "hoitaja_soittaa": jono.hoitaja_soittaa(tasot),
+                "hoitaja_soittaa": jono.hoitaja_soittaa(arviot),
             },
         },
     )
@@ -129,25 +138,16 @@ def nayta_tapaus(
     except TehtavaaEiLoydy as virhe:
         raise HTTPException(status_code=404, detail="Soittotehtävää ei löydy") from virhe
 
-    sessio.add(
-        KatseluLokiRivi(
-            tehtava_id=tapaus.id,
-            katsoja="hackathon-demo (kirjautumaton)",
-            toiminto="katselu",
-        )
-    )
-    sessio.commit()
-    puhelutulos = sessio.scalar(
-        select(PuhelunTulosRivi)
-        .where(PuhelunTulosRivi.tehtava_id == tapaus.id)
-        .order_by(PuhelunTulosRivi.paattyi.desc())
-        .limit(1)
-    )
+    palvelu.kirjaa_katselu(sessio, tapaus.id)
+    puhelutulos = palvelu.uusimmat_tulokset(sessio, [tapaus.id]).get(tapaus.id)
+    # Sama muisti kuin agentilla, mutta tämän tehtävän puhelua edeltävä.
+    ennen = puhelutulos.paattyi if puhelutulos is not None else None
+    edellinen = hae_edellinen_puhelu(sessio, tapaus.vanhus_id, ennen=ennen)
 
     return mallipohjat.TemplateResponse(
         request=pyynto,
         name="tapauksen_tiedot.html",
-        context=_tehtavan_nakyma(tapaus, puhelutulos),
+        context=_tehtavan_nakyma(tapaus, puhelutulos, edellinen),
     )
 
 

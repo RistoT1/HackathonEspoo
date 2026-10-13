@@ -39,6 +39,10 @@ from app.puhelu.kielentarkistus import korjaa_kieli, sinuttelee
         ("Haittaaako tämä väsymys sinua?", "Haittaako tämä väsymys sinua?"),
         # 13.10. puhelu.
         ("On hyvä olla, että se ei haittaa.", "On hyvä kuulla, että se ei haittaa."),
+        (
+            "Onko vaikeaa nukahtaa vai heräätkökö yöllä?",
+            "Onko vaikeaa nukahtaa vai heräätkö yöllä?",
+        ),
     ],
 )
 def test_toistuvat_virheet_korjataan(raaka, odotettu):

@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
+from app.mallit import EdellinenPuhelu, MuutosTyyppi
+
 _KANSIO = Path(__file__).with_name("tieto")
 
 TASOT = ("vihreä", "keltainen", "punainen")
@@ -265,9 +267,10 @@ def on_myontava(teksti_: str) -> bool:
 AJOITUS = "{muutoksen_jalkeen}"
 
 
-def muutoksen_jalkeen(tyypit: list[str]) -> str:
+def muutoksen_jalkeen(tyypit: list[MuutosTyyppi]) -> str:
     """Ajoituskysymyksen sanamuoto lääkemuutoksen tyypin mukaan ("lääkkeen lopettamisen
-    jälkeen"). Useampi erityyppinen muutos tai tuntematon tyyppi -> yleinen muoto."""
+    jälkeen"). Useampi erityyppinen muutos tai tuntematon tyyppi -> yleinen muoto.
+    MuutosTyyppi on StrEnum, joten sillä haetaan suoraan JSON-avaimella."""
     sanamuodot = oireohjeet()["muutoksen_jalkeen"]
     erilaiset = set(tyypit)
     if len(erilaiset) != 1:
@@ -287,17 +290,17 @@ def ajoitus_kerrottu(teksti_: str) -> bool:
 
 
 def oireen_jatkokysymykset(
-    oire: str, muutoksen_jalkeen: str | None = None, ajoitus_tiedossa: bool = False
+    oire: str, muutoksen_jalkeen: str, ajoitus_tiedossa: bool = False
 ) -> list[str]:
-    """Tietopohjan jatkokysymykset. Ajoituskysymys täytetään muutoksen tyypillä ja jätetään
-    pois, jos henkilö kertoi alkamisen jo (13.10. puhelu: kysyttiin uudelleen ja väärin)."""
-    sanamuoto = muutoksen_jalkeen or oireohjeet()["muutoksen_jalkeen"]["oletus"]
+    """Tietopohjan jatkokysymykset. Ajoituskysymys täytetään muutoksen tyypillä
+    (muutoksen_jalkeen-funktio) ja jätetään pois, jos henkilö kertoi alkamisen jo
+    (13.10. puhelu: kysyttiin uudelleen ja väärin)."""
     kysymykset = []
     for kysymys in oireet().get(oire, {}).get("lisakysymykset", []):
         ajoituskysymys = AJOITUS in kysymys
         if ajoituskysymys and ajoitus_tiedossa:
             continue
-        kysymykset.append(kysymys.replace(AJOITUS, sanamuoto))
+        kysymykset.append(kysymys.replace(AJOITUS, muutoksen_jalkeen))
     return kysymykset
 
 
@@ -309,16 +312,6 @@ def kotihoito_ohje(oire: str) -> str:
         return ""
     ohjeet = " ".join(tieto["kotihoito"][:2])
     return f"{ohjeet} Ota yhteyttä hoitajaan, {tieto['ota_yhteytta']}."
-
-
-def oireohje_mallille(oire_lista: list[str]) -> str:
-    """Mallille: tunnistetun oireen jatkokysymykset (tietopohjan, ei keksittyjä)."""
-    osat = [
-        f"oire '{nimi}': jatkokysymyksiä {' '.join(oireen_jatkokysymykset(nimi))}"
-        for nimi in oire_lista
-        if nimi in oireet()
-    ]
-    return "Tietopohja: henkilö mainitsi " + " | ".join(osat) if osat else ""
 
 
 def jarkyttava_oire(oire_lista: list[str]) -> bool:
@@ -518,12 +511,38 @@ _FAKTAT = """FAKTAT (vastaa näillä, kun henkilö kysyy; älä keksi muuta):
 - Puhelua ei äänitetä. Hoitajalle välitetään lyhyt yhteenveto. Hoitaja soittaa tarvittaessa."""
 
 
-def jarjestelmaohje(ika: int | None, muutokset: list[str], kysymykset: list[str]) -> str:
+def jarjestelmaohje(
+    ika: int | None,
+    muutokset: list[str],
+    kysymykset: list[str],
+    edellinen: EdellinenPuhelu | None = None,
+) -> str:
     """Jeren tekstit sanatarkasti, mutta puhelukohtainen osa (ikäluokan puhetapa,
     lääkemuutos, kysymykset) LOPUSSA: Ollama käyttää välimuistia vain samaan alkuun asti.
     Mitattu 11.10. Gemma 12B: ikäluokka alussa -> eri ikäisen puhelun lämmitys 47,6 s
     (välimuistista 4/2818 tokenia); sama alku -> 5,6 s."""
-    return f"{_yhteinen_ohje()}\n\n{_puhelun_tiedot(ika, muutokset, kysymykset)}"
+    ohje = f"{_yhteinen_ohje()}\n\n{_puhelun_tiedot(ika, muutokset, kysymykset)}"
+    if edellinen is None:
+        return ohje
+    # Lopussa, jotta välimuistin yhteinen alku säilyy (ks. yllä).
+    return f"{ohje}\n\n{edellisen_puhelun_ohje(edellinen)}"
+
+
+def _milloin(paivia_sitten: int) -> str:
+    if paivia_sitten == 0:
+        return "aiemmin tänään"
+    if paivia_sitten == 1:
+        return "eilen"
+    return f"{paivia_sitten} päivää sitten"
+
+
+def edellisen_puhelun_ohje(edellinen: EdellinenPuhelu) -> str:
+    """Muisti agentille. Vain oire ja aika; agentti kysyy, hoitaja arvioi muutoksen."""
+    asiat = " ja ".join(edellinen.kuvaukset)
+    return f"""EDELLINEN PUHELU
+Soitit tälle henkilölle {_milloin(edellinen.paivia_sitten)}. Hän kertoi silloin: {asiat}.
+Kun kuulumiset on kuultu, kysy kerran luontevasti, miten tämä asia on nyt. Älä kerro
+muuta edellisestä puhelusta äläkä päättele siitä mitään: hoitaja arvioi muutoksen."""
 
 
 @lru_cache
@@ -621,11 +640,12 @@ def piilo_ohje(avain: str, **taytot: str) -> str:
 
 
 def oireohje_kotihoidolla(
-    oire_lista: list[str], muutoksen_jalkeen: str | None = None, henkilon_teksti: str = ""
+    oire_lista: list[str], muutoksen_jalkeen: str, henkilon_teksti: str = ""
 ) -> str:
     """Piilotettu vihje mallille: oireen jatkokysymykset, kotihoito-ohjeet ja milloin
-    hoitajaan yhteys (Jere: tietopohja.oireohje_mallille). Yksi rivi ilman sulkeita:
-    keskustelu poimii sen historiaan ja siisti_vastaus poistaa sen sulkeisiin asti."""
+    hoitajaan yhteys (Jere: puheavustaja/tietopohja.py, oireohje_mallille). Yksi rivi
+    ilman sulkeita: keskustelu liittää sen historiaan henkilön viestin perään, ja
+    siisti_vastaus poistaa sen sulkeisiin asti, jos malli toistaa sen."""
     ajoitus_tiedossa = ajoitus_kerrottu(henkilon_teksti)
     osat = []
     for nimi in oire_lista:
@@ -787,6 +807,11 @@ def siisti_vastaus(teksti_: str) -> str:
 ITSETUHOKYSYMYS = re.compile(
     r"(vahingoittaa|satuttaa) itseäsi|ajatuksia (kuolla|kuolemasta|itsemurhasta)", re.IGNORECASE
 )
+
+
+def jaa_lauseiksi(teksti_: str) -> list[str]:
+    """Mallin vastauksen lauseet välimerkkeineen (kysymys päättyy '?')."""
+    return [lause.strip() for lause in re.findall(r"[^.!?]+[.!?]*", teksti_) if lause.strip()]
 
 
 def aloitus(teksti_: str) -> str:

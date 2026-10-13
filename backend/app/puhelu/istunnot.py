@@ -20,6 +20,12 @@ from app.triage.tyontekija import Triagetyontekija
 # Paattyneita tuloksia pidetaan vain rajallinen maara (dev-nakyma, triagen syote).
 MAX_TULOKSIA = 100
 
+Tallennus = Callable[[PuhelunTulos], None]
+
+
+def _ei_tallennusta(tulos: PuhelunTulos) -> None:
+    """Ilman kantaa (testit): tulos jää vain muistiin. main.py asettaa kantaan tallennuksen."""
+
 
 @dataclass
 class Keskenvuoro:
@@ -41,7 +47,18 @@ class Istuntovarasto:
         self._tulokset: deque[PuhelunTulos] = deque(maxlen=MAX_TULOKSIA)
         self._kaiut: deque[KaikuTulos] = deque(maxlen=MAX_TULOKSIA)
         self._kesken: dict[str, Keskenvuoro] = {}
+        self._tallenna: Tallennus = _ei_tallennusta
         self._triage: Triagetyontekija | None = None
+
+    def aseta_tallennus(self, tallenna: Tallennus) -> None:
+        """Yhteenvedon tallennus kantaan (main.py käynnistyksessä). Samaa käytetään puhelun
+        päättyessä ja kun triage-analyysi päivittää yhteenvedon. paata kutsuu sitä lukon
+        sisällä, joten tallennus ei saa kutsua varastoa."""
+        self._tallenna = tallenna
+
+    def tallenna(self, tulos: PuhelunTulos) -> None:
+        """Triage-analyysin päivitys. Ei lukkoa: tallennus käyttää omaa kantasessiotaan."""
+        self._tallenna(tulos)
 
     def aseta_triage(self, triage: Triagetyontekija | None) -> None:
         """LLM-analyysi päättyneille puheluille (main.py käynnistää, kun LLM_MALLI on)."""
@@ -74,14 +91,18 @@ class Istuntovarasto:
         with self._lukko:
             self._istunnot.pop(istunto_id, None)
 
-    def paata(self, istunto: Puheluistunto, tallenna: Callable[[PuhelunTulos], None]) -> bool:
-        """Tallentaa yhteenvedon ennen kuin istunto poistetaan ja tulos julkaistaan."""
+    def paata(self, istunto: Puheluistunto) -> bool:
+        """Tallentaa yhteenvedon ennen kuin istunto poistetaan ja tulos julkaistaan.
+        False = puhelu oli jo päätetty (ei toista tallennusta)."""
         with self._lukko:
             if istunto.istunto_id not in self._istunnot:
                 return False
             tulos = istunto.tulos()
-            # Jos kanta ei ole käytettävissä, jätä istunto aktiiviseksi uudelleenyritystä varten.
-            tallenna(tulos)
+            # Tallennus lukon sisällä: Twilion paluukutsut (/tila, /relay-loppu) ajetaan
+            # säikeissä yhtä aikaa relayn lopetuksen kanssa, ja ne näkevät istunnon joko
+            # käynnissä tai päättyneenä, eivät tallennuksen kesken. Jos kanta ei ole
+            # käytettävissä, istunto jää aktiiviseksi uudelleenyritystä varten.
+            self._tallenna(tulos)
             self._istunnot.pop(istunto.istunto_id)
             self._tulokset.append(tulos)
         if self._triage is not None:

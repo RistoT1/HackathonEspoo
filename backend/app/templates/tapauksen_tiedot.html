@@ -156,6 +156,21 @@
   </div>
   <p class="toissijainen">Sanatarkkoja puheluvastauksia tai litterointia ei tallenneta.</p>
 
+  {% if edellinen_puhelu %}
+  {% set toistuvat = puhelutulos.yhteenveto.saanto.toistuvat_oireet if puhelutulos and puhelutulos.yhteenveto and puhelutulos.yhteenveto.saanto else [] %}
+  <article class="puhelutulos-osio edellinen-puhelu{% if toistuvat %} puhelutulos-huomio{% endif %}">
+    <h3>Edellinen puhelu</h3>
+    <p>
+      {% if edellinen_puhelu.paivia_sitten == 0 %}Aiemmin tänään{% elif edellinen_puhelu.paivia_sitten == 1 %}Eilen{% else %}{{ edellinen_puhelu.paivia_sitten }} päivää sitten{% endif %}
+      (taso {{ edellinen_puhelu.taso }}): {{ edellinen_puhelu.kuvaukset | join(", ") }}.
+    </p>
+    {% if toistuvat %}
+    <p><strong>Jatkuu edelleen:</strong> {{ toistuvat | join(", ") }}.</p>
+    {% endif %}
+    <p class="toissijainen">Agentti kysyy tästä seuraavassa puhelussa. Lähde: aiempi hoitajayhteenveto.</p>
+  </article>
+  {% endif %}
+
   {% if not puhelutulos %}
   <p class="toissijainen">Puhelun tulosta ei ole vielä tallennettu.</p>
   {% elif not puhelutulos.yhteenveto %}
