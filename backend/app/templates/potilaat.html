@@ -1,0 +1,73 @@
+{% extends "perus.html" %}
+{% set aktiivinen = "potilaat" %}
+
+{% block title %}Potilaat{% endblock %}
+
+{% block content %}
+<section class="sivun-otsikko">
+  <div class="sivun-otsikko-tekstit">
+    <p class="ylateksti">TYÖTILA</p>
+    <h1>Potilaat</h1>
+    <p class="toissijainen">Henkilöt, joille on muodostunut soittotehtävä. Tuorein tapahtuma ensin.</p>
+  </div>
+</section>
+
+<section class="kortti jonokortti" aria-labelledby="potilaat-otsikko">
+  <div class="kortin-otsikko">
+    <div>
+      <h2 id="potilaat-otsikko">Seurattavat henkilöt</h2>
+      <p class="toissijainen">Avaa henkilön sivu nähdäksesi soittohistorian, oireet puheluissa ja perustiedot.</p>
+    </div>
+    <span class="tapausmaara">{{ potilaat | length }} henkilöä</span>
+  </div>
+
+  {% if potilaat %}
+  <div class="taulukko-sailio">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Potilas</th>
+          <th scope="col">Ikä</th>
+          <th scope="col">Viimeisin arvio</th>
+          <th scope="col">Viimeisin puhelu</th>
+          <th scope="col">Puheluita</th>
+          <th scope="col">Soittotehtäviä</th>
+          <th scope="col"><span class="sr-only">Toiminto</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for potilas in potilaat %}
+        <tr>
+          <td>
+            <span class="tunniste">{{ potilas.vanhus_id[:8] }}</span>
+            <span class="tunniste-ala">Pseudonyymi</span>
+          </td>
+          <td>{{ potilas.ika ~ " v" if potilas.ika is not none else "–" }}</td>
+          <td>
+            {% if potilas.viimeisin_taso %}
+            <span class="kiireellisyysmerkki kiireellisyysmerkki-pieni kiireellisyys-{{ potilas.viimeisin_taso.value | replace('ä', 'a') }}">{{ potilas.viimeisin_taso.value | capitalize }}</span>
+            {% else %}<span class="tunniste-ala">Ei arviota</span>{% endif %}
+          </td>
+          <td class="aikaleima">{{ potilas.viimeisin_puhelu | aika("%d.%m.%Y %H:%M") if potilas.viimeisin_puhelu else "Ei puheluita" }}</td>
+          <td>{{ potilas.puheluita }}</td>
+          <td>
+            {{ potilas.tehtavia }}
+            {% if potilas.avoimia %}<span class="tunniste-ala">{{ potilas.avoimia }} avoinna</span>{% endif %}
+          </td>
+          <td><a class="tekstipainike" href="/hoitaja/potilaat/{{ potilas.vanhus_id }}">Avaa <span aria-hidden="true">→</span></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="tyhja-tila">
+    <span class="tyhja-kuvake" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>
+    </span>
+    <h3>Ei seurattavia henkilöitä</h3>
+    <p>Henkilö tulee listalle, kun hänelle muodostuu soittotehtävä.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

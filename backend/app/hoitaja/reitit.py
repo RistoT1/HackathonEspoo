@@ -1,20 +1,25 @@
+import logging
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.hoitaja import jono, palvelu
+from app.data.adapteri import DataEiSaatavilla, Datalahde, hae_datalahde
+from app.hoitaja import ajat, historia, jono, palvelu, potilas
 from app.mallit import (
     EdellinenPuhelu,
+    Oirehistoria,
     Puhelutehtava,
     PuhelutehtavanTila,
     TallennettuTulos,
     TilanMuutos,
 )
 from app.muisti.muisti import hae_edellinen_puhelu
+from app.muutokset.palvelu import ratkaise_viitepaiva
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.palvelu import (
     MAX_YRITYKSET,
@@ -25,10 +30,15 @@ from app.puhelutehtavat.palvelu import (
 )
 from app.tietokanta import hae_sessio
 
+logger = logging.getLogger(__name__)
 reititin = APIRouter()
 _app_hakemisto = Path(__file__).resolve().parent.parent
 mallipohjat = Jinja2Templates(directory=_app_hakemisto / "templates")
+# Ajat näytetään Suomen aikaan (kanta UTC): {{ aika | aika("%d.%m.%Y") }}.
+mallipohjat.env.filters["aika"] = ajat.muotoile
+mallipohjat.env.filters["suomen_aika"] = ajat.suomen_aika
 SessioDep = Annotated[Session, Depends(hae_sessio)]
+DatalahdeDep = Annotated[Datalahde, Depends(hae_datalahde)]
 
 TILAN_NIMET = {
     PuhelutehtavanTila.ODOTTAA: "Odottaa soittoa",
@@ -67,6 +77,7 @@ def _tehtavan_nakyma(
     tapaus: Puhelutehtava,
     puhelutulos: TallennettuTulos | None,
     edellinen_puhelu: EdellinenPuhelu | None = None,
+    oirehistoria: Oirehistoria | None = None,
 ) -> dict[str, object]:
     sallittuja = list(SALLITUT_TOIMINNOT[tapaus.tila])
     if tapaus.tila == PuhelutehtavanTila.EI_VASTANNUT and tapaus.yritykset >= MAX_YRITYKSET:
@@ -80,6 +91,8 @@ def _tehtavan_nakyma(
         "toimintojen_nimet": TILAN_NIMET,
         "puhelutulos": puhelutulos,
         "edellinen_puhelu": edellinen_puhelu,
+        "oirehistoria": oirehistoria,
+        "oirehistoria_json": oirehistoria.model_dump(mode="json") if oirehistoria else None,
     }
 
 
@@ -143,11 +156,67 @@ def nayta_tapaus(
     # Sama muisti kuin agentilla, mutta tämän tehtävän puhelua edeltävä.
     ennen = puhelutulos.paattyi if puhelutulos is not None else None
     edellinen = hae_edellinen_puhelu(sessio, tapaus.vanhus_id, ennen=ennen)
+    # Saman henkilön kaikki puhelut (myös muiden tehtävien), sama lähde kuin muistilla.
+    tulokset = palvelu.vanhuksen_tulokset(sessio, tapaus.vanhus_id)
+    oirehistoria = historia.oirehistoria(tulokset, tapaus.id)
 
     return mallipohjat.TemplateResponse(
         request=pyynto,
         name="tapauksen_tiedot.html",
-        context=_tehtavan_nakyma(tapaus, puhelutulos, edellinen),
+        context=_tehtavan_nakyma(tapaus, puhelutulos, edellinen, oirehistoria),
+    )
+
+
+@reititin.get("/hoitaja/potilaat/", response_class=HTMLResponse)
+def nayta_potilaat(pyynto: Request, sessio: SessioDep) -> HTMLResponse:
+    """Potilaslista: henkilöt, joilla on soittotehtäviä. Rivistä potilaan sivulle."""
+    rivit = potilas.potilasrivit(potilas.kaikki_tehtavat(sessio), palvelu.kaikki_tulokset(sessio))
+    return mallipohjat.TemplateResponse(
+        request=pyynto, name="potilaat.html", context={"potilaat": rivit}
+    )
+
+
+@reititin.get("/hoitaja/potilaat/{vanhus_id}", response_class=HTMLResponse)
+def nayta_potilas(
+    pyynto: Request,
+    vanhus_id: str,
+    sessio: SessioDep,
+    datalahde: DatalahdeDep,
+) -> HTMLResponse:
+    """Potilassivu: perustiedot, lääkitys, soittotehtävät ja oireet puheluissa."""
+    tehtavat = potilas.vanhuksen_tehtavat(sessio, vanhus_id)
+    vanhus, jaksot, viitepaiva = None, None, None
+    try:
+        vanhus = datalahde.hae_vanhus(vanhus_id)
+        if vanhus is not None:
+            jaksot = datalahde.hae_laakejaksot(vanhus_id)
+            # Sama "nyt" kuin tehtävällä: demodata on historiallista (ks. viitepäivä).
+            viitepaiva = (
+                tehtavat[0].viitepaiva if tehtavat else ratkaise_viitepaiva(None, datalahde)
+            )
+    except (DataEiSaatavilla, SQLAlchemyError):
+        # Sivu toimii ilman terveysdataa: tehtävät ja puhelut ovat sovelluksen omassa kannassa.
+        logger.warning("Potilassivu ilman terveysdataa", exc_info=True)
+    if vanhus is None and not tehtavat:
+        raise HTTPException(status_code=404, detail="Potilasta ei löydy")
+
+    palvelu.kirjaa_potilaan_katselu(sessio, vanhus_id)
+    tulokset = palvelu.vanhuksen_tulokset(sessio, vanhus_id)
+    oirehistoria = historia.oirehistoria(tulokset)
+    arviot = jono.hae_arviot(sessio, [tehtava.id for tehtava in tehtavat])
+
+    return mallipohjat.TemplateResponse(
+        request=pyynto,
+        name="potilas.html",
+        context={
+            "tiedot": potilas.potilastiedot(vanhus_id, vanhus, jaksot, viitepaiva),
+            "tehtavat": tehtavat,
+            "arviot": arviot,
+            "tilan_nimet": TILAN_NIMET,
+            "tilan_css": {tila: _tilan_css_luokka(tila) for tila in PuhelutehtavanTila},
+            "oirehistoria": oirehistoria,
+            "oirehistoria_json": oirehistoria.model_dump(mode="json") if oirehistoria else None,
+        },
     )
 
 

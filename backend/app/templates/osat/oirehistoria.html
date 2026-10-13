@@ -1,0 +1,128 @@
+{# Oireet puheluissa: tunnusluvut ja kaaviot. Vaatii kontekstiin oirehistoria (Oirehistoria)
+   ja oirehistoria_json. Käytössä tapaussivulla ja potilassivulla. #}
+{% if oirehistoria %}
+{% set toistuvin = oirehistoria.oireet[0] if oirehistoria.oireet else none %}
+<section class="kortti oirehistoriakortti" aria-labelledby="oirehistoria-otsikko">
+  <div class="kortin-otsikko">
+    <div>
+      <p class="ylateksti">OIREET PUHELUISSA</p>
+      <h2 id="oirehistoria-otsikko">Mistä henkilö on kertonut</h2>
+    </div>
+    <span class="tapausmaara">{{ oirehistoria.puhelut | length }} puhelua</span>
+  </div>
+
+  <div class="mittaririvi oirehistoria-mittarit" aria-label="Puhelujen tunnusluvut">
+    <article class="mittari">
+      <span class="mittari-ikoni mittari-ikoni-avoin" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M7.2 4.5h-2A1.7 1.7 0 0 0 3.5 6.2c0 7.9 6.4 14.3 14.3 14.3a1.7 1.7 0 0 0 1.7-1.7v-2l-4.1-1.4-1.1 2a14.3 14.3 0 0 1-7.5-7.5l2-1.1-1.6-4.3Z"/></svg>
+      </span>
+      <span class="mittari-sisalto">
+        <span class="mittari-nimi">Puheluita</span>
+        <strong>{{ oirehistoria.puhelut | length }}</strong>
+      </span>
+      <span class="mittari-kuvaus">joista tavoitettu {{ oirehistoria.tavoitettu }}</span>
+    </article>
+    <article class="mittari">
+      <span class="mittari-ikoni mittari-ikoni-kiireellinen" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3.5 21 20H3L12 3.5Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
+      </span>
+      <span class="mittari-sisalto">
+        <span class="mittari-nimi">Viimeisin arvio</span>
+        {% if oirehistoria.viimeisin_taso %}
+        <strong><span class="kiireellisyysmerkki kiireellisyys-{{ oirehistoria.viimeisin_taso.value | replace('ä', 'a') }}">{{ oirehistoria.viimeisin_taso.value | capitalize }}</span></strong>
+        {% else %}<strong>–</strong>{% endif %}
+      </span>
+      <span class="mittari-kuvaus">{{ oirehistoria.viimeisin_aika | aika("%d.%m.%Y klo %H:%M") if oirehistoria.viimeisin_aika else "ei arvioitua puhelua" }}</span>
+    </article>
+    <article class="mittari">
+      <span class="mittari-ikoni mittari-ikoni-valmis" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 12h3l2-5 4 10 2-5h5"/></svg>
+      </span>
+      <span class="mittari-sisalto">
+        <span class="mittari-nimi">Toistuvin oire</span>
+        <strong class="oirehistoria-mittari-teksti">{{ toistuvin | capitalize if toistuvin else "–" }}</strong>
+      </span>
+      <span class="mittari-kuvaus">{% if toistuvin %}{{ oirehistoria.mainintoja.get(toistuvin, 0) }} puhelussa{% if oirehistoria.toistuvin_tila %} · {{ oirehistoria.toistuvin_tila }}{% endif %}{% else %}ei oireita{% endif %}</span>
+    </article>
+  </div>
+
+  {% if oirehistoria.oireet %}
+  <div class="oirehistoria-ruudukko">
+    <figure class="oirehistoria-kaavio">
+      <h3>Useimmin kerrotut oireet</h3>
+      <p class="toissijainen">Monessako puhelussa henkilö mainitsi oireen.</p>
+      <div data-oirekaavio="yleisyys" role="img"
+           aria-label="Useimmin kerrotut oireet: {% for oire in oirehistoria.oireet[:5] %}{{ oire }} {{ oirehistoria.mainintoja.get(oire, 0) }}{% if not loop.last %}, {% endif %}{% endfor %}"></div>
+    </figure>
+    <figure class="oirehistoria-kaavio">
+      <h3>Voimakkuus puheluittain</h3>
+      <p class="toissijainen">Viimeisimmät puhelut, joissa henkilö tavoitettiin. Uusin oikealla.</p>
+      <div data-oirekaavio="voimakkuus" role="img" aria-label="Oireiden voimakkuus viimeisimmissä puheluissa"></div>
+    </figure>
+  </div>
+  <div class="oirehistoria-sivut" data-kuukausisivut>
+    <div class="oirehistoria-sivut-otsake">
+      <div>
+        <h3>Oireet puheluittain</h3>
+        <p class="toissijainen">Kalenterikuukausittain, uusin puhelu oikealla. Yli 10 puhelun kuukausi jaetaan sivuihin; uusimmat avautuvat ensin.</p>
+      </div>
+      <div class="oirehistoria-sivutukset">
+        {% if oirehistoria.kuukaudet | length > 1 %}
+        <div class="oirehistoria-sivutus" role="group" aria-label="Kuukausi">
+          <button class="painike painike-toissijainen" type="button" data-kuukausi-siirto="-1" aria-label="Edellinen kuukausi">‹</button>
+          <span class="oirehistoria-sivu-nimi" data-kuukausi-nimi aria-live="polite">{{ oirehistoria.kuukaudet[-1].nimi }}</span>
+          <button class="painike painike-toissijainen" type="button" data-kuukausi-siirto="1" aria-label="Seuraava kuukausi" disabled>›</button>
+        </div>
+        {% endif %}
+        <div class="oirehistoria-sivutus" role="group" aria-label="Puhelut kuukauden sisällä" data-sisasivutus hidden>
+          <button class="painike painike-toissijainen" type="button" data-sivu-siirto="-1" aria-label="Vanhemmat puhelut">‹</button>
+          <span class="oirehistoria-sivu-tieto" data-sivu-nimi aria-live="polite"></span>
+          <button class="painike painike-toissijainen" type="button" data-sivu-siirto="1" aria-label="Uudemmat puhelut" disabled>›</button>
+        </div>
+      </div>
+    </div>
+    {% for kuukausi in oirehistoria.kuukaudet %}
+    <div class="oirehistoria-kuukausi" data-kuukausi="{{ kuukausi.avain }}" data-nimi="{{ kuukausi.nimi }}"{% if not loop.last %} hidden{% endif %}>
+      {% if oirehistoria.kuukaudet | length == 1 %}<p class="oirehistoria-sivu-nimi">{{ kuukausi.nimi }}</p>{% endif %}
+      {% for sivu in kuukausi.sivut %}
+      <div data-kuukausisivu data-nimi="Puhelut {{ sivu.alku }}–{{ sivu.loppu }} / {{ kuukausi.puhelut | length }}"{% if not loop.last %} hidden{% endif %}>
+        {% if sivu.oireet %}
+        <div class="oirehistoria-taulukko">
+          <table>
+            <caption class="sr-only">Oireet puheluittain, {{ kuukausi.nimi }}, puhelut {{ sivu.alku }}–{{ sivu.loppu }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Oire</th>
+                {% for puhelu in sivu.puhelut %}<th scope="col">{{ puhelu.nimi }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for oire in sivu.oireet %}
+              <tr>
+                <th scope="row">{{ oire }}</th>
+                {% for puhelu in sivu.puhelut %}
+                {% set merkinnat = puhelu.oireet | selectattr("oire", "equalto", oire) | list %}
+                <td>{{ merkinnat[0].voimakkuus if merkinnat else ("ei tavoitettu" if not puhelu.tavoitettu else "–") }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="toissijainen">{{ sivu.puhelut | length }} puhelua, ei kerrottuja oireita.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="toissijainen">Henkilö ei ole kertonut oireista puheluissa.</p>
+  {% endif %}
+</section>
+<link rel="stylesheet" href="/static/oirehistoria.css">
+<script type="application/json" id="oirehistoria-data">{{ oirehistoria_json | tojson }}</script>
+<script src="/static/vendor/echarts-5.5.1.min.js" defer></script>
+<script src="/static/oirehistoria.js" defer></script>
+{% endif %}

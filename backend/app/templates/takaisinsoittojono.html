@@ -126,7 +126,7 @@
             <span class="yhteenveto-kuvaus">Ei muutostietoja</span>
             {% endif %}
           </td>
-          <td class="aikaleima">{{ tapaus.luotu.strftime("%d.%m.%Y %H:%M") }}</td>
+          <td class="aikaleima">{{ tapaus.luotu | aika("%d.%m.%Y %H:%M") }}</td>
           <td>
             <span class="tilamerkki tilamerkki-{{ tilan_css[tapaus.tila] }}">
               {{ tilan_nimet[tapaus.tila] }}

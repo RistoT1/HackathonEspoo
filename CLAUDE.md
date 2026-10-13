@@ -231,6 +231,16 @@ triage/          puhelun jälkeen: saannot.py sääntötaso heti (punainen/kelta
                  puhelun_tulos-tauluun ja päivittyy mallianalyysin valmistuttua
 hoitaja/         soittotehtävänäkymä + tallennettu yhteenveto, katseluloki demo-katsojana;
                  palvelu.py: tehtävän uusin tulos DTO:na (sama jonolle ja tapaussivulle)
+  potilas.py     sivupalkin "Potilaat": lista /hoitaja/potilaat/ (henkilöt, joilla on soittotehtäviä,
+                 tuorein tapahtuma ensin) ja potilassivu /hoitaja/potilaat/{vanhus_id}: perustiedot
+                 ja käytössä olevat lääkkeet adapterista, oireet puheluissa, soittohistoria (kaikki
+                 puhelut) ja soittotehtävät. Sivun katselu katselulokiin vanhus_id:llä (toiminto
+                 "potilassivu"); tapaussivulta linkki. Aktiivinen valikko: {% set aktiivinen %}.
+  historia.py    "Oireet puheluissa" (osat/oirehistoria.html, sekä tapaus- että potilassivulla):
+                 saman vanhus_id:n kaikkien puhelujen oireet (puhelun_tulos, sama lähde kuin
+                 muistilla). Mallin vapaat oirenimet yhtenäistetään tietopohja.tarkista-säännöllä
+                 ("tosi vaikeat päänkiput" -> päänsärky). Piirto static/oirehistoria.js (ECharts
+                 paikallisesti static/vendor/). Demohistoria: scripts/luo_demo_oirehistoria.py.
 muisti/          edellinen puhelu: saman vanhus_id:n uusin hoitajayhteenveto (MUISTI_PAIVAT, oletus
                  30 pv) tiivistetään säännöllä (oire + voimakkuus + päivät, ei vakavia huolia,
                  ei litterointia). Liitetään Puhelukontekstiin soiton alkaessa (ei tallenneta
