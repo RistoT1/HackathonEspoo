@@ -1,8 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
-from app.hoitaja import jono
-from app.hoitaja.jono import JononTaso
-from app.mallit import Kiireellisyys, Puhelutehtava, Saantoloydokset, Yhteenveto
+from app.hoitaja import jono, palvelu
+from app.mallit import Kiireellisyys, PuhelunLoppu, Puhelutehtava, Saantoloydokset, Yhteenveto
 from app.tietokanta import PuhelunTulosRivi
 
 K = Kiireellisyys
@@ -13,36 +12,39 @@ def tehtava(tehtava_id: str) -> Puhelutehtava:
     return Puhelutehtava.model_construct(id=tehtava_id)
 
 
-def yhteenveto(taso: Kiireellisyys, analyysi_valmis: bool = True) -> dict:
-    malli = Yhteenveto(
+def arvio(taso: Kiireellisyys, analyysi_valmis: bool = True) -> Yhteenveto:
+    return Yhteenveto(
         taso=taso,
         saanto=Saantoloydokset(taso=taso),
         analyysi_valmis=analyysi_valmis,
     )
-    return malli.model_dump(mode="json")
+
+
+def yhteenveto(taso: Kiireellisyys, analyysi_valmis: bool = True) -> dict:
+    return arvio(taso, analyysi_valmis).model_dump(mode="json")
 
 
 def test_jono_jarjestyy_kiireellisyyden_mukaan_ja_sailyttaa_soittojarjestyksen():
     tapaukset = [tehtava(t) for t in ("vihrea", "ei-1", "keltainen", "ei-2", "punainen")]
-    tasot = {
-        "vihrea": JononTaso(K.VIHREA, True),
-        "keltainen": JononTaso(K.KELTAINEN, False),
-        "punainen": JononTaso(K.PUNAINEN, True),
+    arviot = {
+        "vihrea": arvio(K.VIHREA),
+        "keltainen": arvio(K.KELTAINEN, analyysi_valmis=False),
+        "punainen": arvio(K.PUNAINEN),
     }
 
-    jarjestetty = [t.id for t in jono.jarjesta(tapaukset, tasot)]
+    jarjestetty = [t.id for t in jono.jarjesta(tapaukset, arviot)]
 
     assert jarjestetty == ["punainen", "keltainen", "vihrea", "ei-1", "ei-2"]
 
 
 def test_hoitaja_soittaa_laskee_punaiset_ja_keltaiset():
-    tasot = {
-        "a": JononTaso(K.PUNAINEN, True),
-        "b": JononTaso(K.KELTAINEN, False),
-        "c": JononTaso(K.VIHREA, True),
+    arviot = {
+        "a": arvio(K.PUNAINEN),
+        "b": arvio(K.KELTAINEN, analyysi_valmis=False),
+        "c": arvio(K.VIHREA),
     }
 
-    assert jono.hoitaja_soittaa(tasot) == 2
+    assert jono.hoitaja_soittaa(arviot) == 2
 
 
 def test_tasoksi_uusimman_puhelun_yhteenveto(sessio):
@@ -73,7 +75,48 @@ def test_tasoksi_uusimman_puhelun_yhteenveto(sessio):
     )
     sessio.commit()
 
-    tasot = jono.hae_tasot(sessio, ["t-1", "t-2", "t-3"])
+    arviot = jono.hae_arviot(sessio, ["t-1", "t-2", "t-3"])
 
-    assert tasot == {"t-1": JononTaso(K.KELTAINEN, analyysi_valmis=False)}
-    assert jono.hae_tasot(sessio, []) == {}
+    assert arviot == {"t-1": arvio(K.KELTAINEN, analyysi_valmis=False)}
+    assert jono.hae_arviot(sessio, []) == {}
+
+
+def test_uusin_tulos_paattymisaika_puuttuu_on_vanhin(sessio):
+    """Jono ja tapaussivu lukevat saman tuloksen: Postgres järjestäisi NULLin ensimmäiseksi."""
+    sessio.add_all(
+        [
+            PuhelunTulosRivi(
+                istunto_id="ilman-aikaa",
+                tehtava_id="t-1",
+                loppu=None,
+                paattyi=None,
+                yhteenveto=yhteenveto(K.PUNAINEN),
+            ),
+            PuhelunTulosRivi(
+                istunto_id="ajallinen",
+                tehtava_id="t-1",
+                loppu="KESKEYTYI",
+                paattyi=NYT,
+                yhteenveto=yhteenveto(K.VIHREA),
+            ),
+            PuhelunTulosRivi(
+                istunto_id="vain-ilman-aikaa",
+                tehtava_id="t-2",
+                loppu=None,
+                paattyi=None,
+                yhteenveto=None,
+            ),
+        ]
+    )
+    sessio.commit()
+
+    tulokset = palvelu.uusimmat_tulokset(sessio, ["t-1", "t-2"])
+
+    assert tulokset["t-1"].istunto_id == "ajallinen"
+    assert tulokset["t-1"].loppu is PuhelunLoppu.KESKEYTYI
+    assert tulokset["t-1"].paattyi == NYT  # SQLite palauttaa ilman vyöhykettä: UTC
+    assert tulokset["t-1"].yhteenveto == arvio(K.VIHREA)
+    # JSON-null: tulos on olemassa, yhteenvetoa ei (jonossa "Ei arviota").
+    assert tulokset["t-2"].yhteenveto is None
+    assert tulokset["t-2"].loppu is None
+    assert jono.hae_arviot(sessio, ["t-1", "t-2"]) == {"t-1": arvio(K.VIHREA)}
