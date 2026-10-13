@@ -290,15 +290,22 @@ def test_reitit_virheet(client):
     assert vastaus.status_code == 409
 
 
-def test_hoitajan_nakyma_nayttaa_tietokannan_soittotehtavat(client):
+def test_hoitajan_nakyma_nayttaa_tietokannan_soittotehtavat(client, sessiotehdas):
     tunnistus = client.post("/puhelutehtavat/tunnista", json={})
     assert tunnistus.status_code == 200
+
+    # Taytetaan tunnistetiedot, jotta nakyma nayttaa nimen ja hetun pseudonyymin sijaan.
+    with sessiotehdas() as sessio:
+        varasto.tallenna_henkilotieto(sessio, "v-1", "Aino", "Virtanen", "010150-999X")
 
     jono = client.get("/hoitaja/")
 
     assert jono.status_code == 200
     assert "Soittotehtävät" in jono.text
-    assert "Pseudonyymi v-1" in jono.text
+    # Pseudonyymiä (vanhus_id) ei enää näytetä hoitajalle, vaan nimi + hetu.
+    assert "Pseudonyymi v-1" not in jono.text
+    assert "Aino Virtanen" in jono.text
+    assert "010150-999X" in jono.text
     assert "Soittoprioriteetti" in jono.text
     assert "triage- tai kiireellisyysluokitus" in jono.text
     assert "+358" not in jono.text
@@ -314,7 +321,7 @@ def test_hoitajan_nakyma_nayttaa_tietokannan_soittotehtavat(client):
     assert "TUNNISTETUT TERVEYSTIETOJEN MUUTOKSET" in yksittainen.text
     assert "PUHELUN KYSYMYSRUNKO" in yksittainen.text
     assert "Puhelun tulosta ei ole vielä tallennettu." in yksittainen.text
-    assert "Sanatarkkoja puheluvastauksia tai litterointia ei tallenneta" in yksittainen.text
+    assert "Raakavastauksia tai litterointia ei näytetä." in yksittainen.text
 
 
 def test_hoitajan_tehtavassa_naytetaan_tallennettu_puheluyhteenveto_ja_kirjataan_katselu(

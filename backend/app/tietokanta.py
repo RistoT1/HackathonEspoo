@@ -163,6 +163,21 @@ class VanhuksenYhteystietoRivi(Base):
     )
 
 
+class VanhuksenHenkilotietoRivi(Base):
+    """Pseudonymisointi: tunnistetiedot (nimi, hetu) erillaan terveystiedoista, linkki vain
+    vanhus_id:lla. Nama naytetaan hoitajalle, mutta ne eivat kulje puheluun eika LLM:lle."""
+
+    __tablename__ = "vanhuksen_henkilotieto"
+
+    vanhus_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    etunimi: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    sukunimi: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    hetu: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    paivitetty: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_nyt, onupdate=_nyt
+    )
+
+
 # --- Kysymyssisalto: tekstit ja laakeryhmat kannassa, muokataan SQL:lla (ks. backend/sql/) ---
 # Luonnolliset avaimet (tyyppi, aihe, nimi), jotta rivit on helppo kirjoittaa kasin.
 # on_aktiivinen = false poistaa rivin kaytosta ilman poistoa.

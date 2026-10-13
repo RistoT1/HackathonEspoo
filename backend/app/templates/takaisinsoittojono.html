@@ -34,7 +34,7 @@
       <span class="mittari-nimi">Odottaa soittoa</span>
       <strong>{{ yhteenveto.odottavat }}</strong>
     </span>
-    <span class="mittari-kuvaus">backendin soittojonossa</span>
+    <span class="mittari-kuvaus">Soittojärjestys</span>
   </article>
   <article class="mittari">
     <span class="mittari-ikoni mittari-ikoni-valmis" aria-hidden="true">
@@ -76,7 +76,7 @@
       <thead>
         <tr>
           <th scope="col">Soittojärjestys</th>
-          <th scope="col">Tehtävä / pseudonyymi</th>
+          <th scope="col">Potilas</th>
           <th scope="col">Tunnistetut lääkemuutokset</th>
           <th scope="col">Luotu</th>
           <th scope="col">Tila</th>
@@ -88,8 +88,13 @@
         <tr>
           <td><span class="prioriteetti">{{ tapaus.prioriteetti }}</span><span class="tunniste-ala">pistettä</span></td>
           <td>
-            <span class="tunniste">{{ tapaus.id[:8] }}</span>
-            <span class="tunniste-ala">Pseudonyymi {{ tapaus.vanhus_id }}</span>
+            {% if tapaus.etunimi or tapaus.sukunimi %}
+            <span class="tunniste">{{ tapaus.etunimi }} {{ tapaus.sukunimi }}</span>
+            <span class="tunniste-ala">{{ tapaus.hetu if tapaus.hetu else "Henkilötunnus puuttuu" }}</span>
+            {% else %}
+            <span class="tunniste">Nimi puuttuu</span>
+            <span class="tunniste-ala">{{ tapaus.hetu if tapaus.hetu else "Henkilötunnus puuttuu" }}</span>
+            {% endif %}
           </td>
           <td>
             {% for muutos in tapaus.muutokset[:2] %}

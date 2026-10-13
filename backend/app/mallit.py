@@ -170,6 +170,11 @@ class Puhelutehtava(BaseModel):
     konteksti: Puhelukonteksti  # LLM:lle
     luotu: datetime
     paivitetty: datetime
+    # Tunnistetiedot hoitajan nakymaan (vanhuksen_henkilotieto-taulusta vanhus_id:lla).
+    # None = ei liitettya tunnistetietoa. Nama EIVAT kulje puheluun eika LLM:lle.
+    etunimi: str | None = None
+    sukunimi: str | None = None
+    hetu: str | None = None
 
 
 class Soittotiedot(BaseModel):
@@ -322,6 +327,23 @@ class Yhteystieto(BaseModel):
     puhelinnumero: str = Field(
         pattern=r"^\+[1-9]\d{6,14}$", description="E.164, esim. +358401234567"
     )
+
+
+class Henkilotieto(BaseModel):
+    """Hoitajan nakymaan naytettavat tunnistetiedot. Linkki vain vanhus_id:lla, erillaan
+    terveystiedoista. Demossa synteettisia; EI oikeita henkilotietoja (saannot)."""
+
+    etunimi: str | None = Field(None, max_length=64)
+    sukunimi: str | None = Field(None, max_length=64)
+    hetu: str | None = Field(None, max_length=20, description="Suomalainen henkilotunnus")
+
+
+class HenkilotietojenTaytto(BaseModel):
+    """VAIN DEV: montako henkilotietoriviä täytettiin synteettisillä nimillä."""
+
+    __test__ = False
+
+    taytettyja: int
 
 
 class TunnistusPyynto(BaseModel):

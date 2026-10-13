@@ -1,19 +1,19 @@
 {% extends "perus.html" %}
 
-{% block title %}Soittotehtävä {{ tapaus.id[:8] }}{% endblock %}
+{% block title %}Soittotehtävä {{ (tapaus.etunimi ~ " " ~ tapaus.sukunimi) | trim if (tapaus.etunimi or tapaus.sukunimi) else tapaus.id[:8] }}{% endblock %}
 
 {% block content %}
 <nav class="murupolku" aria-label="Murupolku">
   <a href="/hoitaja/">Soittojono</a>
   <span aria-hidden="true">/</span>
-  <span aria-current="page">{{ tapaus.id[:8] }}</span>
+  <span aria-current="page">{{ (tapaus.etunimi ~ " " ~ tapaus.sukunimi) | trim if (tapaus.etunimi or tapaus.sukunimi) else tapaus.id[:8] }}</span>
 </nav>
 
 <section class="sivun-otsikko tapaus-otsikko">
   <div>
     <p class="ylateksti">SOITTOTEHTÄVÄ</p>
-    <h1>{{ tapaus.id[:8] }}</h1>
-    <p class="toissijainen">Pseudonyymi tunniste: {{ tapaus.vanhus_id }}</p>
+    <h1>{{ (tapaus.etunimi ~ " " ~ tapaus.sukunimi) | trim if (tapaus.etunimi or tapaus.sukunimi) else "Nimi puuttuu" }}</h1>
+    <p class="toissijainen">Henkilötunnus: {{ tapaus.hetu if tapaus.hetu else "ei tiedossa" }}</p>
   </div>
   <span class="tilamerkki tilamerkki-{{ tilan_css }}">{{ tilan_nimi }}</span>
 </section>

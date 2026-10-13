@@ -10,6 +10,7 @@ from app.mallit import Kysymys, Laakemuutos, Puhelukonteksti, Puhelutehtava, Puh
 from app.tietokanta import (
     PuhelutehtavanMuutosRivi,
     PuhelutehtavaRivi,
+    VanhuksenHenkilotietoRivi,
     VanhuksenYhteystietoRivi,
 )
 
@@ -31,7 +32,10 @@ def rivin_muutokset(rivi: PuhelutehtavaRivi) -> list[Laakemuutos]:
     return muutokset
 
 
-def dto(rivi: PuhelutehtavaRivi) -> Puhelutehtava:
+def dto(
+    rivi: PuhelutehtavaRivi,
+    henkilotieto: VanhuksenHenkilotietoRivi | None = None,
+) -> Puhelutehtava:
     muutokset = rivin_muutokset(rivi)
     return Puhelutehtava(
         id=rivi.id,
@@ -48,7 +52,30 @@ def dto(rivi: PuhelutehtavaRivi) -> Puhelutehtava:
         konteksti=Puhelukonteksti.model_validate(rivi.konteksti),
         luotu=_utc(rivi.luotu),
         paivitetty=_utc(rivi.paivitetty),
+        etunimi=henkilotieto.etunimi if henkilotieto is not None else None,
+        sukunimi=henkilotieto.sukunimi if henkilotieto is not None else None,
+        hetu=henkilotieto.hetu if henkilotieto is not None else None,
     )
+
+
+def hae_henkilotieto(sessio: Session, vanhus_id: str) -> VanhuksenHenkilotietoRivi | None:
+    return sessio.get(VanhuksenHenkilotietoRivi, vanhus_id)
+
+
+def hae_henkilotiedot(
+    sessio: Session, vanhus_idt: Iterable[str]
+) -> dict[str, VanhuksenHenkilotietoRivi]:
+    """Henkilotiedot monelle vanhukselle erissa (ei N+1-kyselya listauksessa)."""
+    kaikki = list(dict.fromkeys(vanhus_idt))  # uniikit, jarjestys sailyy
+    loytyneet: dict[str, VanhuksenHenkilotietoRivi] = {}
+    for alku in range(0, len(kaikki), _AVAINERA):
+        era = kaikki[alku : alku + _AVAINERA]
+        kysely = select(VanhuksenHenkilotietoRivi).where(
+            VanhuksenHenkilotietoRivi.vanhus_id.in_(era)
+        )
+        for rivi in sessio.scalars(kysely):
+            loytyneet[rivi.vanhus_id] = rivi
+    return loytyneet
 
 
 def olemassa_olevat_avaimet(sessio: Session, avaimet: Iterable[str]) -> set[str]:
@@ -139,7 +166,9 @@ def listaa(sessio: Session, tila: PuhelutehtavanTila | None, raja: int) -> list[
     )
     if tila is not None:
         kysely = kysely.where(PuhelutehtavaRivi.tila == tila.value)
-    return [dto(rivi) for rivi in sessio.scalars(kysely)]
+    rivit = list(sessio.scalars(kysely))
+    henkilotiedot = hae_henkilotiedot(sessio, (rivi.vanhus_id for rivi in rivit))
+    return [dto(rivi, henkilotiedot.get(rivi.vanhus_id)) for rivi in rivit]
 
 
 def hae_puhelinnumero(sessio: Session, vanhus_id: str) -> str | None:
@@ -156,6 +185,33 @@ def tallenna_puhelinnumero(sessio: Session, vanhus_id: str, puhelinnumero: str) 
     else:
         rivi.puhelinnumero = puhelinnumero
     sessio.commit()
+
+
+def tallenna_henkilotieto(
+    sessio: Session,
+    vanhus_id: str,
+    etunimi: str | None,
+    sukunimi: str | None,
+    hetu: str | None,
+) -> None:
+    rivi = sessio.get(VanhuksenHenkilotietoRivi, vanhus_id)
+    if rivi is None:
+        sessio.add(
+            VanhuksenHenkilotietoRivi(
+                vanhus_id=vanhus_id, etunimi=etunimi, sukunimi=sukunimi, hetu=hetu
+            )
+        )
+    else:
+        rivi.etunimi = etunimi
+        rivi.sukunimi = sukunimi
+        rivi.hetu = hetu
+    sessio.commit()
+
+
+def vanhus_idt_jonossa(sessio: Session) -> list[str]:
+    """Jonon tehtavien uniikit vanhus_id:t (demo-taytto kohdistetaan naihin)."""
+    kysely = select(PuhelutehtavaRivi.vanhus_id).distinct()
+    return list(sessio.scalars(kysely))
 
 
 def poista_kaikki(sessio: Session) -> int:
