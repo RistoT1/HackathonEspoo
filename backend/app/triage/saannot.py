@@ -3,8 +3,8 @@
 Pohja on Jeren tietopohja.kiireellisyys() (hätä ja vakavat huolet punainen; huoli,
 huolestuttava oire, huomiosana, uhkaus tai toistuva epäselvyys keltainen). Lisäksi
 puhelun tapahtumat nostavat: tukitila punaiseksi, hoitajapyyntö, lääkeneuvon kysyminen,
-epävarma vastaus ja kesken katkennut puhelu keltaiseksi. Sääntö on alaraja: malli ja
-hoitaja voivat vain nostaa tasoa.
+lääkemuutoksen poikkeama (huomiosanana), epävarma vastaus ja kesken katkennut puhelu
+keltaiseksi. Sääntö on alaraja: malli ja hoitaja voivat vain nostaa tasoa.
 """
 
 from app.mallit import Kiireellisyys, KysymyksenVastaus, PuhelunLoppu, Saantoloydokset
@@ -26,15 +26,32 @@ def _keraa(havainnot: list[Tietopohjahavainto], kentta: str) -> list[str]:
     return tulos
 
 
+def _huomiosanat(havainnot: list[Tietopohjahavainto], laakepoikkeamat: dict[int, str]) -> list[str]:
+    """Huomiosanat kuulemisjärjestyksessä; lääkemuutoksen poikkeama oman vuoronsa
+    sanojen perässä."""
+    tulos: list[str] = []
+    for indeksi, havainto in enumerate(havainnot):
+        poikkeama = laakepoikkeamat.get(indeksi)
+        sanat = [*havainto.keltainen, poikkeama] if poikkeama else havainto.keltainen
+        for sana in sanat:
+            if sana not in tulos:
+                tulos.append(sana)
+    return tulos
+
+
 def saantoloydokset(
     havainnot: list[Tietopohjahavainto],
     vastaukset: list[KysymyksenVastaus],
     loppu: PuhelunLoppu | None,
     hatamerkki: str | None,
     tukitila: str | None,
+    laakepoikkeamat: dict[int, str],
 ) -> Saantoloydokset:
+    """laakepoikkeamat: havainnot-indeksi (vuoro) -> peruste, kun henkilö kertoi, ettei
+    lääkemuutosta noudateta (keskustelu._tunnista_laakepoikkeama)."""
     epaselvia = sum(vastaus.epavarma for vastaus in vastaukset)
     taso = kiireellisyys(havainnot, epaselvia)
+    huomiosanat = _huomiosanat(havainnot, laakepoikkeamat)
     perusteet: list[str] = []
 
     def nosta(uusi: str, peruste: str) -> None:
@@ -56,7 +73,7 @@ def saantoloydokset(
         nosta("keltainen", f"huolestuttava oire: {oire}")
     if _keraa(havainnot, "huoli"):
         nosta("keltainen", "henkilö ilmaisi huolta tai pelkoa")
-    for sana in _keraa(havainnot, "keltainen"):
+    for sana in huomiosanat:
         nosta("keltainen", f"huomiosana: {sana}")
     if loppu == PuhelunLoppu.HALUAA_HOITAJAN:
         nosta("keltainen", "henkilö pyysi hoitajaa")
@@ -81,7 +98,7 @@ def saantoloydokset(
         hatamerkit_kieltomuodossa=_keraa(havainnot, "hata_kielletty"),
         vakavat_huolet=vakavat,
         huolen_ilmaukset=_keraa(havainnot, "huoli"),
-        huomiosanat=_keraa(havainnot, "keltainen"),
+        huomiosanat=huomiosanat,
         tunnistetut_oireet=_keraa(havainnot, "oireet"),
         huolestuttavat_oireet=_keraa(havainnot, "huolestuttavat"),
         loukkaavia_puheenvuoroja=loukkauksia,

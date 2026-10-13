@@ -25,11 +25,11 @@ from app.mallit import (
 )
 from app.puhelu.agentti import Keskusteluagentti
 from app.puhelu.istunnot import Istuntovarasto
+from app.puhelu.kaiku import kaiun_vuoro
 from app.puhelu.keskustelu import (
     Puheluistunto,
     Rajat,
     Vuoro,
-    kaiun_vuoro,
     kasittele,
     lopeta,
 )
