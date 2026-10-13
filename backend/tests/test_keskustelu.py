@@ -7,17 +7,16 @@ import pytest
 
 from app.mallit import Kysymys, Muutoskonteksti, MuutosTyyppi, Puhelukonteksti, PuhelunLoppu
 from app.puhelu.agentti import KiinteaAgentti
+from app.puhelu.kaiku import kaiun_vuoro
 from app.puhelu.keskustelu import (
     EI_KUULUNUT,
     HOITAJALLE,
-    HUONON_VOINNIN_JATKO,
     LAAKENEUVO_VASTAUS,
-    OIREEN_TARKENNUS,
     Puheluistunto,
     Vaihe,
-    kaiun_vuoro,
     kasittele,
 )
+from app.puhelu.lopetus import HUONON_VOINNIN_JATKO, OIREEN_TARKENNUS
 from app.puhelu.tietopohja import NUMERON_KORVAUS
 from app.puhelu.tietopohja import saannot as tietopohja
 
