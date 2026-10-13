@@ -20,6 +20,7 @@ from app.mallit import (
     Soittotiedot,
     TunnistuksenTulos,
 )
+from app.muisti.muisti import konteksti_muistilla
 from app.muutokset.palvelu import hae_kaikki_laakemuutokset
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.priorisointi import laske_prioriteetti
@@ -214,7 +215,7 @@ def hae_soittotiedot(sessio: Session, tehtava_id: str, oletusnumero: str | None)
         tehtava_id=tehtava.id,
         puhelinnumero=puhelinnumero,
         kysymykset=tehtava.kysymykset,
-        konteksti=tehtava.konteksti,
+        konteksti=konteksti_muistilla(sessio, tehtava),
     )
 
 

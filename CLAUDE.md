@@ -92,6 +92,8 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 #   lukee vain:        curl -X POST http://127.0.0.1:8000/dev/puhelu/testi
 #   puheentunnistus:   curl -X POST http://127.0.0.1:8000/dev/puhelu/kaiku   -> GET /dev/puhelu/kaiut
 #   koko keskustelu:   curl -X POST http://127.0.0.1:8000/dev/puhelu/keskustelu -> GET /dev/puhelu/tulokset
+#   muistin demo:      curl -X POST "http://127.0.0.1:8000/dev/puhelu/keskustelu?tehtava_id=<id>" kahdesti
+#                      (1. puhelussa kerro oire, 2. puhelu kysyy siitä; tehtava_id tuloksista)
 #   puhelun aikajana (PUHELU_LOKI=true):  uv run python scripts/puheluloki.py
 # Dev-reitit (/dev/...): DEV_TILA=true .env:iin. API-dokumentaatio: http://127.0.0.1:8000/docs
 # DEMO: laturi kiinni + caffeinate (Mac nukahti akulla 3 min jouten kesken puhelun, 11.10.)
@@ -221,6 +223,11 @@ triage/          puhelun jälkeen: saannot.py sääntötaso heti (punainen/kelta
                  taso = korkeampi säännön ja mallin tasosta. Yhteenveto tallentuu
                  puhelun_tulos-tauluun ja päivittyy mallianalyysin valmistuttua
 hoitaja/         soittotehtävänäkymä + tallennettu yhteenveto, katseluloki demo-katsojana
+muisti/          edellinen puhelu: saman vanhus_id:n uusin hoitajayhteenveto (MUISTI_PAIVAT, oletus
+                 30 pv) tiivistetään säännöllä (oire + voimakkuus + päivät, ei vakavia huolia,
+                 ei litterointia). Liitetään Puhelukontekstiin soiton alkaessa (ei tallenneta
+                 tehtävään), agentin ohjeen LOPPUUN (välimuisti säilyy). Triage: sama oire
+                 jatkuu -> keltainen. Hoitajan tapaussivulla "Edellinen puhelu".
 ```
 Sisältö (kysymystekstit, lääkeryhmät): kannassa, muokkaus `backend/sql/kysymyssisalto.sql`.
 Skeema: Alembic (`backend/alembic/`), uusi migraatio mallimuutoksen jälkeen.

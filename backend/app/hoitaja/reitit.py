@@ -8,7 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.hoitaja import jono
-from app.mallit import Puhelutehtava, PuhelutehtavanTila, TilanMuutos
+from app.mallit import EdellinenPuhelu, Puhelutehtava, PuhelutehtavanTila, TilanMuutos
+from app.muisti.muisti import hae_edellinen_puhelu
 from app.puhelutehtavat import varasto
 from app.puhelutehtavat.palvelu import (
     MAX_YRITYKSET,
@@ -58,7 +59,9 @@ def _tilan_css_luokka(tila: PuhelutehtavanTila) -> str:
 
 
 def _tehtavan_nakyma(
-    tapaus: Puhelutehtava, puhelutulos: PuhelunTulosRivi | None
+    tapaus: Puhelutehtava,
+    puhelutulos: PuhelunTulosRivi | None,
+    edellinen_puhelu: EdellinenPuhelu | None = None,
 ) -> dict[str, object]:
     sallittuja = list(SALLITUT_TOIMINNOT[tapaus.tila])
     if tapaus.tila == PuhelutehtavanTila.EI_VASTANNUT and tapaus.yritykset >= MAX_YRITYKSET:
@@ -71,6 +74,7 @@ def _tehtavan_nakyma(
         "sallitut_toiminnot": sallittuja,
         "toimintojen_nimet": TILAN_NIMET,
         "puhelutulos": puhelutulos,
+        "edellinen_puhelu": edellinen_puhelu,
     }
 
 
@@ -143,11 +147,14 @@ def nayta_tapaus(
         .order_by(PuhelunTulosRivi.paattyi.desc())
         .limit(1)
     )
+    # Sama muisti kuin agentilla, mutta tämän tehtävän puhelua edeltävä.
+    ennen = puhelutulos.paattyi if puhelutulos is not None else None
+    edellinen = hae_edellinen_puhelu(sessio, tapaus.vanhus_id, ennen=ennen)
 
     return mallipohjat.TemplateResponse(
         request=pyynto,
         name="tapauksen_tiedot.html",
-        context=_tehtavan_nakyma(tapaus, puhelutulos),
+        context=_tehtavan_nakyma(tapaus, puhelutulos, edellinen),
     )
 
 

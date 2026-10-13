@@ -235,12 +235,20 @@ class Puheluistunto:
             for muutos in self.konteksti.muutokset
         ]
         kysymykset = [kysymys.teksti for kysymys in self.kysymykset]
-        return jarjestelmaohje(self.konteksti.ika, muutokset, kysymykset)
+        return jarjestelmaohje(
+            self.konteksti.ika, muutokset, kysymykset, self.konteksti.edellinen_puhelu
+        )
 
     def tulos(self) -> PuhelunTulos:
         """Tulos ja sääntöjen triage heti (LLM-analyysi päivittää yhteenvedon myöhemmin)."""
+        edellinen = self.konteksti.edellinen_puhelu
         saanto = saantoloydokset(
-            self.tietohavainnot, self.vastaukset, self.loppu, self.hatamerkki, self.tukitila
+            self.tietohavainnot,
+            self.vastaukset,
+            self.loppu,
+            self.hatamerkki,
+            self.tukitila,
+            edelliset_oireet=edellinen.oireet if edellinen else (),
         )
         return PuhelunTulos(
             istunto_id=self.istunto_id,

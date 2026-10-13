@@ -130,6 +130,16 @@ class Muutoskonteksti(BaseModel):
     paivia_sitten: int
 
 
+class EdellinenPuhelu(BaseModel):
+    """Muisti: tiivistelmä saman henkilön edellisestä puhelusta (app/muisti). Lähde on
+    tallennettu hoitajayhteenveto, ei litterointi. Ei lääkkeen nimeä eikä vakavia huolia."""
+
+    paivia_sitten: int
+    taso: str  # edellisen puhelun Kiireellisyys-arvo, esim. "keltainen"
+    oireet: list[str] = Field(default_factory=list)  # sääntöjen oireavaimet (triagen vertailu)
+    kuvaukset: list[str] = Field(default_factory=list)  # agentille, esim. "huimaus (kohtalainen)"
+
+
 class Puhelukonteksti(BaseModel):
     """LLM:lle annettava tausta henkilosta. Datan minimointi: ei nimea, ei laakkeen nimea,
     ei diagnoosia; vain mita kysymysten ymmartaminen vaatii."""
@@ -137,6 +147,8 @@ class Puhelukonteksti(BaseModel):
     ika: int | None
     aktiivisia_laakkeita: int
     muutokset: list[Muutoskonteksti]  # uusin ensin
+    # Liitetään soiton alkaessa (ei tallenneta tehtävään): ks. muisti.konteksti_muistilla.
+    edellinen_puhelu: EdellinenPuhelu | None = None
 
 
 # --- Puhelutehtavat (soittojono) ---
@@ -269,6 +281,7 @@ class Saantoloydokset(BaseModel):
     huomiosanat: list[str] = Field(default_factory=list)
     tunnistetut_oireet: list[str] = Field(default_factory=list)
     huolestuttavat_oireet: list[str] = Field(default_factory=list)
+    toistuvat_oireet: list[str] = Field(default_factory=list)  # myös edellisessä puhelussa
     loukkaavia_puheenvuoroja: int = 0
     uhkauksia: int = 0
 
