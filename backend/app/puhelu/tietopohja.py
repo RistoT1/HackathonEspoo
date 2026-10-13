@@ -4,7 +4,7 @@ kiinteät repliikit, oireiden jatkokysymykset ja kotihoito-ohjeet sekä kiireell
 Sisältö on versionhallituissa JSON-tiedostoissa (tieto/), ei koodissa eikä kannassa:
   keskustelusaannot.json  hätämerkit ja -viestit, vakavat huolet, huoli, lopetuspyyntö,
                           loukkaus, uudelleenkysymys, kiinteät repliikit (versiot arvotaan)
-  oireohjeet.json         18 oiretta: tunnisteet, jatkokysymykset, kotihoito-ohjeet,
+  oireohjeet.json         20 oiretta: tunnisteet, jatkokysymykset, kotihoito-ohjeet,
                           milloin hoitajaan yhteys, nostaako kiireellisyyttä
 
 Kaikki on deterministista ja ajetaan jokaiselle puheenvuorolle ennen LLM:ää. Kielto
@@ -138,15 +138,24 @@ _JALKIKIELTO = re.compile(
 )
 
 
-def _on_kielletty(teksti_: str, alku: int) -> bool:
-    """Kieltosana osuman edellä samassa lauseessa (enintään 3 sanaa): 'ei ole ollut
-    rintakipua'. 'En tiedä, mutta rintaa puristaa' EI ole kielto."""
+# Oireille ja huomiosanoille leveämpi kieltoikkuna: "en oo ollut sen väsyneempi" tunnistui
+# väsymykseksi (12.10. läpikäynti). Hätämerkeillä 3 sanaa: leveämpi voisi peittää hädän.
+OIREEN_KIELTOIKKUNA = 4
+
+
+def _on_kielletty(teksti_: str, alku: int, ikkuna: int = 3) -> bool:
+    """Kieltosana osuman edellä samassa lauseessa (enintään `ikkuna` sanaa): 'ei ole ollut
+    rintakipua'. 'En tiedä, mutta rintaa puristaa' EI ole kielto, eikä 'ei ollut kuin
+    vähän huimausta' (= vähän huimausta)."""
     ennen = teksti_[:alku]
     rajat = list(_LAUSERAJA.finditer(ennen))
     if rajat:
         ennen = ennen[rajat[-1].end() :]
-    edelliset = re.findall(r"\w+", ennen)[-3:]
-    return any(sana in _kuviot()["kielto"] for sana in edelliset)
+    edelliset = re.findall(r"\w+", ennen)[-ikkuna:]
+    kiellot = [i for i, sana in enumerate(edelliset) if sana in _kuviot()["kielto"]]
+    if not kiellot:
+        return False
+    return "kuin" not in edelliset[kiellot[-1] :]
 
 
 def _kielletty_jalkeen(teksti_: str, loppu: int) -> bool:
@@ -154,10 +163,12 @@ def _kielletty_jalkeen(teksti_: str, loppu: int) -> bool:
     return bool(_JALKIKIELTO.search(teksti_[loppu:]))
 
 
-def _osuma_ilman_kieltoa(teksti_: str, kuviot: list[re.Pattern]) -> re.Match | None:
+def _osuma_ilman_kieltoa(
+    teksti_: str, kuviot: list[re.Pattern], ikkuna: int = 3
+) -> re.Match | None:
     for kuvio in kuviot:
         for osuma in kuvio.finditer(teksti_):
-            kielletty = _on_kielletty(teksti_, osuma.start()) or _kielletty_jalkeen(
+            kielletty = _on_kielletty(teksti_, osuma.start(), ikkuna) or _kielletty_jalkeen(
                 teksti_, osuma.end()
             )
             if not kielletty:
@@ -214,10 +225,10 @@ def tarkista(teksti_: str) -> Tietopohjahavainto:
             havainto.huoli.append(osuma.group(0))
     for kuvio in kuviot["keltainen"]:
         osuma = kuvio.search(normalisoitu)
-        if osuma and not _on_kielletty(normalisoitu, osuma.start()):
+        if osuma and not _on_kielletty(normalisoitu, osuma.start(), OIREEN_KIELTOIKKUNA):
             havainto.keltainen.append(osuma.group(0))
     for nimi, oirekuviot in kuviot["oireet"].items():
-        if _osuma_ilman_kieltoa(normalisoitu, oirekuviot):
+        if _osuma_ilman_kieltoa(normalisoitu, oirekuviot, OIREEN_KIELTOIKKUNA):
             havainto.oireet.append(nimi)
             if oireet()[nimi]["huolestuttava"]:
                 havainto.huolestuttavat.append(nimi)
@@ -251,8 +262,43 @@ def on_myontava(teksti_: str) -> bool:
 # --- Oireiden tieto puhelulle ja mallille ---
 
 
-def oireen_jatkokysymykset(oire: str) -> list[str]:
-    return list(oireet().get(oire, {}).get("lisakysymykset", []))
+AJOITUS = "{muutoksen_jalkeen}"
+
+
+def muutoksen_jalkeen(tyypit: list[str]) -> str:
+    """Ajoituskysymyksen sanamuoto lääkemuutoksen tyypin mukaan ("lääkkeen lopettamisen
+    jälkeen"). Useampi erityyppinen muutos tai tuntematon tyyppi -> yleinen muoto."""
+    sanamuodot = oireohjeet()["muutoksen_jalkeen"]
+    erilaiset = set(tyypit)
+    if len(erilaiset) != 1:
+        return sanamuodot["oletus"]
+    return sanamuodot.get(erilaiset.pop(), sanamuodot["oletus"])
+
+
+@lru_cache
+def _ajoituskuviot() -> list[re.Pattern]:
+    return _kaanna(oireohjeet()["ajoitus_kerrottu"])
+
+
+def ajoitus_kerrottu(teksti_: str) -> bool:
+    """Kertoiko henkilö jo, milloin oire alkoi ("sen jälkeen kun lopetin")."""
+    normalisoitu = normalisoi(teksti_)
+    return any(kuvio.search(normalisoitu) for kuvio in _ajoituskuviot())
+
+
+def oireen_jatkokysymykset(
+    oire: str, muutoksen_jalkeen: str | None = None, ajoitus_tiedossa: bool = False
+) -> list[str]:
+    """Tietopohjan jatkokysymykset. Ajoituskysymys täytetään muutoksen tyypillä ja jätetään
+    pois, jos henkilö kertoi alkamisen jo (13.10. puhelu: kysyttiin uudelleen ja väärin)."""
+    sanamuoto = muutoksen_jalkeen or oireohjeet()["muutoksen_jalkeen"]["oletus"]
+    kysymykset = []
+    for kysymys in oireet().get(oire, {}).get("lisakysymykset", []):
+        ajoituskysymys = AJOITUS in kysymys
+        if ajoituskysymys and ajoitus_tiedossa:
+            continue
+        kysymykset.append(kysymys.replace(AJOITUS, sanamuoto))
+    return kysymykset
 
 
 def kotihoito_ohje(oire: str) -> str:
@@ -574,20 +620,58 @@ def piilo_ohje(avain: str, **taytot: str) -> str:
     return f"\n(Ohje: {teksti_})" if teksti_ else ""
 
 
-def oireohje_kotihoidolla(oire_lista: list[str]) -> str:
+def oireohje_kotihoidolla(
+    oire_lista: list[str], muutoksen_jalkeen: str | None = None, henkilon_teksti: str = ""
+) -> str:
     """Piilotettu vihje mallille: oireen jatkokysymykset, kotihoito-ohjeet ja milloin
-    hoitajaan yhteys (Jere: tietopohja.oireohje_mallille)."""
+    hoitajaan yhteys (Jere: tietopohja.oireohje_mallille). Yksi rivi ilman sulkeita:
+    keskustelu poimii sen historiaan ja siisti_vastaus poistaa sen sulkeisiin asti."""
+    ajoitus_tiedossa = ajoitus_kerrottu(henkilon_teksti)
     osat = []
     for nimi in oire_lista:
         tieto = oireet().get(nimi)
         if tieto is None:
             continue
+        kysymykset = oireen_jatkokysymykset(nimi, muutoksen_jalkeen, ajoitus_tiedossa)
         osat.append(
-            f"oire '{nimi}'. Jatkokysymyksiä: {' '.join(tieto['lisakysymykset'])} "
+            f"oire '{nimi}'. Jatkokysymyksiä: {' '.join(kysymykset)} "
             f"Kotihoito-ohjeet: {' '.join(tieto['kotihoito'])} "
             f"Hoitajaan yhteys: {tieto['ota_yhteytta']}."
         )
-    return "\n(Tietopohja: henkilö mainitsi " + " | ".join(osat) + ")" if osat else ""
+    if not osat:
+        return ""
+    # 13.10. puhelu: henkilö kertoi päänsäryn alkaneen lopettamisen jälkeen, ja malli kysyi
+    # silti, alkoiko se lääkkeen aloittamisen jälkeen.
+    loppu = " Älä kysy uudelleen sitä, minkä henkilö jo kertoi."
+    return "\n(Tietopohja: henkilö mainitsi " + " | ".join(osat) + loppu + ")"
+
+
+def _vartalot(teksti: str) -> set[str]:
+    return {sana[:5] for sana in re.findall(r"[a-zåäö]+", teksti.lower()) if len(sana) >= 5}
+
+
+def sisaltaa_kotihoidon(teksti: str, oire_lista: list[str]) -> bool:
+    """Tekstissä on jonkin oireen kotihoito-ohje omin sanoin: vähintään kolme ohjeen
+    sisältösanaa (lyhyessä ohjeessa kaikki)."""
+    sanat = _vartalot(teksti)
+    for nimi in oire_lista:
+        for ohje in oireet().get(nimi, {}).get("kotihoito", []):
+            ohjeen_sanat = _vartalot(ohje)
+            tarve = min(3, len(ohjeen_sanat))
+            if ohjeen_sanat and len(ohjeen_sanat & sanat) >= tarve:
+                return True
+    return False
+
+
+def kotihoito_puheeksi(oire_lista: list[str]) -> str:
+    """Jeren kotihoito-ohjeet sellaisinaan: kaksi ensimmäistä ohjetta enintään kahdesta
+    oireesta ja milloin hoitajaan kannattaa olla yhteydessä."""
+    tiedot = [oireet()[nimi] for nimi in oire_lista if nimi in oireet()][:2]
+    if not tiedot:
+        return ""
+    lauseet = [ohje for tieto in tiedot for ohje in tieto["kotihoito"][:2]]
+    lauseet.append(f"Ota yhteyttä hoitajaan, {tiedot[0]['ota_yhteytta']}.")
+    return " ".join(lauseet)
 
 
 def puhelun_vuororaja(
@@ -614,6 +698,21 @@ def puhelun_vuororaja(
     if huolta_nyt:
         raja = max(raja, vuoro + 1)
     return min(raja, max(kesto["ehdoton_ylaraja"], perusraja))
+
+
+@lru_cache
+def _poikkeamakuviot() -> dict[str, list[re.Pattern]]:
+    kuviot = saannot()["laakemuutoksen_poikkeama"]["kuviot"]
+    return {tunniste: _kaanna(lista) for tunniste, lista in kuviot.items()}
+
+
+def laakemuutoksen_poikkeama(tunniste: str, teksti_: str) -> str | None:
+    """Peruste, jos vastaus juuri kysyttyyn muutoskysymykseen kertoo, ettei muutosta
+    noudateta ("jatkanut" lopetettua lääkettä). Muut vastaukset eivät kelpaa."""
+    pienena = teksti_.lower()
+    if any(kuvio.search(pienena) for kuvio in _poikkeamakuviot().get(tunniste, [])):
+        return saannot()["laakemuutoksen_poikkeama"]["peruste"]
+    return None
 
 
 def arvioi_vastaus(teksti_: str, varmuus: float | None, varmuusraja: float) -> str:

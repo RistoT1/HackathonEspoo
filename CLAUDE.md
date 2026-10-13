@@ -103,6 +103,12 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 #   ngrok lokilla (näkee katkot): ngrok http --url=<domain> 8000 --log=../lokit/ngrok.log
 #   esitarkistus (asetukset, tunneli julkisen osoitteen kautta, jono, malli, muisti, Twilio):
 #   uv run python scripts/esitarkistus.py --lammita   (VIRHE = paluukoodi 1)
+#   Mallin lämmitys (puhelu/lammitys.py): käynnistys ODOTTAA, kunnes malli on lämmin, ja
+#   ajaa simuloidun puhelun (kylmänä ~2 min; LLM_LAMMITA_KAYNNISTYKSESSA=false ohittaa).
+#   Sen jälkeen vahti (LLM_LAMMITYSVALI_S=60) lataa mallin, jos Ollama käynnistetään
+#   uudelleen; /dev/puhelu/keskustelu = 503, kun malli on kylmä. Lämmitys kahdella eri
+#   ikäluokan esimerkillä: yhdellä välimuisti ei oppinut haarakohtaa (12.10. mitattu:
+#   kahdella erilainen kolmas puhelu lämpeni 3,9 s:ssa).
 # wss ulos devissä:  ngrok http 8000   (Twilio tarvitsee julkisen wss-osoitteen)
 
 # Käyttöliittymä tarjoillaan backendin kanssa osoitteessa http://127.0.0.1:8000
@@ -190,7 +196,7 @@ puhelu/          Twilio-puhelu (relay tai <Gather>-webhookit; vaatii JULKINEN_UR
                  1) säännöt ennen mallia, 2) selkeys, 3) piilo-ohjeet, 4) malli vapaalla tekstillä
   tietopohja.py + tieto/*.json  Jeren tietopohja: järjestelmäohje (persoonallisuus, ikäluokka,
                  tehtävä + kannan kysymykset), hätämerkit kiellon tulkinnalla, vakavat huolet,
-                 huoli, lopetuspyyntö, loukkaus, 18 oiretta jatkokysymyksineen ja kotihoito-
+                 huoli, lopetuspyyntö, loukkaus, 20 oiretta jatkokysymyksineen ja kotihoito-
                  ohjeineen, kiinteät repliikit (versiot), numerosuodatin, puhelun pituus
   saannot.py     hatasanat.json (ei tulkitse kieltoa) + tietopohja, hoitajapyyntö,
                  lääkeneuvo, usein kysytyt (fraasit.json: kuka soittaa, mikä lääke)
@@ -290,6 +296,11 @@ puhelulla). Aiemmat mallit ja opit:
   generoinnin, kun pyyntö perutaan (mitattu).
 - Säännöt (11.10. ilta): kiroilu oireen yhteydessä ei ohita oiretta (malli saa tietopohjan),
   ja mallin LOPETUS ohitetaan, jos henkilön viimeinen vastaus on huono vointi ("No huonosti").
+- Lääkemuutoksen noudattaminen (12.10.): juuri kysytyn muutoskysymyksen vastaus kuvioilla
+  (keskustelusaannot.json `laakemuutoksen_poikkeama`, kysymyksen tunnisteen mukaan, esim.
+  lopetettu lääke "jatkanut") -> keltainen. Agentti ei neuvo eikä kysele syytä (moite,
+  hoitaja selvittää). Keltaisen löydöksen jälkeen lopetuslause lupaa hoitajan soiton tänään
+  (`lopetuslause_huolestuttava`), ei "tarvittaessa". Puhelussa vain jälkikäteinen analyysi huomasi.
 - Muisti 16 Gt Macilla (mitattu 11.10. ilta): Dockerin VM 8,2 Gt + Ollama 15 Gt + VS Code ~3 Gt
   -> swap 15 Gt, lämmin vuoro 6-8 s (vs 3-5 s), yksi vuoro 51 s. Docker Desktopin muisti 2 Gt:hen
   (Postgres riittää) ja raskaat ohjelmat kiinni soittojen ajaksi. Mallin sivut jäivät pakattuina

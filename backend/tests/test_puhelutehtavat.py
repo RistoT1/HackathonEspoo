@@ -365,6 +365,38 @@ def test_hoitajan_tehtavassa_naytetaan_tallennettu_puheluyhteenveto_ja_kirjataan
         assert lokimerkinta.katsoja == "hackathon-demo (kirjautumaton)"
 
 
+def test_hoitajan_jonossa_keltainen_arvio_nousee_karkeen(client, sessiotehdas):
+    client.post("/puhelutehtavat/tunnista", json={})
+    soittojarjestys = [tehtava["id"] for tehtava in client.get("/puhelutehtavat").json()]
+    ensimmainen, keltainen = soittojarjestys[0], soittojarjestys[-1]
+    yhteenveto = Yhteenveto(
+        taso=Kiireellisyys.KELTAINEN,
+        saanto=Saantoloydokset(taso=Kiireellisyys.KELTAINEN),
+        analyysi_valmis=False,
+    )
+    with sessiotehdas() as sessio:
+        sessio.add(
+            PuhelunTulosRivi(
+                istunto_id="istunto-jono-testi",
+                tehtava_id=keltainen,
+                loppu="VALMIS",
+                paattyi=datetime.now(UTC),
+                yhteenveto=yhteenveto.model_dump(mode="json"),
+            )
+        )
+        sessio.commit()
+
+    jono = client.get("/hoitaja/").text
+
+    assert jono.index(f'data-tehtava="{keltainen}"') < jono.index(f'data-tehtava="{ensimmainen}"')
+    assert f'data-tehtava="{keltainen}" data-taso="keltainen"' in jono
+    assert "Kiireelliset arviot" in jono
+    assert "sääntöarvio, analyysi kesken" in jono
+    assert 'data-paivittyva="taulukko"' in jono
+    # Soittojonon API pysyy soittoprioriteetin järjestyksessä.
+    assert [t["id"] for t in client.get("/puhelutehtavat").json()] == soittojarjestys
+
+
 def test_hoitajan_nakymasta_paivitetaan_tila_backendin_saannoilla(client):
     client.post("/puhelutehtavat/tunnista", json={})
     tehtava_id = client.post("/puhelutehtavat/seuraava").json()["id"]

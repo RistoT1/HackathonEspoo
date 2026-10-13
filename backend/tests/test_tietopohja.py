@@ -19,6 +19,10 @@ def tunnista(teksti: str) -> t.Tietopohjahavainto:
         ("rinta-kipua on ollut aamusta", "rintakipu"),
         ("rintaa puristaa", "rintakipu"),
         ("mä en saa henkee", "hengenahdistus"),
+        # 12.10. testipankki: "meinaa saada" jäi tunnistamatta, puhelu vihreäksi.
+        ("en meinaa saada henkeä", "hengenahdistus"),
+        ("en oikein saa henkeä", "hengenahdistus"),
+        ("en tahdo saada happea", "hengenahdistus"),
         ("suupieli roikkuu", "halvausoireet"),
         ("otin lääkettä vähän liikaa tahallaan", "yliannostus"),
         ("haluun ottaa vähän yliannostuksen", "yliannostus"),
@@ -114,6 +118,42 @@ def test_sanan_keskelta_ei_tunnisteta_oiretta(teksti):
     havainto = tunnista(teksti)
 
     assert (havainto.oireet, havainto.keltainen) == ([], [])
+
+
+@pytest.mark.parametrize(
+    ("teksti", "odotettu"),
+    [
+        # 12.10. testipankki: taivutusmuodot jäivät tunnistamatta, lihaskipu jäi vihreäksi.
+        ("hyvin kiitos, mutta lihaksia on kolottanut eilen illalla", "lihaskipu"),
+        ("lihakset on kipeät siitä asti kun aloitin sen lääkkeen", "lihaskipu"),
+        ("jalat on ollut paksut", "turvotus"),
+        ("vatsa on ollu vähä sekaisin", "ripuli"),
+        ("joo vähän vapisee", "vapina"),
+        # 12.10. puhelu: "pääkipuja" ei ollut päänsärky.
+        ("hirveä darra iski, pääkipuja silleen tosi vaikeet", "päänsärky"),
+        ("Lopetin, mutta vähän on päätä särkenyt sen jälkeen.", "päänsärky"),
+        ("Huonosti, herään monta kertaa yössä enkä saa unta.", "unettomuus"),
+        ("ihan ok muuten, mutta en ole jaksanut juoda", "ruokahaluttomuus ja juominen"),
+        ("ruoka ei oikein maistu", "ruokahaluttomuus ja juominen"),
+    ],
+)
+def test_oireen_taivutusmuodot(teksti, odotettu):
+    assert odotettu in tunnista(teksti).oireet
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        "ei, lihakset on kunnossa",
+        "ei ole kolottanut",
+        "kyllä on maistunut",
+        "ruokahalu on hyvä",
+        # 12.10. läpikäynti: kielto neljän sanan päässä tunnistui väsymykseksi.
+        "en oo ollut sen väsyneempi kuin ennen",
+    ],
+)
+def test_kielletty_oire_ei_tunnistu(teksti):
+    assert tunnista(teksti).oireet == []
 
 
 @pytest.mark.parametrize("teksti", ["kyllä, eilen oli kuumetta", "on ollut vilunväristyksiä"])
@@ -215,6 +255,7 @@ def test_versiot_vaihtelevat_eika_sama_perakkain():
     "avain",
     [
         "lopetuslause_tuki",
+        "lopetuslause_huolestuttava",
         "lopetuspyynto.lopetus_huolestuttava",
         "vakavat_huolet.kaltoinkohtelu.viesti",
     ],
@@ -256,10 +297,64 @@ def test_kielletty_vapina_ei_ole_oire():
         ("lopetin sen lääkkeen", False),
         ("mä lopetan nyt sen lääkkeen", False),
         ("lääkäri sanoi että lopetetaan se lääke", False),
+        # 12.10. ilta: vastaus kysymykseen "Haluatko kertoa tästä vielä, vai jatketaanko?"
+        # lopetti puhelun.
+        ("En halua puhua siitä enempää. Jatketaan vaan", False),
+        ("en halua puhua tästä", False),
+        ("En halua enää puhua.", True),
     ],
 )
 def test_lopetuspyynto(teksti, odotettu):
     assert tunnista(teksti).lopetuspyynto is odotettu
+
+
+def test_puhekielen_ahistaa_on_huoli():
+    # 12.10. ilta: "vähän ahistaa olla näitten seurassa" ei tunnistunut huoleksi.
+    assert tunnista("Tässä mulla on vähän ahistaa olla näitten seurassa").huoli
+
+
+@pytest.mark.parametrize(
+    ("teksti", "odotettu"),
+    [
+        # 12.10. ilta: kolme puhelua, joissa säännöt eivät nähneet mitään (taso vihreä).
+        ("Arkin koko päivän sattu päähän", "sattu päähän"),
+        ("Ei se oikein sopinut hirveä rapula iski", "ei se oikein sopinut"),
+        ("viina maistuu, tullut juotua aika paljon", "viina"),
+        ("kaverit on vähän kännissä", "kännissä"),
+        # 12.10. klo 23.25: unohtuneet sydänlääkkeet ja lääkkeiden väärinkäyttö ohi säännöiltä.
+        ("Kun mulla on noi sydänlääkkeet ottamatta tänään.", "sydänlääkkeet ottamatta"),
+        ("kun en ottanut niitä lääkkeitä tänään", "en ottanut niitä lääk"),
+        ("Vaan popsin niitä pillareita ihan huvikseen koko aika.", "popsin niitä pillar"),
+    ],
+)
+def test_hoitajalle_merkittava_nostaa_keltaiseksi(teksti, odotettu):
+    assert odotettu in tunnista(teksti).keltainen
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        "Sopi se ihan hyvin",
+        "on sopinut hyvin",
+        "ei sovi nyt",
+        "otan lääkkeitä koko ajan ohjeen mukaan",
+        "otin lääkkeen aamulla",
+    ],
+)
+def test_sopiminen_ei_nosta(teksti):
+    assert tunnista(teksti).keltainen == []
+
+
+def test_sydantuntemus_on_huolestuttava_oire_ja_kysyy_rintakivusta():
+    # 12.10. klo 23.25: "ne tuntuu sydämessä" -> agentti siirtyi listan kysymykseen.
+    havainto = tunnista("Mulla on tosi paha olo ja ne tuntuu sydämessä")
+
+    assert "sydäntuntemukset" in havainto.huolestuttavat
+    assert any("rintakipu" in k for k in t.oireen_jatkokysymykset("sydäntuntemukset"))
+
+
+def test_sattuu_paahan_on_paansarky():
+    assert "päänsärky" in tunnista("koko päivän sattu päähän").oireet
 
 
 @pytest.mark.parametrize(
@@ -273,3 +368,124 @@ def test_lopetuspyynto(teksti, odotettu):
 )
 def test_lievat_eivat_ole_hatamerkkeja(teksti):
     assert tunnista(teksti).hata == []
+
+
+@pytest.mark.parametrize(
+    ("tunniste", "teksti", "poikkeama"),
+    [
+        ("LOPETETTU_LAAKE", "No mulla on niitä ylimääräisenä, niin mä jatkanut vähän.", True),
+        ("LOPETETTU_LAAKE", "olen ottanut sitä vielä", True),
+        ("LOPETETTU_LAAKE", "En ole jatkanut, lopetin sen kokonaan.", False),
+        ("LOPETETTU_LAAKE", "lopetin sen, ei ole oireita palannut", False),
+        ("UUSI_LAAKE", "en ole aloittanut sitä vielä", True),
+        ("UUSI_LAAKE", "olen aloittanut, hyvin menee", False),
+        ("ANNOSMUUTOS", "otan vanhaa annosta", True),
+        ("ANNOSMUUTOS", "otan uutta annosta", False),
+        ("LYHYT_KUURI", "se jäi kesken", True),
+        ("LYHYT_KUURI", "kuuri on syöty loppuun", False),
+        # Vain muutoskysymyksen vastaus: "jatkanut" muualla ei ole poikkeama.
+        ("tarkennus.vatsa", "olen jatkanut", False),
+    ],
+)
+def test_laakemuutoksen_poikkeama(tunniste, teksti, poikkeama):
+    assert (t.laakemuutoksen_poikkeama(tunniste, teksti) is not None) is poikkeama
+
+
+@pytest.mark.parametrize(
+    ("teksti", "oire", "hata"),
+    [
+        # "ei ... kuin vähän" = vähän: ei kielto, myöskään hätämerkissä.
+        ("ei ollut kuin vähän huimausta", "huimaus", None),
+        ("ei ole ollut kuin vähän rintakipua", None, "rintakipu"),
+    ],
+)
+def test_kuin_kumoaa_kiellon(teksti, oire, hata):
+    havainto = tunnista(teksti)
+    if oire:
+        assert oire in havainto.oireet
+    if hata:
+        assert hata in havainto.hata
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        # 13.10. puhelu: "nukuttua" kuului "nukuttaa", ja malli tulkitsi sen heikkoudeksi.
+        "Ei ole. Tuli nukuttaa vähän heikosti.",
+        "tuli nukuttua huonosti",
+        "oon nukkunu huonosti",
+        "nukkunut levottomasti",
+        "uni on ollut katkonaista",
+        "yöunet on jääneet lyhyiksi",
+        "huonot yöt on ollu",
+        "on vaikea nukahtaa",
+        "en oo saanu nukuttua",
+        "unta ei tule",
+    ],
+)
+def test_univaikeudet_tunnistetaan(teksti):
+    assert "unettomuus" in tunnista(teksti).oireet
+
+
+@pytest.mark.parametrize(
+    "teksti",
+    [
+        "nukuttaa vähän",
+        "nukuttaa päivisin",
+        "nukun hyvin",
+        "uni on hyvää",
+        "en oo nukkunu huonosti",
+    ],
+)
+def test_uneliaisuus_ja_hyva_uni_eivat_ole_unettomuutta(teksti):
+    assert "unettomuus" not in tunnista(teksti).oireet
+
+
+@pytest.mark.parametrize(
+    ("tyypit", "odotettu"),
+    [
+        (["LYHYT_KUURI"], "Onko päänsärky alkanut lääkekuurin aikana tai sen jälkeen?"),
+        (["LOPETETTU_LAAKE"], "Onko päänsärky alkanut lääkkeen lopettamisen jälkeen?"),
+        (["UUSI_LAAKE"], "Onko päänsärky alkanut uuden lääkkeen aloittamisen jälkeen?"),
+        (["ANNOSMUUTOS"], "Onko päänsärky alkanut annoksen muuttamisen jälkeen?"),
+        (["UUSI_LAAKE", "ANNOSMUUTOS"], "Onko päänsärky alkanut lääkemuutoksen jälkeen?"),
+        ([], "Onko päänsärky alkanut lääkemuutoksen jälkeen?"),
+    ],
+)
+def test_ajoituskysymys_muutoksen_tyypin_mukaan(tyypit, odotettu):
+    kysymykset = t.oireen_jatkokysymykset("päänsärky", t.muutoksen_jalkeen(tyypit))
+
+    assert kysymykset[0] == odotettu
+
+
+def test_jatkokysymyksissa_ei_tayttamatonta_eika_kiinteaa_aloitusta():
+    for nimi in t.oireet():
+        for kysymys in t.oireen_jatkokysymykset(nimi):
+            assert "{" not in kysymys
+            assert "aloittamisen" not in kysymys
+
+
+@pytest.mark.parametrize(
+    ("teksti", "kerrottu"),
+    [
+        ("tuli päänsärkyä jossain vaiheessa sen jälkeen kun lopetin", True),
+        ("pää on ollut kipeä siitä asti kun aloitin", True),
+        ("väsymys alkoi viime viikolla", True),
+        ("päänsärkyä on ollut", False),
+        # "alkoholi" ei ole "alkoi".
+        ("alkoholia en juo mutta päänsärkyä on", False),
+    ],
+)
+def test_ajoitus_kerrottu(teksti, kerrottu):
+    assert t.ajoitus_kerrottu(teksti) is kerrottu
+
+
+def test_kerrottu_ajoitus_jaa_pois_vihjeesta():
+    vihje = t.oireohje_kotihoidolla(
+        ["päänsärky"], t.muutoksen_jalkeen(["LYHYT_KUURI"]), "sen jälkeen kun lopetin"
+    )
+
+    assert "Onko päänsärky alkanut" not in vihje
+    assert "Kuinka usein päänsärkyä on?" in vihje
+    # Yksi rivi ilman sisäkkäisiä sulkeita: keskustelu ja siisti_vastaus olettavat sen.
+    assert "\n" not in vihje.strip() and vihje.count(")") == 1

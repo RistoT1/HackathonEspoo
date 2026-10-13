@@ -53,12 +53,16 @@ from app.puhelu.tietopohja import (
     huudahdus,
     jarjestelmaohje,
     jarkyttava_oire,
+    kotihoito_puheeksi,
+    laakemuutoksen_poikkeama,
+    muutoksen_jalkeen,
     oireohje_kotihoidolla,
     on_myontava,
     piilo_ohje,
     puhelun_vuororaja,
     puhelutyypit,
     siisti_vastaus,
+    sisaltaa_kotihoidon,
     teksti,
     tukitilan_ohje,
     viimeisin_kysymys,
@@ -80,6 +84,8 @@ LAAKENEUVO_VASTAUS = (
 # Ensimmäinen vuoro odottaa soiton aikana alkanutta lämmitystä enintään näin kauan.
 LAMMITYKSEN_ODOTUS_S = 12
 OIREEN_VUOROT = 2
+# Huolen kuuntelu (piilo-ohje + jatkovuorot) enintään näin monta kertaa puhelussa.
+HUOLEN_KUUNTELUT = 3
 OIRE_JATKO_OHJE = (
     "\n(Ohje: Henkilö kertoi oireista: {oireet}. Jatka niiden selvittämistä tietopohjan "
     "jatkokysymyksellä, yksi kerrallaan, älä ohita yhtäkään. Älä vielä kysy listan kysymystä.)"
@@ -88,6 +94,14 @@ OIRE_KOTIHOITO_OHJE = (
     "\n(Ohje: Kerro nyt lyhyesti tietopohjan kotihoito-ohjeet omin sanoin näihin: {oireet}, "
     "ja milloin hoitajaan kannattaa olla yhteydessä. Kysy sitten listan seuraava kysymys.)"
 )
+
+# Malli kirjoittaa lopetusmerkin joskus pienellä omana lauseenaan ("Lopetus."), ja se
+# luettiin ääneen (12.10. läpikäynti). Sana lauseen keskellä ("lääkkeen lopetus") ei ole merkki.
+_LOPETUS_LOPUSSA = re.compile(r"(^|[.!?]\s*|\n\s*)lopetus[.!]?\s*$", re.IGNORECASE)
+# Lopetuslause kiittää ja lupaa hoitajan soiton: mallin omat kiitokset ennen sitä toistivat
+# saman ("Kiitos, että kerroit. ... Kiitos kuulumisista. Välitän ne hoitajalle", 12.10.), ja
+# kysymys juuri ennen lopetusta jäi vaille vastausta.
+_KIITOSLAUSE = re.compile(r"^(kiitos|välitän|kerron)\b", re.IGNORECASE)
 
 # Kaatumisen jälkeen: ei pääse ylös (hätä, ks. _turvallisuusvuoro).
 EI_PAASE_YLOS = re.compile(r"\b(en|enkä) (pääse|pysty|jaksa) (nousemaan|ylös|pystyyn)")
@@ -159,6 +173,9 @@ class Puheluistunto:
     kasitellyt_oireet: set[str] = field(default_factory=set)
     kasitellyt_vakavat: set[str] = field(default_factory=set)
     huoli_jatko: int = 0
+    huolia_kuunneltu: int = 0  # huolen piilo-ohje annettu (HUOLEN_KUUNTELUT)
+    seuraava_kuultaessa: int = 0  # kirjanpito edellisen vastauksen aikaan (juuri kysytty)
+    laake_poikkeama: bool = False  # tämän vastauksen mukaan lääkemuutosta ei noudateta
     aloitukset: list[str] = field(default_factory=list)
     tukitila: str | None = None
     itsetuho: bool = False
@@ -177,8 +194,11 @@ class Puheluistunto:
     avausteksti: str = ""  # valittu avauksen versio (sama lämmityksessä ja puhelussa)
     oire_jatko: int = 0  # vuorot, joina oiretta käsitellään ennen listan jatkamista
     avoimet_oireet: list[str] = field(default_factory=list)  # käsiteltävänä olevat oireet
+    kotihoito_oireet: list[str] = field(default_factory=list)  # tämän vuoron kotihoito-ohjeet
     henkilo_kysyi: bool = False  # tämän vuoron puheessa oli kysymys
     malli_lammin: bool = False  # lämmitys valmis (siihen asti varatoiminta, ei odotusta)
+    lopuillaan: bool = False  # puhelun vuororaja lähellä: malli saa lopettaa listan kesken
+    lista_lopetus_ohitettu: bool = False  # mallin LOPETUS ohitettiin kerran (lista kesken)
     # Lokia varten: tämän vuoron mittaukset ja päätösten syyt.
     mittaukset: dict = field(default_factory=dict)
     syyt: list[str] = field(default_factory=list)
@@ -291,7 +311,12 @@ def _lopetusvuoro(istunto: Puheluistunto, loppu: PuhelunLoppu, sanottavat: list[
 
 
 def _lopetuslause(istunto: Puheluistunto) -> str:
-    return _kiintea(istunto, "lopetuslause_tuki" if istunto.tukitila else "lopetuslause")
+    """Huolestuttava löydös (keltainen säännöillä): hoitaja soittaa tänään, ei "tarvittaessa"
+    (12.10. puhelu: lopetetun lääkkeen jatkaminen sai yleisen lopetuksen)."""
+    if istunto.tukitila:
+        return _kiintea(istunto, "lopetuslause_tuki")
+    huolestuttava = huolet(istunto.tietohavainnot, istunto.epaselvia)
+    return _kiintea(istunto, "lopetuslause_huolestuttava" if huolestuttava else "lopetuslause")
 
 
 def aloita(istunto: Puheluistunto, agentti: Keskusteluagentti) -> Vuoro:
@@ -355,6 +380,7 @@ async def kasittele(
     istunto.henkilo_kysyi = saannot.kysymys
     tieto = saannot.tieto
     istunto.tietohavainnot.append(tieto)
+    _tunnista_laakepoikkeama(istunto, tieto, teksti_)
 
     turvallisuus = _turvallisuusvuoro(istunto, saannot, teksti_)
     if turvallisuus is not None:
@@ -373,8 +399,26 @@ async def kasittele(
     if isinstance(selkeys, Vuoro):
         return selkeys
     lopuillaan = raja is not None and istunto.vuoro >= raja
+    istunto.lopuillaan = lopuillaan
     ohje = selkeys + _piilo_ohjeet(istunto, tieto, lopuillaan)
     return await _mallin_vuoro(istunto, agentti, ohje, tarkistin)
+
+
+def _tunnista_laakepoikkeama(
+    istunto: Puheluistunto, tieto: Tietopohjahavainto, teksti_: str
+) -> None:
+    """Vastaus juuri kysyttyyn lääkemuutoskysymykseen: noudatetaanko muutosta. 12.10.
+    puhelu: "mulla on niitä ylimääräisenä, niin mä jatkanut" -> sääntö ei tunnistanut
+    (vain mallin analyysi jälkikäteen). Ei lääkeneuvoja eikä syyn kyselyä: hoitaja soittaa."""
+    juuri_kysytty = istunto.seuraava > istunto.seuraava_kuultaessa
+    istunto.seuraava_kuultaessa = istunto.seuraava
+    tunniste = istunto.kysymykset[istunto.seuraava - 1].tunniste if juuri_kysytty else None
+    peruste = laakemuutoksen_poikkeama(tunniste, teksti_) if tunniste else None
+    istunto.laake_poikkeama = peruste is not None
+    if peruste is None:
+        return
+    _syy(istunto, f"laake:poikkeama:{tunniste}")
+    tieto.keltainen.append(peruste)
 
 
 def _hiljainen_vuoro(istunto: Puheluistunto) -> Vuoro:
@@ -564,7 +608,8 @@ def _piilo_ohjeet(istunto: Puheluistunto, tieto: Tietopohjahavainto, lopuillaan:
     istunto.kasitellyt_oireet.update(uudet)
     if uudet:
         _syy(istunto, f"tietopohja:{','.join(uudet)}")
-    ohje += oireohje_kotihoidolla(uudet)
+    tyypit = [muutos.tyyppi.value for muutos in istunto.konteksti.muutokset]
+    ohje += oireohje_kotihoidolla(uudet, muutoksen_jalkeen(tyypit), istunto.vastaukset[-1].vastaus)
     if jarkyttava_oire(uudet):
         ohje = piilo_ohje("jarkytys") + ohje
     # Jere: "kysy ensin yksi jatkokysymys, kun tiedät tarpeeksi, kerro kotihoito-ohjeet".
@@ -579,16 +624,26 @@ def _piilo_ohjeet(istunto: Puheluistunto, tieto: Tietopohjahavainto, lopuillaan:
         istunto.oire_jatko -= 1
         if istunto.oire_jatko == 0:
             ohje += OIRE_KOTIHOITO_OHJE.format(oireet=", ".join(istunto.avoimet_oireet))
+            istunto.kotihoito_oireet = istunto.avoimet_oireet
             istunto.avoimet_oireet = []
 
-    if tieto.huoli:
+    toistuva_huoli = tieto.huoli and istunto.huolia_kuunneltu >= HUOLEN_KUUNTELUT
+    if toistuva_huoli:
+        # Sama pelko joka vastauksessa piti huolen auki loputtomiin (12.10. testipankki:
+        # puhelu ei päättynyt 17 vuorossa). Huoli on jo kirjattu triageen.
+        _syy(istunto, f"huoli:toistuu:{','.join(tieto.huoli)}")
+    elif tieto.huoli:
         _syy(istunto, f"huoli:{','.join(tieto.huoli)}")
         ohje = piilo_ohje("huoli") + ohje
         istunto.huoli_jatko = tietopohjan_saannot()["huoli"]["jatkovuoroja"]
+        istunto.huolia_kuunneltu += 1
     elif istunto.huoli_jatko > 0:
         istunto.huoli_jatko -= 1
         ohje += piilo_ohje("huoli_jatko")
 
+    if istunto.laake_poikkeama:
+        poikkeama = tietopohjan_saannot()["laakemuutoksen_poikkeama"]["ohje_mallille"]
+        ohje = f"\n(Ohje: {poikkeama})" + ohje
     if lopuillaan:
         ohje += piilo_ohje("lopettelu")
     kysymys = _avoin_kysymys(istunto)
@@ -622,6 +677,7 @@ async def _mallin_vuoro(
     # Historiaan jää vain tietopohjan oiretieto (malli antaa kotihoito-ohjeet myöhemmällä
     # vuorolla, Jere). Hetkelliset "(Ohje: ...)" näkyvät vain tässä vuorossa: vanhat
     # "kysy seuraavaksi X" kertyivät historiaan ja olivat ristiriidassa uusien kanssa.
+    kotihoito_oireet, istunto.kotihoito_oireet = istunto.kotihoito_oireet, []
     tietopohja = "".join(re.findall(r"\n\(Tietopohja: [^\n]*", ohje))
     hetkelliset = ohje.replace(tietopohja, "") if tietopohja else ohje
     istunto.historia[-1]["content"] += tietopohja
@@ -652,6 +708,7 @@ async def _mallin_vuoro(
     istunto.mittaukset["malli_ms"] = round((time.perf_counter() - alku) * 1000)
     if raaka is not None:
         istunto.mittaukset["malli"] = raaka
+        raaka = _LOPETUS_LOPUSSA.sub(lambda osuma: f"{osuma.group(1)}{LOPETUSMERKKI}", raaka)
 
     if istunto.vaihe == Vaihe.TUKI:
         return _tukivastaus(istunto, raaka)
@@ -693,6 +750,19 @@ async def _mallin_vuoro(
         kysymys = istunto.kysymykset[max(0, istunto.seuraava - 1)].teksti
         if "?" not in vastaus and istunto.kysymykset:
             vastaus = f"{vastaus.strip()} {kysymys}"
+    lista_kesken = _avoin_kysymys(istunto) is not None
+    saa_lopettaa_kesken = (
+        istunto.lopuillaan or istunto.laake_poikkeama or istunto.lista_lopetus_ohitettu
+    )
+    if lopettaa and lista_kesken and not saa_lopettaa_kesken:
+        # Ohje sallii LOPETUKSEN vasta, kun lääkekysymykset on käyty (12.10. puhelu: kolmesta
+        # kysytty yksi, malli kuuli päänsäryn paranemiseksi ja lopetti). Vain kerran: toinen
+        # LOPETUS hyväksytään, ettei ketään pidetä puhelimessa vastoin tahtoa, jos säännöt
+        # eivät tunnistaneet lopetuspyyntöä. Seuraava kysymys lisätään (_eteneminen).
+        _syy(istunto, "malli:lopetus_ohitettu_lista")
+        istunto.lista_lopetus_ohitettu = True
+        lopettaa = False
+        vastaus = vastaus.replace(LOPETUSMERKKI, "")
     puhuttava = _puhuttavaksi(istunto, vastaus.replace(LOPETUSMERKKI, ""))
     if puhuttava and not tarkistin(puhuttava):
         _syy(istunto, "kieli:epavarma")  # kirjataan, ei estetä (Jere: ei tarkistusta)
@@ -700,10 +770,13 @@ async def _mallin_vuoro(
         istunto.aloitukset.append(aloitus(puhuttava))
     if lopettaa:
         _syy(istunto, "malli:lopetus")
+        puhuttava = _ilman_kiitoksia(puhuttava)
+        puhuttava = _varmista_kotihoito(istunto, kotihoito_oireet, puhuttava)
         return _lopetusvuoro(istunto, PuhelunLoppu.VALMIS, [puhuttava, _lopetuslause(istunto)])
     if not puhuttava:
         return _varakysymys(istunto)
-    return _eteneminen(istunto, _yksi_kysymys(istunto, puhuttava))
+    yksi = _yksi_kysymys(istunto, puhuttava)
+    return _eteneminen(istunto, _varmista_kotihoito(istunto, kotihoito_oireet, yksi))
 
 
 def _puhuttavaksi(istunto: Puheluistunto, raaka: str) -> str:
@@ -714,19 +787,50 @@ def _puhuttavaksi(istunto: Puheluistunto, raaka: str) -> str:
     return puhuttava
 
 
+def _lauseet(teksti: str) -> list[str]:
+    return [lause.strip() for lause in re.findall(r"[^.!?]+[.!?]*", teksti) if lause.strip()]
+
+
+def _ilman_kiitoksia(puhuttava: str) -> str:
+    """Mallin teksti ennen lopetuslausetta ilman kiitos- ja välitän-lauseita ja kysymyksiä."""
+    return " ".join(
+        lause
+        for lause in _lauseet(puhuttava)
+        if not _KIITOSLAUSE.match(lause) and not lause.endswith("?")
+    )
+
+
 def _yksi_kysymys(istunto: Puheluistunto, puhuttava: str) -> str:
     """Vain ensimmäinen kysymys sanotaan (Jeren ohje: yksi kysymys kerrallaan). Pieni malli
-    kysyi kolme asiaa kerralla, ja henkilö kysyi "kumpaan vastaan?" (11.10.)."""
-    lauseet = re.findall(r"[^.!?]+[.!?]*", puhuttava)
-    pidetyt: list[str] = []
-    for lause in lauseet:
-        pidetyt.append(lause.strip())
-        if lause.strip().endswith("?"):
-            break
-    lyhennetty = " ".join(osa for osa in pidetyt if osa)
-    if lyhennetty != puhuttava.strip():
-        _syy(istunto, "malli:yksi_kysymys")
-    return lyhennetty or puhuttava
+    kysyi kolme asiaa kerralla, ja henkilö kysyi "kumpaan vastaan?" (11.10.). Kysymyksen
+    jälkeinen "Välitän tämän hoitajalle" siirretään ennen kysymystä: leikkaus pudotti sen
+    (12.10. testipankki), muut kysymyksen jälkeiset lauseet ovat seuraavan kysymyksen alkua."""
+    lauseet = _lauseet(puhuttava)
+    eka = next((i for i, lause in enumerate(lauseet) if lause.endswith("?")), None)
+    if eka is None or eka == len(lauseet) - 1:
+        return puhuttava
+    lupaukset = [
+        lause
+        for lause in lauseet[eka + 1 :]
+        if not lause.endswith("?") and "hoitaja" in lause.lower()
+    ]
+    _syy(istunto, "malli:yksi_kysymys")
+    return " ".join([*lauseet[:eka], *lupaukset, lauseet[eka]])
+
+
+def _varmista_kotihoito(istunto: Puheluistunto, oireet: list[str], puhuttava: str) -> str:
+    """Kotihoito-ohjeen vuoro: malli ohitti ohjeen 14 kertaa 16:sta (12.10. testipankki),
+    joten tietopohjan ohje lisätään ennen kysymystä jokaiselle oireelle, jonka ohje puuttuu
+    mallin vastauksesta (varmistusajo: kahdesta oireesta malli kertoi vain toisen ohjeen)."""
+    puuttuvat = [oire for oire in oireet if not sisaltaa_kotihoidon(puhuttava, [oire])]
+    ohje = kotihoito_puheeksi(puuttuvat)
+    if not ohje:
+        return puhuttava
+    _syy(istunto, f"kotihoito:lisatty:{','.join(puuttuvat)}")
+    lauseet = _lauseet(puhuttava)
+    if lauseet and lauseet[-1].endswith("?"):
+        return " ".join([*lauseet[:-1], ohje, lauseet[-1]])
+    return f"{puhuttava} {ohje}".strip()
 
 
 def _varakysymys(istunto: Puheluistunto) -> Vuoro:
@@ -837,7 +941,8 @@ def _eteneminen(istunto: Puheluistunto, puhuttava: str) -> Vuoro:
         return _sano(istunto, [puhuttava])
     if kysymys is None:
         _syy(istunto, "lista:valmis")
-        return _lopetusvuoro(istunto, PuhelunLoppu.VALMIS, [puhuttava, _lopetuslause(istunto)])
+        loppusanat = [_ilman_kiitoksia(puhuttava), _lopetuslause(istunto)]
+        return _lopetusvuoro(istunto, PuhelunLoppu.VALMIS, loppusanat)
     istunto.seuraava += 1
     istunto.ilman_edistysta = 0
     _syy(istunto, f"lista:lisatty:{istunto.seuraava}/{len(istunto.kysymykset)}")

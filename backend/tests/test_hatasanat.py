@@ -10,6 +10,9 @@ HATA = [
     ("Rintaa puristaa.", "rintakipu"),
     ("kipua rinnassa aamusta asti", "rintakipu"),
     ("En saa henkeä kunnolla", "hengenahdistus"),
+    # 12.10. testipankki: jäi vihreäksi.
+    ("en meinaa saada henkeä", "hengenahdistus"),
+    ("mä en meinaa saada henkee", "hengenahdistus"),
     ("on ollut hengenahdistusta", "hengenahdistus"),
     ("vaikea hengittää", "hengenahdistus"),
     ("Puhe puuroutuu", "halvausoire"),

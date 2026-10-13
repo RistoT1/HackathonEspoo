@@ -3,7 +3,7 @@
 Deterministisia, testattavia ja LLM:sta riippumattomia. Tilakone (keskustelu.py) ajaa ne
 ennen mallia: hata, hoitajapyynto, laakeneuvo ja usein kysytyt eivat kulje mallin kautta.
 Jeren tietopohja (tietopohja.tarkista: kielto ennen/jalkeen, vakavat huolet, huoli,
-lopetuspyynto, loukkaus, 18 oiretta) ajetaan samalla ja on kentassa Saantohavainnot.tieto.
+lopetuspyynto, loukkaus, 20 oiretta) ajetaan samalla ja on kentassa Saantohavainnot.tieto.
 Hata laukeaa, jos joko hatasanat.json (ei tulkitse kieltoa) tai tietopohja osuu.
 """
 

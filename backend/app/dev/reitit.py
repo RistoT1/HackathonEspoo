@@ -23,6 +23,7 @@ from app.mallit import (
 )
 from app.puhelu.agentti import Keskusteluagentti, hae_agentti, lammita_ja_merkitse
 from app.puhelu.istunnot import Istuntovarasto, hae_istuntovarasto
+from app.puhelu.lammitys import Lammitysvahti, hae_lammitysvahti
 from app.puhelu.palvelu import (
     aloita_testikeskustelu,
     kaiun_url,
@@ -156,10 +157,14 @@ def testikeskustelu(
     asetukset: AsetuksetDep,
     agentti: Annotated[Keskusteluagentti, Depends(hae_agentti)],
     taustatyot: BackgroundTasks,
+    vahti: Annotated[Lammitysvahti | None, Depends(hae_lammitysvahti)],
 ) -> PuhelunAloitus:
     """Koko keskustelu DEMO_PUHELINNUMEROON satunnaisen tehtavan kysymyksilla: kuuntelee
     vastaukset ja tunnistaa hatasanat. Ei muuta jonoa. Vaatii ngrokin (JULKINEN_URL).
     Tulos: GET /dev/puhelu/tulokset."""
+    if vahti is not None and not vahti.lammin:
+        # 12.10.: kylmällä mallilla puhelu kulki varatoiminnalla ilman lisäkysymyksiä.
+        raise HTTPException(status_code=503, detail=_kylman_mallin_viesti(vahti))
     numero = _demonumero(asetukset)
     perus_url = julkinen_url(asetukset)
     tulos = aloita_testikeskustelu(
@@ -178,6 +183,15 @@ def testikeskustelu(
     if tulos is None:
         raise HTTPException(status_code=409, detail=_JONO_TYHJA)
     return tulos
+
+
+def _kylman_mallin_viesti(vahti: Lammitysvahti) -> str:
+    if vahti.viimeisin_s is None:
+        return "Malli ei ole vielä lämmin (Ollama käynnissä?). Odota hetki ja soita uudelleen."
+    return (
+        f"Malli lämpenee vielä (viimeisin lämmitys {vahti.viimeisin_s:.0f} s). "
+        "Odota hetki ja soita uudelleen."
+    )
 
 
 @router.get("/puhelu/tulokset", response_model=list[PuhelunTulos])

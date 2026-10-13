@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,7 +14,14 @@ from app.dev.reitit import router as dev_router
 from app.hoitaja.reitit import reititin as hoitaja_reititin
 from app.mallit import PuhelunTulos
 from app.muutokset.reitit import router as muutokset_router
+from app.puhelu.agentti import hae_agentti
 from app.puhelu.istunnot import hae_istuntovarasto
+from app.puhelu.lammitys import (
+    Lammitysvahti,
+    aseta_lammitysvahti,
+    lammita_kaynnistyksessa,
+    lammita_malli,
+)
 from app.puhelu.puhe import TwimlLiianPitka
 from app.puhelu.reitit import router as puhelu_router
 from app.puhelu.relay import router as relay_router
@@ -30,8 +38,22 @@ def _tallenna_tulos_kantaan(tulos: PuhelunTulos) -> None:
         tallenna_puhelun_tulos(sessio, tulos)
 
 
+def _nayta_sovelluksen_lokit() -> None:
+    """Sovelluksen INFO-lokit terminaaliin (mallin lämmitys, puhelun päättyminen, triage):
+    uvicorn konfiguroi vain omat lokittajansa, joten app.* näkyi vain varoituksina."""
+    sovellus = logging.getLogger("app")
+    if sovellus.handlers:
+        return
+    kasittelija = logging.StreamHandler()
+    kasittelija.setFormatter(logging.Formatter("%(levelname)s:     %(message)s"))
+    sovellus.addHandler(kasittelija)
+    sovellus.setLevel(logging.INFO)
+    sovellus.propagate = False
+
+
 @asynccontextmanager
 async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
+    _nayta_sovelluksen_lokit()
     aja_migraatiot()
     asetukset = hae_asetukset()
     if asetukset.llm_malli:
@@ -47,11 +69,26 @@ async def elinkaari(_: FastAPI) -> AsyncGenerator[None, None]:
         varasto.aseta_triage(
             Triagetyontekija(analysoija, varasto.puheluita_kaynnissa, _tallenna_tulos_kantaan)
         )
+    lammin = False
+    if asetukset.llm_malli and asetukset.llm_lammita_kaynnistyksessa:
+        lammin = await lammita_kaynnistyksessa(asetukset, hae_agentti(asetukset))
+    vahti = None
+    if asetukset.llm_malli and asetukset.llm_lammitysvali_s > 0:
+        vahti = Lammitysvahti(
+            lambda: lammita_malli(asetukset),
+            hae_istuntovarasto().puheluita_kaynnissa,
+            asetukset.llm_lammitysvali_s,
+            lammin=lammin,
+        )
+        aseta_lammitysvahti(vahti)
+        vahti.kaynnista()
     vali = asetukset.tunnistus_vali_minuutit
     ajastin = kaynnista_ajastin(vali) if vali > 0 else None
     yield
     if ajastin is not None:
         ajastin.shutdown(wait=False)
+    if vahti is not None:
+        vahti.pysayta()
 
 
 app = FastAPI(title="Hyvinvointikumppani", lifespan=elinkaari)
