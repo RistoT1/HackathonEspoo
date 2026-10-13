@@ -92,7 +92,7 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 #   lukee vain:        curl -X POST http://127.0.0.1:8000/dev/puhelu/testi
 #   puheentunnistus:   curl -X POST http://127.0.0.1:8000/dev/puhelu/kaiku   -> GET /dev/puhelu/kaiut
 #   koko keskustelu:   curl -X POST http://127.0.0.1:8000/dev/puhelu/keskustelu -> GET /dev/puhelu/tulokset
-#   puhelun aikajana (PUHELU_LOKI=true):  uv run python scripts/puheluloki.py
+#   puhelun aikajana (PUHELU_LOKI=true):  uv run python scripts/puheluloki.py [--teksti] [tiedosto]  (--teksti = keskustelu)
 # Dev-reitit (/dev/...): DEV_TILA=true .env:iin. API-dokumentaatio: http://127.0.0.1:8000/docs
 # DEMO: laturi kiinni + caffeinate (Mac nukahti akulla 3 min jouten kesken puhelun, 11.10.)
 #   ja uvicorn ILMAN --reload (reload käynnistää palvelimen uudelleen jokaisesta .py-
