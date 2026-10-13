@@ -165,7 +165,8 @@ def hae_tehtava(sessio: Session, tehtava_id: str) -> Puhelutehtava:
     rivi = varasto.hae_rivi(sessio, tehtava_id)
     if rivi is None:
         raise TehtavaaEiLoydy(tehtava_id)
-    return varasto.dto(rivi)
+    henkilotieto = varasto.hae_henkilotieto(sessio, rivi.vanhus_id)
+    return varasto.dto(rivi, henkilotieto)
 
 
 def ota_seuraava(sessio: Session) -> Puhelutehtava | None:

@@ -58,6 +58,15 @@ function naytaIlmoitus(teksti, elementti) {
   elementti.classList.add("nakyvissa");
 }
 
+// Tilasuodatus: valinta lähettää lomakkeen heti. Ilman JS:ää lomakkeessa näkyy
+// <noscript>-varanappi, jolla suodatus toimii silti.
+const suodatinValinta = document.querySelector("[data-suodatin]");
+if (suodatinValinta instanceof HTMLSelectElement) {
+  suodatinValinta.addEventListener("change", () => {
+    suodatinValinta.form?.submit();
+  });
+}
+
 // Jonon automaattinen päivitys: puhelun arvio ilmestyy jonoon ilman sivun latausta.
 // Vain jonosivu: tehtävänäkymää ei pollata, koska jokainen katselu kirjataan audit-lokiin.
 const JONON_PAIVITYSVALI_MS = 5000;

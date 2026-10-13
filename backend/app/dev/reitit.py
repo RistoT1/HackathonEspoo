@@ -7,8 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, hae_asetukset
 from app.data.adapteri import Datalahde, Testikirjoittaja, hae_datalahde, hae_testikirjoittaja
+from app.dev.henkilotiedot import tayta_henkilotiedot
 from app.dev.palvelu import TestimuutosVirhe, tee_testimuutos
 from app.mallit import (
+    Henkilotieto,
+    HenkilotietojenTaytto,
     KaikuTulos,
     PotilaanLaakemuutokset,
     PuhelunAloitus,
@@ -95,6 +98,28 @@ def aseta_puhelinnumero(
     """Asettaa vanhukselle demonumeron (oma, Twilioon vahvistettu numero). Ei oikeita numeroita."""
     aseta_yhteystieto(sessio, vanhus_id, yhteystieto.puhelinnumero)
     return yhteystieto
+
+
+@router.post("/henkilotiedot/tayta", response_model=HenkilotietojenTaytto)
+def tayta_demon_henkilotiedot(
+    sessio: Annotated[Session, Depends(hae_sessio)],
+) -> HenkilotietojenTaytto:
+    """Tayttaa jonon vanhuksille synteettiset nimet ja hetun hoitajan nakyman demoa varten.
+    Idempotentti ja deterministinen (sama vanhus_id -> sama nimi). Ei oikeita henkilotietoja."""
+    return tayta_henkilotiedot(sessio)
+
+
+@router.put("/henkilotiedot/{vanhus_id}", response_model=Henkilotieto)
+def aseta_henkilotieto(
+    vanhus_id: str,
+    henkilotieto: Henkilotieto,
+    sessio: Annotated[Session, Depends(hae_sessio)],
+) -> Henkilotieto:
+    """Asettaa vanhukselle nimen ja henkilotunnuksen hoitajan nakymaan. Demossa synteettisia."""
+    varasto.tallenna_henkilotieto(
+        sessio, vanhus_id, henkilotieto.etunimi, henkilotieto.sukunimi, henkilotieto.hetu
+    )
+    return henkilotieto
 
 
 SessioDep = Annotated[Session, Depends(hae_sessio)]
