@@ -11,6 +11,7 @@ from app.data.adapteri import hae_datalahde
 from app.main import app
 from app.mallit import Kysymys, Muutoskonteksti, MuutosTyyppi, Puhelukonteksti
 from app.puhelu.istunnot import Istuntovarasto, hae_istuntovarasto
+from app.puhelu.lammitys import Lammitysvahti, hae_lammitysvahti
 from app.puhelu.loki import Puheluloki, hae_puheluloki
 from app.puhelu.palvelu import rajat_asetuksista
 from app.puhelu.puhe import (
@@ -290,6 +291,20 @@ def test_dev_keskustelu_ei_muuta_jonoa(client, soittaja):
     tilat = {tehtava["tila"] for tehtava in client.get("/puhelutehtavat").json()}
     assert tilat == {"ODOTTAA"}
     assert client.get("/dev/puhelu/tulokset").json()[0]["loppu"] == "LOPETTI"
+
+
+def test_dev_keskustelu_ei_soita_kylmalla_mallilla(client, soittaja):
+    client.post("/puhelutehtavat/tunnista", json={})
+    vahti = Lammitysvahti(lambda: 52.7, lambda: False, vali_s=60)
+    vahti.kierros()
+    app.dependency_overrides[hae_lammitysvahti] = lambda: vahti
+
+    vastaus = client.post("/dev/puhelu/keskustelu")
+
+    assert vastaus.status_code == 503
+    assert "lämpenee" in vastaus.json()["detail"]
+    assert "53 s" in vastaus.json()["detail"]
+    assert soittaja.webhooksoitot == []
 
 
 def test_kaikutesti_toistaa_kuullun(client, soittaja):

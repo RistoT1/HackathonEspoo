@@ -103,6 +103,12 @@ Täytä heti kun projekti pystyyn. Aja testit + lint ennen committia.
 #   ngrok lokilla (näkee katkot): ngrok http --url=<domain> 8000 --log=../lokit/ngrok.log
 #   esitarkistus (asetukset, tunneli julkisen osoitteen kautta, jono, malli, muisti, Twilio):
 #   uv run python scripts/esitarkistus.py --lammita   (VIRHE = paluukoodi 1)
+#   Mallin lämmitys (puhelu/lammitys.py): käynnistys ODOTTAA, kunnes malli on lämmin, ja
+#   ajaa simuloidun puhelun (kylmänä ~2 min; LLM_LAMMITA_KAYNNISTYKSESSA=false ohittaa).
+#   Sen jälkeen vahti (LLM_LAMMITYSVALI_S=60) lataa mallin, jos Ollama käynnistetään
+#   uudelleen; /dev/puhelu/keskustelu = 503, kun malli on kylmä. Lämmitys kahdella eri
+#   ikäluokan esimerkillä: yhdellä välimuisti ei oppinut haarakohtaa (12.10. mitattu:
+#   kahdella erilainen kolmas puhelu lämpeni 3,9 s:ssa).
 # wss ulos devissä:  ngrok http 8000   (Twilio tarvitsee julkisen wss-osoitteen)
 
 # Käyttöliittymä tarjoillaan backendin kanssa osoitteessa http://127.0.0.1:8000
