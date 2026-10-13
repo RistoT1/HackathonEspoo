@@ -1,0 +1,12 @@
+# OLETUSMALLI 16 Gt Macille: Gemma 4 12B, GGUF Q4_K_M / llama.cpp -ajuri.
+# Kaksi 13.10. ajettua offline-varmistusta: 24/24 odotusta, painotettu vuoro 5,9–6,0 s.
+# Luonti:
+#   ollama pull gemma4:12b-it-q4_K_M
+#   ollama create hyvinvointi-gemma12-gguf -f ollama/Modelfile.gemma12-gguf
+
+FROM gemma4:12b-it-q4_K_M
+
+PARAMETER top_p 0.95
+PARAMETER top_k 64
+PARAMETER num_ctx 8192
+PARAMETER num_predict 120
