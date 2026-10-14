@@ -236,6 +236,15 @@ async def kasittele(
     turvallisuus = _turvallisuusvuoro(istunto, saannot, teksti_)
     if turvallisuus is not None:
         return turvallisuus
+    if istunto.seurantapuhelu:
+        kirjaa_syy(istunto, "seuranta:lyhyt")
+        if huolestuttava(istunto):
+            viesti = "Kiitos. Välitän tiedon hoitajalle, joka soittaa sinulle tänään. Hei."
+        elif tieto.oireet:
+            viesti = "Kiitos tiedosta. Kirjaan oireen hoitajalle. Kiitos ja hei."
+        else:
+            viesti = "Hyvä kuulla. Kirjaan tiedon hoitajalle. Kiitos ja hei."
+        return lopetusvuoro(istunto, PuhelunLoppu.VALMIS, [viesti])
     if istunto.vaihe == Vaihe.TUKI:
         return await _mallin_vuoro(istunto, agentti, konteksti, Piiloohjeet(), tarkistin)
     if raja is not None and istunto.vuoro > raja:
@@ -263,9 +272,13 @@ def _tallenna_kysymysvastaus(istunto: Puheluistunto, teksti_: str) -> bool:
     kysytty = istunto.viimeksi_kysytty
     istunto.viimeksi_kysytty = None  # vain tämä vastaus on vastaus siihen
     if on_seurantakysymys(kysytty) and istunto.konteksti.edellinen_puhelu is not None:
-        seuranta = luokittele_seuranta(kysytty, teksti_, istunto.konteksti.edellinen_puhelu)
-        istunto.oireseurannat.append(seuranta)
-        kirjaa_syy(istunto, f"muisti:seuranta:{seuranta.oire}:{seuranta.tila.value}")
+        edellinen = istunto.konteksti.edellinen_puhelu
+        if edellinen.oireet or edellinen.kuvaukset:
+            seuranta = luokittele_seuranta(kysytty, teksti_, edellinen)
+            istunto.oireseurannat.append(seuranta)
+            kirjaa_syy(istunto, f"muisti:seuranta:{seuranta.oire}:{seuranta.tila.value}")
+        else:
+            kirjaa_syy(istunto, "muisti:vointi")
         return False
     peruste = laakemuutoksen_poikkeama(kysytty.tunniste, teksti_) if kysytty else None
     if peruste is None:

@@ -43,8 +43,9 @@ class Settings(BaseSettings):
     # "relay" (Twilio ConversationRelay, websocket: AI puhuu lauseen loppuun JA henkilön puhe
     # kuullaan samalla). Relay vaatii Twilio Consolessa ConversationRelayn käyttöönoton.
     puhelu_tapa: str = "gather"
-    relay_tts: str = "Amazon"  # Amazon | Google | ElevenLabs
-    relay_aani: str = "Suvi-Neural"  # Amazon: <nimi>-Neural, Google: fi-FI-...
+    relay_tts: str = "ElevenLabs"  # Amazon | Google | ElevenLabs
+    # Christoffer Weiss: suomalainen miesääni; nopeus 0,8, rauhallinen ja selkeä puhelu.
+    relay_aani: str = "3OArekHEkHv5XvmZirVD-flash_v2_5-0.8_0.75_0.8"
     relay_stt: str = "Google"  # Google | Deepgram
     relay_stt_malli: str | None = None  # tyhjä = palveluntarjoajan oletus
     # Googlen oletusmalli (long) ei tue hints-vihjeitä suomeksi (Twilio 64101, 11.10.).

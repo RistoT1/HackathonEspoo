@@ -12,10 +12,12 @@ import uuid
 from collections.abc import Callable
 from dataclasses import replace
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.mallit import (
+    EdellinenPuhelu,
     Kysymys,
     Puhelukonteksti,
     PuhelunAloitus,
@@ -54,6 +56,7 @@ from app.puhelutehtavat.palvelu import (
     hae_tehtava,
     vaihda_tila,
 )
+from app.tietokanta import PuhelunTulosRivi
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +122,32 @@ def _arvo_tehtava(sessio: Session, valitse: Valitsin) -> Puhelutehtava | None:
     kysyttavat = [tehtava for tehtava in tehtavat if tehtava.kysymykset]
     if not kysyttavat:
         return None
-    return valitse(kysyttavat)
+    # Uusi demo alkaa mieluiten tehtävästä, jolle ei ole vielä onnistunutta puhelua.
+    # Muuten satunnaisvalinta voi nostaa vuosien seedatun historian kesken ensimmäistä testiä.
+    valmiit = set(
+        sessio.scalars(
+            select(PuhelunTulosRivi.tehtava_id).where(
+                PuhelunTulosRivi.loppu == PuhelunLoppu.VALMIS.value
+            )
+        )
+    )
+    tuoreet = [tehtava for tehtava in kysyttavat if tehtava.id not in valmiit]
+    return valitse(tuoreet or kysyttavat)
+
+
+def _onko_seurantapuhelu(sessio: Session, tehtava_id: str) -> bool:
+    """Kantatila: valmis ensipuhelu vaihtaa tehtävän lääkekysymyksistä vointiseurantaan."""
+    return (
+        sessio.scalar(
+            select(PuhelunTulosRivi.istunto_id)
+            .where(
+                PuhelunTulosRivi.tehtava_id == tehtava_id,
+                PuhelunTulosRivi.loppu == PuhelunLoppu.VALMIS.value,
+            )
+            .limit(1)
+        )
+        is not None
+    )
 
 
 def _relay_ikaluokalle(relay: Relay, konteksti: Puhelukonteksti) -> Relay:
@@ -142,6 +170,7 @@ def _kaynnista_keskustelu(
     rajat: Rajat,
     relay: Relay | None = None,
     lammitys: Lammitys | None = None,
+    seurantapuhelu: bool = False,
 ) -> PuhelunAloitus:
     istunto = Puheluistunto(
         istunto_id=str(uuid.uuid4()),
@@ -149,6 +178,7 @@ def _kaynnista_keskustelu(
         kysymykset=kysymykset,
         konteksti=konteksti,
         paivita_jono=paivita_jono,
+        seurantapuhelu=seurantapuhelu,
         rajat=rajat,
     )
     # Istunto ensin: Twilio voi kutsua vuoroa heti, kun puheluun vastataan.
@@ -177,7 +207,11 @@ def _kaynnista_keskustelu(
         raise
     istunto.puhelu_sid = puhelu_sid
 
-    suunnitelma = [AVAUS, *(kysymys.teksti for kysymys in kysymykset)]
+    suunnitelma = (
+        [istunto.valitse_avaus()]
+        if seurantapuhelu
+        else [AVAUS, *(kysymys.teksti for kysymys in kysymykset)]
+    )
     return PuhelunAloitus(puhelu_sid=puhelu_sid, tehtava_id=tehtava_id, repliikit=suunnitelma)
 
 
@@ -226,18 +260,27 @@ def aloita_testikeskustelu(
     tehtava = hae_tehtava(sessio, tehtava_id) if tehtava_id else _arvo_tehtava(sessio, valitse)
     if tehtava is None:
         return None
+    seurantapuhelu = _onko_seurantapuhelu(sessio, tehtava.id)
+    konteksti = konteksti_muistilla(sessio, tehtava)
+    if seurantapuhelu and konteksti.edellinen_puhelu is None:
+        # Sääntöyhteenveto tallentuu heti, mutta tarkempi analyysi voi valmistua vasta
+        # myöhemmin. Seurannan vaihe ei siksi saa palata lääkekysymyksiin.
+        konteksti = konteksti.model_copy(
+            update={"edellinen_puhelu": EdellinenPuhelu(paivia_sitten=0, taso="vihreä")}
+        )
     return _kaynnista_keskustelu(
         soittaja,
         istunnot,
         numero,
         perus_url,
         tehtava.id,
-        tehtava.kysymykset,
-        konteksti_muistilla(sessio, tehtava),
+        [] if seurantapuhelu else tehtava.kysymykset,
+        konteksti,
         paivita_jono=False,
         rajat=rajat,
         relay=relay,
         lammitys=lammitys,
+        seurantapuhelu=seurantapuhelu,
     )
 
 

@@ -243,11 +243,26 @@ def relay_twiml(ws_url: str, loppu_url: str, relay: Relay, vihjeet: tuple[str, .
     return str(vastaus)
 
 
-def lopetus_twiml(sanottavat: list[str], aani: str) -> str:
+def relay_lopetusaani(tts: str, aani: str, vara_aani: str) -> tuple[str, str | None]:
+    """Muunna ConversationRelay-ääni saman palveluntarjoajan <Say>-ääneksi.
+
+    Relayn ElevenLabs-äänessä voi olla malli- ja nopeusasetukset, joita <Say> ei tue.
+    <Say> tarvitsee lisäksi palveluntarjoajan etuliitteen ja suomen kielikoodin.
+    """
+    if tts.casefold() == "elevenlabs":
+        tunniste = aani.split("-", 1)[0]
+        return f"ElevenLabs.{tunniste}", KIELI
+    return vara_aani, None
+
+
+def lopetus_twiml(sanottavat: list[str], aani: str, kieli: str | None = None) -> str:
     """ConversationRelayn jälkeen: viimeiset lauseet loppuun asti ja puhelu kiinni."""
     vastaus = VoiceResponse()
     for teksti in sanottavat:
-        vastaus.say(puheeksi(teksti), voice=aani)
+        asetukset = {"voice": aani}
+        if kieli:
+            asetukset["language"] = kieli
+        vastaus.say(puheeksi(teksti), **asetukset)
     vastaus.hangup()
     return str(vastaus)
 

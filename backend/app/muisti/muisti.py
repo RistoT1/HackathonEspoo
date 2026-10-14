@@ -49,7 +49,14 @@ def tiivista(yhteenveto: Yhteenveto, paattyi: datetime, nyt: datetime) -> Edelli
     if yhteenveto.saanto.vakavat_huolet:
         return None
     kuvaukset = _kuvaukset(yhteenveto)
-    if not kuvaukset:
+    yleisvointi = yhteenveto.yleisvointi.strip()
+    laakkeen_huomiot = yhteenveto.laakkeen_huomiot.strip()
+    if (
+        not kuvaukset
+        and not yleisvointi
+        and yhteenveto.laakkeen_kaytto == "ei tiedossa"
+        and not laakkeen_huomiot
+    ):
         return None
     paivia_sitten = max(0, (_utc(nyt) - _utc(paattyi)).days)
     return EdellinenPuhelu(
@@ -62,6 +69,9 @@ def tiivista(yhteenveto: Yhteenveto, paattyi: datetime, nyt: datetime) -> Edelli
             for oire in yhteenveto.oireet
             if oire.voimakkuus not in ("", "ei tiedossa")
         },
+        yleisvointi=yleisvointi,
+        laakkeen_kaytto=yhteenveto.laakkeen_kaytto,
+        laakkeen_huomiot=laakkeen_huomiot,
     )
 
 

@@ -42,6 +42,7 @@ from app.puhelu.puhe import (
     lopetus_twiml,
     puheeksi,
     puheen_kesto_arvio_ms,
+    relay_lopetusaani,
     virhe_twiml,
 )
 from app.puhelu.saannot import ei_ohitettava
@@ -523,6 +524,5 @@ def relay_loppu(
         return Response(
             content=twiml or lopetus_twiml([], asetukset.puhe_aani), media_type="application/xml"
         )
-    return Response(
-        content=lopetus_twiml(sanottavat, asetukset.puhe_aani), media_type="application/xml"
-    )
+    aani, kieli = relay_lopetusaani(asetukset.relay_tts, asetukset.relay_aani, asetukset.puhe_aani)
+    return Response(content=lopetus_twiml(sanottavat, aani, kieli), media_type="application/xml")

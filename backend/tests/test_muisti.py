@@ -104,6 +104,19 @@ def test_tiivistys_ilman_oireita_ei_muistettavaa():
     assert tiivista(_yhteenveto(oireet=()), NYT, NYT) is None
 
 
+def test_tiivistys_muistaa_hyvan_laakekokemuksen_ilman_oireita():
+    yhteenveto = _yhteenveto(oireet=(), taso=Kiireellisyys.VIHREA)
+    yhteenveto.yleisvointi = "ihan hyvä"
+    yhteenveto.laakkeen_kaytto = "kyllä"
+
+    edellinen = tiivista(yhteenveto, NYT, NYT)
+
+    assert edellinen is not None
+    assert edellinen.oireet == []
+    assert edellinen.yleisvointi == "ihan hyvä"
+    assert edellinen.laakkeen_kaytto == "kyllä"
+
+
 def test_vakava_huoli_ei_mene_agentille():
     yhteenveto = _yhteenveto(vakavat=("itsetuhoisuus",), taso=Kiireellisyys.PUNAINEN)
 
@@ -229,6 +242,47 @@ def test_istunto_lisaa_muistin_ensimmaiseksi_listakysymykseksi():
 
     assert [kysymys.tunniste for kysymys in istunto.kysymykset] == ["muisti:huimaus", "vointi"]
     assert "huimaus (kohtalainen)" in istunto.kysymykset[0].teksti
+
+
+def test_hyvan_vain_lääkemuisti_muuttuu_vointikysymykseksi():
+    edellinen = EdellinenPuhelu(
+        paivia_sitten=1,
+        taso="vihreä",
+        yleisvointi="ihan hyvä",
+        laakkeen_kaytto="kyllä",
+    )
+
+    kysymys = luo_seurantakysymys(edellinen)
+
+    assert kysymys is not None
+    assert kysymys.tunniste == "muisti:vointi"
+    assert "lääkkeen käyttö oli sujunut hyvin" in kysymys.teksti
+    assert "huimausta, pahoinvointia tai muita oireita" in kysymys.teksti
+
+
+def test_lyhyt_seurantapuhelu_kysyy_muistin_avauksessa_ja_lopettaa_vastaukseen():
+    istunto = Puheluistunto(
+        istunto_id="seuranta",
+        tehtava_id="t",
+        kysymykset=[],
+        konteksti=Puhelukonteksti(
+            ika=82,
+            aktiivisia_laakkeita=1,
+            muutokset=[],
+            edellinen_puhelu=_EDELLINEN,
+        ),
+        paivita_jono=False,
+        seurantapuhelu=True,
+    )
+
+    avaus = asyncio.run(kasittele(istunto, None, None, KiinteaAgentti()))
+    lopetus = asyncio.run(kasittele(istunto, "Se on nyt parempi", 0.9, KiinteaAgentti()))
+
+    assert "Viime puhelussa" in " ".join(avaus.sanottavat)
+    assert "huimaus" in " ".join(avaus.sanottavat)
+    assert lopetus.kuuntele is False
+    assert istunto.loppu == PuhelunLoppu.VALMIS
+    assert istunto.oireseurannat[0].tila == OireenSeurannanTila.LIEVITTYNYT
 
 
 def test_seurantakysymys_kysytaan_vain_kerran_ja_vastaus_liitetaan_oireeseen():

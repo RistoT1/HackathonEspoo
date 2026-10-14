@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,9 +21,11 @@ from app.puhelu.puhe import (
     MAX_TWIML_PITUUS,
     Kuuntelu,
     TwimlLiianPitka,
+    lopetus_twiml,
     luo_twiml,
     muutoksen_kuvaus,
     puhelun_repliikit,
+    relay_lopetusaani,
     vuoro_twiml,
 )
 from app.puhelu.puhe import (
@@ -30,7 +33,7 @@ from app.puhelu.puhe import (
 )
 from app.puhelu.soittaja import hae_soittaja
 from app.puhelu.vihjeet import puhelun_vihjeet
-from app.tietokanta import hae_sessio
+from app.tietokanta import PuhelunTulosRivi, hae_sessio
 from tests.test_puhelutehtavat import FeikkiLahde
 
 DEMONUMERO = "+358401111111"
@@ -126,6 +129,20 @@ def test_twiml_suomeksi_ja_merkit_escapattu():
     assert "language=" not in twiml  # aani maaraa kielen; Polly + language antaa varoituksen 13512
     assert 'voice="Polly.Suvi-Neural"' in twiml
     assert "kipua &amp; huimausta" in twiml
+
+
+def test_relayn_lopetus_kayttaa_samaa_elevenlabs_miesaanta():
+    aani, kieli = relay_lopetusaani(
+        "ElevenLabs",
+        "3OArekHEkHv5XvmZirVD-flash_v2_5-0.8_0.75_0.8",
+        "Polly.Suvi-Neural",
+    )
+
+    twiml = lopetus_twiml(["Kiitos ja hei."], aani, kieli)
+
+    assert 'voice="ElevenLabs.3OArekHEkHv5XvmZirVD"' in twiml
+    assert 'language="fi-FI"' in twiml
+    assert "Polly.Suvi" not in twiml
 
 
 def test_liian_pitka_twiml_hylataan():
@@ -292,6 +309,48 @@ def test_dev_keskustelu_ei_muuta_jonoa(client, soittaja):
     tilat = {tehtava["tila"] for tehtava in client.get("/puhelutehtavat").json()}
     assert tilat == {"ODOTTAA"}
     assert client.get("/dev/puhelu/tulokset").json()[0]["loppu"] == "LOPETTI"
+
+
+def test_dev_seuraava_puhelu_on_lyhyt_vointiseuranta_eika_toista_laakekysymyksia(
+    client, soittaja, sessiotehdas
+):
+    client.post("/puhelutehtavat/tunnista", json={})
+    tehtava_id = client.get("/puhelutehtavat").json()[0]["id"]
+    with sessiotehdas() as sessio:
+        sessio.add(
+            PuhelunTulosRivi(
+                istunto_id="aiempi-puhelu",
+                tehtava_id=tehtava_id,
+                loppu="VALMIS",
+                paattyi=datetime.now(UTC),
+                yhteenveto={
+                    "taso": "vihreä",
+                    "saanto": {"taso": "vihreä"},
+                    "yleisvointi": "ihan hyvä",
+                    "oireet": [],
+                    "laakkeen_kaytto": "kyllä",
+                    "laakkeen_huomiot": "lääkkeen aloitus sujui hyvin",
+                },
+            )
+        )
+        sessio.commit()
+
+    aloitus = client.post(f"/dev/puhelu/keskustelu?tehtava_id={tehtava_id}")
+    _, url, _ = soittaja.webhooksoitot[-1]
+    avaus = twilio_post(client, polku(url), {"CallSid": "CA-seuranta"})
+    lopetus = twilio_post(
+        client,
+        polku(url),
+        {"CallSid": "CA-seuranta", "SpeechResult": "Kyllä, kaikki on edelleen hyvin."},
+    )
+
+    assert aloitus.status_code == 200
+    assert len(aloitus.json()["repliikit"]) == 1
+    assert "Viime puhelussa" in avaus.text
+    assert "huimausta, pahoinvointia tai muita oireita" in avaus.text
+    assert "uusi lääke" not in avaus.text
+    assert "lääkkeen käyttö" not in lopetus.text
+    assert "<Hangup" in lopetus.text
 
 
 def test_dev_keskustelu_ei_soita_kylmalla_mallilla(client, soittaja):

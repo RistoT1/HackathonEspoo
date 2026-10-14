@@ -139,6 +139,10 @@ class EdellinenPuhelu(BaseModel):
     oireet: list[str] = Field(default_factory=list)  # sääntöjen oireavaimet (triagen vertailu)
     kuvaukset: list[str] = Field(default_factory=list)  # agentille, esim. "huimaus (kohtalainen)"
     voimakkuudet: dict[str, str] = Field(default_factory=dict)  # oireavain -> voimakkuus
+    # Vain puheluagentin sisäiseen seurantaan; ei hoitajan sivun upotettuun JSON-dataan.
+    yleisvointi: str = Field(default="", exclude=True)
+    laakkeen_kaytto: str = Field(default="ei tiedossa", exclude=True)
+    laakkeen_huomiot: str = Field(default="", exclude=True)
 
 
 class Puhelukonteksti(BaseModel):

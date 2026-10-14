@@ -79,10 +79,10 @@ def _esitetty(vastaus: str, kysymys: str) -> bool:
     if "?" not in vastaus:
         return False
     kysymyslause = _kysymyslause(kysymys)
-    if kysymys.startswith("Viime puhelussa mainitsit oireen:"):
+    if kysymys.startswith("Viime puhelussa"):
         # Malli saa muotoilla seurantakysymyksen luontevasti. Oireen vartalon osuma riittää,
         # jotta backend ei lisää samaa kysymystä uudelleen eri sanoin kysytyn perään.
-        kuvaus = kysymys.split(":", 1)[1].split(".", 1)[0]
+        kuvaus = kysymys.split("oli", 1)[-1].split(".", 1)[0]
         return bool(_sanavartalot(kuvaus) & _sanavartalot(vastaus))
     tarvittavat = _sanavartalot(kysymyslause)
     if not tarvittavat:
@@ -132,6 +132,10 @@ def eteneminen(istunto: Puheluistunto, puhuttava: str) -> Vuoro:
     _kirjaa_kysytyksi(istunto)
     istunto.ilman_edistysta = 0
     kirjaa_syy(istunto, f"lista:lisatty:{istunto.seuraava}/{len(istunto.kysymykset)}")
+    if kysymys.startswith("Viime puhelussa"):
+        # Muistikysymys puhutaan sellaisenaan. Mallin puolikas johdanto muodosti aiemmin
+        # repliikin "Miten se on Viime puhelussa..." ja kysyi saman asian kahdesti.
+        return sano(istunto, [kysymys])
     ilman_kysymysta = re.sub(r"[^.!]*\?\s*$", "", puhuttava).strip()
     return sano(istunto, [ilman_kysymysta, kysymys])
 

@@ -44,12 +44,34 @@ def _kohde(edellinen: EdellinenPuhelu) -> tuple[str, str, str] | None:
 
 
 def luo_seurantakysymys(edellinen: EdellinenPuhelu | None) -> Kysymys | None:
-    if edellinen is None or (kohde := _kohde(edellinen)) is None:
+    if edellinen is None:
         return None
-    oire, kuvaus, _ = kohde
+    kohde = _kohde(edellinen)
+    if kohde is not None:
+        oire, kuvaus, _ = kohde
+        return Kysymys(
+            tunniste=f"{MUISTIKYSYMYS_ETULIITE}{oire}",
+            teksti=(
+                f"Viime puhelussa kerroit, että sinulla oli {kuvaus}. "
+                "Onko oire helpottanut, pysynyt samana vai pahentunut?"
+            ),
+        )
+    if edellinen.laakkeen_kaytto == "kyllä":
+        teksti = (
+            "Viime puhelussa kerroit, että lääkkeen käyttö oli sujunut hyvin eikä oireita "
+            "ollut. Onko sen jälkeen tullut huimausta, pahoinvointia tai muita oireita?"
+        )
+    elif edellinen.yleisvointi:
+        teksti = (
+            f"Viime puhelussa kerroit voinnistasi näin: {edellinen.yleisvointi}. Miten voit nyt?"
+        )
+    else:
+        teksti = (
+            "Viime puhelussa kävimme läpi lääkemuutosta. Onko sen jälkeen tullut uusia oireita?"
+        )
     return Kysymys(
-        tunniste=f"{MUISTIKYSYMYS_ETULIITE}{oire}",
-        teksti=f"Viime puhelussa mainitsit oireen: {kuvaus}. Miten se on nyt?",
+        tunniste=f"{MUISTIKYSYMYS_ETULIITE}vointi",
+        teksti=teksti,
     )
 
 

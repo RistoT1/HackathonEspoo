@@ -67,6 +67,7 @@ class Puheluistunto:
     kysymykset: list[Kysymys]
     konteksti: Puhelukonteksti
     paivita_jono: bool  # False = dev-testi, jonon tilaa ei muuteta
+    seurantapuhelu: bool = False  # lääkeasiat on jo kysytty; vain lyhyt vointitarkistus
     rajat: Rajat = field(default_factory=Rajat)
     puhelu_sid: str | None = None  # Twilion CallSid: relay-websocket tarkistaa sen
     vaihe: Vaihe = Vaihe.ALKU
@@ -138,7 +139,13 @@ class Puheluistunto:
         """Avauksen versio valitaan kerran (soiton alkaessa), jotta lämmitys ja puhelu
         käyttävät samaa tekstiä."""
         if not self.avausteksti:
-            self.avausteksti = kiintea(self, "avauslause")
+            if self.seurantapuhelu and self.kysymykset:
+                kysymys = self.kysymykset[0]
+                self.viimeksi_kysytty = kysymys
+                self.seuraava = 1
+                self.avausteksti = "Hei, olen hyvinvointialueen tekoälyavustaja. " + kysymys.teksti
+            else:
+                self.avausteksti = kiintea(self, "avauslause")
         return self.avausteksti
 
     def lammitysviestit(self) -> list[dict[str, str]]:
