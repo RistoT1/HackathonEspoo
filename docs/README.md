@@ -9,6 +9,7 @@ Sääntelyanalyysi perusteluineen: [../SAANTELY.md](../SAANTELY.md).
 ## Sisällys
 
 - [Yleiskuva](#yleiskuva)
+- [Ominaisuudet](#ominaisuudet)
 - [Tietoturva ja tietosuoja](#tietoturva-ja-tietosuoja)
 - [Käytetyt kielimallit (LLM)](#käytetyt-kielimallit-llm)
 - [Käytetyt äänimallit (puheentunnistus ja puhesynteesi)](#käytetyt-äänimallit-puheentunnistus-ja-puhesynteesi)
@@ -37,6 +38,112 @@ Suunnitteluperiaate: **LLM vain siellä, missä sitä tarvitaan.** Muutosten tun
 hätämerkit, hälytysrajat, triagen sääntötaso ja oireen seurannan luokittelu ovat
 deterministisiä. LLM käy keskustelun ja tiivistää puhelun hoitajalle. Sääntö voi vain
 **nostaa** kiireellisyyttä, ei laskea.
+
+---
+
+## Ominaisuudet
+
+### 1. Muutosten tunnistus ja soittojono
+
+- **Lääkemuutosten tunnistus** ATC-koodin perusteella (ei lääkkeen nimen tekstistä): uusi lääke,
+  annosmuutos, lopetettu lääke ja lyhyt kuuri (esim. antibiootti). Tarkasteluikkuna 90 päivää,
+  vain 65 vuotta täyttäneet. Synthean RxNorm-koodit muunnetaan ATC:ksi tiedostolla
+  `data/synthea_atc.json`.
+- **Ajastettu tunnistus** APSchedulerilla (`TUNNISTUS_VALI_MINUUTIT`, oletus 15 min, 0 = pois)
+  tai käsin `POST /puhelutehtavat/tunnista`. Päällekkäiset ajot estetään.
+- **Soittojärjestyksen pisteytys** (`puhelutehtavat/priorisointi.py`, puhdas funktio):
+  muutoksen tyyppi, korkean riskin lääkeryhmä (kannassa), ikä 80+ ja monilääkitys (5+
+  lääkettä). Jokaisella pisteellä on näkyvä peruste ("miksi tämä soitetaan ensin").
+- **Räätälöidyt kysymykset**: kysymystekstit ja lääkeryhmät ovat kannassa
+  (`sql/kysymyssisalto.sql`), ja jokainen tehtävä saa muutokseen sopivat kysymykset ja
+  LLM:lle kontekstin.
+- **Soittotehtävän tilakone**: ODOTTAA → SOITETAAN → VALMIS / EI_VASTANNUT / PERUTTU.
+  Virheellinen siirtymä palauttaa 409.
+- **Adapterikerros** (`data/adapteri.py`): kaikki terveysdata luetaan yhden rajapinnan kautta,
+  joten datalähteen vaihto (Synthea → Veil.AI) on yhden tiedoston muutos.
+
+### 2. Puhelu
+
+- **Ulossoitto Twiliolla** (`POST /puhelu/aloita/{tehtava_id}`), kahdella tavalla:
+  `gather` (webhookit) tai `relay` (ConversationRelay-websocket, jossa AI puhuu ja kuuntelee
+  samaan aikaan). Puhelun enimmäiskesto `PUHELU_MAX_KESTO_S` (oletus 15 min).
+- **Esittäytyminen tekoälynä** heti puhelun alussa (AI Act art. 50) ja soiton syy
+  (lääkemuutos) avauksessa.
+- **Keskustelun tilakone** (`puhelu/keskustelu.py`): säännöt ajetaan ennen mallia, yksi
+  kysymys kerrallaan, kysymyslistan kirjanpito (malli saa "kysy seuraavaksi", jumiutunut
+  kysymys lisätään perään).
+- **Hätämerkit** (rintakipu, hengenahdistus, halvausoireet) tunnistetaan säännöllä
+  reaaliajassa myös kieltomuodon huomioiden ("ei ole rintakipua") → ohjaus 112:een ja
+  puhelun lopetus.
+- **Tukitila**: itsetuhoinen puhe tai muu vakava huoli → kuuntelu ja turvallisuus, ei
+  kysymyksiä, hoitaja soittaa samana päivänä. Kieltomuotoinen itsetuhoinen ilmaus →
+  varmistuskysymys.
+- **Oireiden käsittely**: tietopohjassa 20 oiretta jatkokysymyksineen ja yleisine
+  kotihoito-ohjeineen. Oire käsitellään ennen kysymyslistaa; malli saa ohjeet tietopohjasta
+  eikä keksi omia. Ei diagnooseja eikä lääkeneuvoja ("Välitän tämän hoitajalle").
+- **Lääkemuutoksen noudattaminen**: jos henkilö kertoo esim. jatkaneensa lopetettua lääkettä,
+  tilanne merkitään keltaiseksi ja lopetuslause lupaa hoitajan soiton samana päivänä. Agentti
+  ei moiti eikä kysele syytä.
+- **Muisti**: agentti kysyy edellisessä puhelussa kerrotusta oireesta (enintään
+  `MUISTI_PAIVAT` päivää vanha), ja vastaus luokitellaan säännöllä: poistunut, lievittynyt,
+  ennallaan, pahentunut tai epäselvä. Jatkuva oire nostaa tason keltaiseksi.
+- **Erikoistilanteet**: hoitajapyyntö, "kuka soittaa" ja "mikä lääke" -kysymykset vakiovastauksin
+  (`fraasit.json`), toistopyyntö, lopetuspyyntö (lopetus heti), loukkaukset (kolmannella
+  kerralla lopetus), ei aikaa nyt.
+- **Puhelun lopetuksen estot** (`puhelu/lopetus.py`): malli ei saa lopettaa, jos henkilö kysyi
+  juuri jotain, oire on kesken, vointi on huono tai kysymyslista kesken.
+- **Viiveen hallinta**: välitäytteet ("Hetkinen...") 6 s ja sen jälkeen 9 s välein, mallin
+  lämmitys soiton alkaessa ja lämmitysvahti taustalla. Jos malli ei vastaa ajoissa, puhelu
+  jatkuu varatoiminnalla kiinteillä kysymyksillä.
+- **Relayn puheen luokittelu**: AI:n oman puheen kaiku hylätään, AI:n puheen päälle alkanut
+  puhe ohitetaan, tauko kesken lauseen yhdistetään samaan vuoroon, ja hiljaisuusvahti toistaa
+  kysymyksen 15 s kuluttua (toisella kerralla lopetus).
+- **Ikäihmiselle sopiva puhe**: sinuttelu, lyhyet lauseet, ikäluokan mukainen puhetapa,
+  numerot luetaan numero kerrallaan, pitkä puheen tauko (1,5 s).
+- **Mallin suomen laatu**: toistuvat kielivirheet korjataan ennen puhetta
+  (`kielikorjaukset.json`), ja Voikko kirjaa epävarmat sanat lokiin.
+- **Puhelun lopputulos** tallentuu luokkana: valmis, hätämerkki, haluaa hoitajan, ei lupaa,
+  ei vastausta, keskeytyi, ei vastannut, lopetti tai tuki.
+
+### 3. Triage
+
+- **Sääntötaso heti** puhelun päätyttyä (`triage/saannot.py`): vihreä (kirjataan), keltainen
+  (hoitaja soittaa tänään) tai punainen (heti), perusteluineen.
+- **LLM-analyysi taustalla** (`triage/analyysi.py`): rakenteinen yhteenveto (oire, voimakkuus,
+  alkoiko lääkkeen jälkeen, yleisvointi, lääkkeen käyttö, varmuus). Lopullinen taso on
+  korkeampi säännön ja mallin tasoista, joten malli ei voi laskea sääntöjen tasoa.
+- **Varayhteenveto**: jos analyysi epäonnistuu, hoitaja näkee sääntöjen yhteenvedon.
+- Analyysi odottaa, kunnes puheluita ei ole käynnissä, jotta se ei hidasta puhelun vuoroja.
+
+### 4. Hoitajan näkymä (`/hoitaja/`)
+
+- **Takaisinsoittojono** kiireellisyysjärjestyksessä: taso, peruste, nimi ja tila.
+- **Tapaussivu**: yhteenveto, "miksi keltainen" -perusteet, puhelun lopputulos, edellinen
+  puhelu ja oireen muutos, oirehistoria sekä linkki potilassivulle.
+- **Tilan vaihto** (`PATCH /hoitaja/tapaukset/{id}/tila`): hoitaja kuittaa tai peruu tehtävän.
+- **Potilaslista** (`/hoitaja/potilaat/`): henkilöt, joilla on soittotehtäviä, tuorein ensin.
+- **Potilassivu** (`/hoitaja/potilaat/{vanhus_id}`): perustiedot ja käytössä olevat lääkkeet
+  adapterista, soittohistoria ja soittotehtävät.
+- **"Oireet puheluissa" -kaavio** (ECharts): saman henkilön kaikkien puhelujen oireet
+  aikajanalla. Mallin vapaat oirenimet yhtenäistetään säännöllä ("tosi vaikeat päänkiput" →
+  päänsärky).
+- **Katseluloki**: jokainen tapaus- ja potilassivun avaus kirjataan.
+- Litterointia ei näytetä eikä tallenneta (datan minimointi).
+
+### 5. Kehitys- ja demotyökalut
+
+- **Dev-reitit** (vain `DEV_TILA=true`): testimuutos demodataan ja sen nollaus, jonon nollaus,
+  demonumeron asetus, synteettisten henkilötietojen täyttö, testisoitto, koko keskustelun
+  testisoitto ja tulokset sekä puheentunnistuksen kaikutesti.
+- **Esitarkistus ennen demoa** (`scripts/esitarkistus.py --lammita`): asetukset, tunneli
+  julkisen osoitteen kautta, jono, malli, muisti ja Twilio. Virhe = paluukoodi 1.
+- **Puheluloki** (`PUHELU_LOKI=true`) ja sen aikajanan luku (`scripts/puheluloki.py`).
+- **Demodatan luonti**: puhelujen yhteenvedot (`scripts/luo_demo_yhteenvedot.py`) ja
+  oirehistoria (`scripts/luo_demo_oirehistoria.py`).
+- **Mallin arviointi**: 8 skenaarion keskusteluarviointi (`scripts/arvioi_keskustelut.py`) ja
+  synteettinen testipankki simulaattoreineen (`backend/arviointi/`).
+- **Rajapintadokumentaatio**: `http://127.0.0.1:8000/docs` (Swagger), terveystarkistus
+  `GET /terveys`.
 
 ---
 
