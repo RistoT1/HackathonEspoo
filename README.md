@@ -1,3 +1,7 @@
+# Puhelun Demo esitys!!!
+
+https://drive.google.com/file/d/1RkReNimeM9_mGRus30yAyqKGouU2tefu/view?usp=sharing
+
 # Agenttinen hyvinvointikumppani
 
 SOTE AI Hackathon 2026 · Haaste 3.1 Jatkuva ja ennakoiva omahoidon tuki
