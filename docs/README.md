@@ -1,6 +1,6 @@
 # Tekninen dokumentaatio: tietoturva, mallit, toimivuus ja rakenne
 
-Agenttinen hyvinvointikumppani · SOTE AI Hackathon 2026, haaste 3.1
+Agenttinen hyvinvointikumppani · SOTE AI Hackathon 2026, haaste 3.1  
 Tiimi: Savon Ammattiopisto (Risto, Justus, Jere)
 
 Tämä dokumentti kokoaa yhteen, **mitä koodissa on oikeasti toteutettu**. Projektin yleiskuva ja käynnistysohjeet: [../README.md](../README.md).
