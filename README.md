@@ -1,9 +1,3 @@
-# Puhelun Demo esitys!!!
-
-https://drive.google.com/file/d/1RkReNimeM9_mGRus30yAyqKGouU2tefu/view?usp=sharing
-<br><br>
-<br><br>
-<br><br>
 
 # Agenttinen hyvinvointikumppani
 
